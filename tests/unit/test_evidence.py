@@ -1,0 +1,52 @@
+"""Evidence-domain invariant tests."""
+
+from datetime import timedelta
+
+import pytest
+from pydantic import ValidationError
+
+from asymmetric_engine.domain.evidence import Claim, ClaimType, Confidence, DataQuality
+from tests.factories import BASE_TIME, make_evidence
+
+
+def test_evidence_rejects_recording_before_availability() -> None:
+    with pytest.raises(ValidationError, match="recorded_at"):
+        make_evidence(recorded_at=BASE_TIME - timedelta(seconds=1))
+
+
+def test_evidence_requires_timezone_aware_timestamps() -> None:
+    with pytest.raises(ValidationError):
+        make_evidence(available_at=BASE_TIME.replace(tzinfo=None))
+
+
+def test_data_quality_rejects_duplicate_missing_fields() -> None:
+    with pytest.raises(ValidationError, match="duplicate"):
+        DataQuality(
+            coverage=0.5,
+            source_reliability=0.5,
+            point_in_time_integrity=0.5,
+            missing_fields=("revenue", "revenue"),
+        )
+
+
+def test_claim_requires_explicit_evidence() -> None:
+    with pytest.raises(ValidationError, match="at least one"):
+        Claim(
+            text="An unsupported material claim.",
+            claim_type=ClaimType.HYPOTHESIS,
+            evidence_ids=(),
+            confidence=Confidence(score=0.2, rationale="Preliminary idea."),
+            invalidation_condition="Contradictory primary evidence appears.",
+        )
+
+
+def test_claim_rejects_duplicate_evidence_references() -> None:
+    evidence = make_evidence()
+    with pytest.raises(ValidationError, match="duplicate"):
+        Claim(
+            text="The same source must not count twice.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=(evidence.evidence_id, evidence.evidence_id),
+            confidence=Confidence(score=0.9, rationale="Single primary source."),
+            invalidation_condition="The primary source is corrected.",
+        )
