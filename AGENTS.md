@@ -18,8 +18,10 @@ These instructions apply to every automated contributor working in this reposito
 
 ## Epistemic and financial safety
 
-- Preserve `effective_at`, `available_at`, `recorded_at`, and `as_of` semantics.
+- Preserve `effective_at`, `available_at`, `recorded_at`, `as_of`, and `knowledge_mode`
+  semantics.
 - Never make future data visible to a historical calculation.
+- Never treat evidence ingested after `as_of` as present in a live-system replay.
 - Never invent missing values or silently forward-fill event data.
 - Keep observed data, statistical results, inferences, hypotheses, and judgements distinct.
 - Every material claim needs provenance, confidence, and explicit invalidation conditions.
@@ -47,4 +49,12 @@ uv run pytest
 uv run asymmetric-engine doctor
 ```
 
-If a check cannot run, report the exact blocker; do not claim success.
+Container changes must also pass:
+
+```bash
+docker build --tag asymmetric-insight-engine:check .
+docker run --rm asymmetric-insight-engine:check
+```
+
+If a local check cannot run, report the exact blocker and rely only on the corresponding green
+CI job; do not claim local success.

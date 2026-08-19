@@ -1,11 +1,16 @@
 """Command-line interface tests."""
 
 import json
+from importlib.metadata import version
 
 import pytest
 
 from asymmetric_engine import __version__
 from asymmetric_engine.cli import doctor_payload, main
+
+
+def test_package_version_comes_from_distribution_metadata() -> None:
+    assert __version__ == version("asymmetric-insight-engine")
 
 
 def test_doctor_payload_is_machine_readable() -> None:

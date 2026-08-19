@@ -23,13 +23,20 @@ ThesisSummary = Annotated[str, StringConstraints(strip_whitespace=True, min_leng
 
 
 class OpportunityStatus(StrEnum):
-    """Research and capital-readiness state; it is not a buy/sell signal."""
+    """Research readiness state; portfolio allocation remains a downstream decision."""
 
     OBSERVE = "observe"
     INVESTIGATE = "investigate"
     ELIGIBLE = "eligible"
-    ALLOCATABLE = "allocatable"
+    READY_FOR_PORTFOLIO_REVIEW = "ready_for_portfolio_review"
     INVALIDATED = "invalidated"
+
+
+class KnowledgeMode(StrEnum):
+    """Knowledge boundary used to evaluate point-in-time evidence."""
+
+    HISTORICAL_RECONSTRUCTION = "historical_reconstruction"
+    LIVE_SYSTEM_REPLAY = "live_system_replay"
 
 
 class OpportunityState(BaseModel):
@@ -40,6 +47,7 @@ class OpportunityState(BaseModel):
     opportunity_id: UUID = Field(default_factory=uuid4)
     candidate_id: NonEmptyString
     as_of: AwareDatetime
+    knowledge_mode: KnowledgeMode
     status: OpportunityStatus
     thesis_summary: ThesisSummary
     evidence: tuple[EvidenceItem, ...]
@@ -65,11 +73,22 @@ class OpportunityState(BaseModel):
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("duplicate evidence records are not allowed")
 
+        claim_ids = [claim.claim_id for claim in self.claims]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("duplicate claim records are not allowed")
+
         future_evidence = [
             item.evidence_id for item in self.evidence if item.available_at > self.as_of
         ]
         if future_evidence:
             raise ValueError("opportunity contains evidence unavailable at as_of")
+
+        if self.knowledge_mode is KnowledgeMode.LIVE_SYSTEM_REPLAY:
+            unrecorded_evidence = [
+                item.evidence_id for item in self.evidence if item.recorded_at > self.as_of
+            ]
+            if unrecorded_evidence:
+                raise ValueError("live replay contains evidence not recorded at as_of")
 
         known_ids = set(evidence_ids)
         referenced_ids = {
@@ -78,11 +97,15 @@ class OpportunityState(BaseModel):
         if not referenced_ids.issubset(known_ids):
             raise ValueError("claim references evidence absent from the opportunity")
 
-        if self.status in {OpportunityStatus.ELIGIBLE, OpportunityStatus.ALLOCATABLE}:
+        review_ready_statuses = {
+            OpportunityStatus.ELIGIBLE,
+            OpportunityStatus.READY_FOR_PORTFOLIO_REVIEW,
+        }
+        if self.status in review_ready_statuses:
             if not self.evidence or not self.claims:
-                raise ValueError("capital-ready opportunities require evidence and claims")
+                raise ValueError("review-ready opportunities require evidence and claims")
             if not self.invalidation_conditions:
-                raise ValueError("capital-ready opportunities require invalidation conditions")
+                raise ValueError("review-ready opportunities require invalidation conditions")
 
         if self.status is OpportunityStatus.INVALIDATED and self.invalidation_reason is None:
             raise ValueError("invalidated opportunities require an invalidation_reason")

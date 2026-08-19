@@ -26,7 +26,8 @@ without replacing the causal thesis.
 
 ## Non-negotiable principles
 
-- Every decision is evaluated using only information available at its `as_of` timestamp.
+- Every decision declares whether it is a historical reconstruction or a live-system replay and
+  is evaluated against the corresponding `as_of` knowledge boundary.
 - Observation, statistical result, inference, hypothesis, and qualitative judgement stay distinct.
 - Missing or conflicting evidence remains visible.
 - Eligibility gates precede ranking; there is no universal magic score.
@@ -37,12 +38,13 @@ without replacing the causal thesis.
 ## Current status
 
 Chapter 2: engineering foundation. The repository currently provides domain contracts,
-architecture decisions, a diagnostic CLI, and automated quality gates. Financial ingestion,
-signals, portfolio logic, and user interfaces will be delivered in later vertical slices.
+architecture decisions, a diagnostic CLI, a reproducible container, and automated quality
+gates. Financial ingestion, signals, portfolio logic, and user interfaces will be delivered in
+later vertical slices.
 
 ## Quick start
 
-Requirements: Python 3.12 and `uv`.
+Requirements: Python 3.12 or 3.13 and `uv`.
 
 ```bash
 uv sync --locked --all-groups
@@ -51,6 +53,13 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy src tests
 uv run pytest
+```
+
+Or build and diagnose the same runtime boundary used by CI:
+
+```bash
+docker build --tag asymmetric-insight-engine:local .
+docker run --rm asymmetric-insight-engine:local
 ```
 
 ## Repository map
@@ -62,4 +71,10 @@ uv run pytest
 - `docs`: system constitution, architecture, and Architecture Decision Records.
 - `tests`: unit, contract, integration, and architecture tests.
 
+The Market Screener remains a separate consumer of shared contracts. The Quantum Cycle Model is
+an experimental adapter, not the engine core. See
+[`ADR 0005`](docs/adr/0005-adjacent-applications-and-experimental-models.md).
+
 See `CONTRIBUTING.md` for the development workflow and `AGENTS.md` for agent-specific rules.
+Required repository-level protections are recorded in
+[`docs/github-governance.md`](docs/github-governance.md).

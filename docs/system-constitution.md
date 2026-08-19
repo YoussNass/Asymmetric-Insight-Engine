@@ -76,6 +76,10 @@ Every material statement is classified as one of:
 Every decision must expose its evidence, confidence, missing data, conflicting signals, and
 invalidation conditions. The system may return `insufficient evidence` or `no allocation`.
 
+Every analytical state must also declare its temporal knowledge mode. Historical reconstruction
+uses only source versions publicly knowable by `as_of`; live-system replay additionally uses only
+records actually ingested by `as_of`. The two modes must never be silently interchanged.
+
 ## Scoring contract
 
 The canonical sequence is:

@@ -34,8 +34,28 @@ Evidence distinguishes:
 - `recorded_at`: when the system ingested it;
 - `as_of`: the decision-time boundary.
 
-Historical calculations may consume only evidence with `available_at <= as_of`. Restatements and
-backfills create new records or versions rather than silently rewriting prior knowledge.
+Every opportunity state must declare one of two knowledge modes:
+
+- `historical_reconstruction`: evidence must satisfy `available_at <= as_of`; a later ingestion
+  is permitted only because the calculation reconstructs what was publicly knowable then;
+- `live_system_replay`: evidence must satisfy both `available_at <= as_of` and
+  `recorded_at <= as_of`, reproducing what this system had actually acquired by that time.
+
+There is no implicit default mode. Restatements and backfills create new records or versions
+rather than silently rewriting prior knowledge.
+
+## Underwriting-to-portfolio boundary
+
+Underwriting may mark an opportunity `ready_for_portfolio_review`. It cannot declare it
+allocatable: sizing and allocation require portfolio-level capital, correlation, concentration,
+liquidity, risk, and tax context owned by the Portfolio and Capital Allocation module.
+
+## Adjacent applications and experiments
+
+The Market Screener is a separate application that consumes stable engine contracts and must not
+duplicate their financial logic. The Quantum Cycle Model is an experimental use-case adapter,
+not a dependency or organising principle of the core. The durable decision is recorded in
+[ADR 0005](adr/0005-adjacent-applications-and-experimental-models.md).
 
 ## Initial persistence direction
 

@@ -9,6 +9,14 @@
 5. Open a draft pull request with rationale, impact, validation, and limitations.
 6. Merge only after explicit approval and green required checks.
 
+The CI matrix validates Python 3.12 and 3.13. It also builds the production container and runs
+the diagnostic command inside it. When Docker is available locally, reproduce that check with:
+
+```bash
+docker build --tag asymmetric-insight-engine:check .
+docker run --rm asymmetric-insight-engine:check
+```
+
 ## Commit style
 
 Use concise conventional prefixes where helpful:
@@ -24,7 +32,7 @@ Use concise conventional prefixes where helpful:
 A change is complete only when:
 
 - behavior and edge cases are tested;
-- point-in-time semantics remain valid;
+- reconstruction and live-replay point-in-time semantics remain valid;
 - type checking, linting, formatting, and tests pass;
 - no secret or restricted dataset is introduced;
 - documentation matches the implementation;
