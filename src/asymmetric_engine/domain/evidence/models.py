@@ -16,6 +16,11 @@ from pydantic import (
     model_validator,
 )
 
+from asymmetric_engine.domain.temporal import (
+    KnowledgeBoundary,
+    KnowledgeExclusionReason,
+)
+
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
@@ -101,6 +106,21 @@ class EvidenceItem(BaseModel):
         if self.recorded_at < self.available_at:
             raise ValueError("recorded_at must be greater than or equal to available_at")
         return self
+
+    def knowledge_exclusion_reason(
+        self, boundary: KnowledgeBoundary
+    ) -> KnowledgeExclusionReason | None:
+        """Explain whether this evidence was knowable inside a decision boundary."""
+
+        return boundary.exclusion_reason(
+            available_at=self.available_at,
+            recorded_at=self.recorded_at,
+        )
+
+    def is_knowable_at(self, boundary: KnowledgeBoundary) -> bool:
+        """Apply the shared temporal contract rather than context-specific filtering."""
+
+        return self.knowledge_exclusion_reason(boundary) is None
 
 
 class Claim(BaseModel):

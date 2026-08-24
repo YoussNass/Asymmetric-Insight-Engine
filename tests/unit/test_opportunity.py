@@ -12,6 +12,7 @@ from asymmetric_engine.domain.opportunity import (
     OpportunityState,
     OpportunityStatus,
 )
+from asymmetric_engine.domain.temporal import KnowledgeMode as CanonicalKnowledgeMode
 from tests.factories import BASE_TIME, make_claim, make_evidence
 
 
@@ -44,6 +45,10 @@ def test_opportunity_requires_explicit_knowledge_mode() -> None:
 
     with pytest.raises(ValidationError, match="knowledge_mode"):
         OpportunityState.model_validate(payload)
+
+
+def test_opportunity_reexports_the_canonical_knowledge_mode() -> None:
+    assert KnowledgeMode is CanonicalKnowledgeMode
 
 
 def test_opportunity_rejects_future_evidence() -> None:

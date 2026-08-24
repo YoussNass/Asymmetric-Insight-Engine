@@ -15,6 +15,11 @@ These instructions apply to every automated contributor working in this reposito
 - External services, databases, AI models, and data vendors belong behind infrastructure ports.
 - User interfaces must call application use cases rather than contain financial logic.
 - Shared facts must have one canonical owner; do not duplicate scoring across engines.
+- The Temporal shared kernel owns `KnowledgeMode` and decision-time filtering for every context.
+- Underwriting owns standalone opportunity state; Portfolio may consume but never recreate or
+  mutate it.
+- Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,
+  and execution as separate contracts.
 
 ## Epistemic and financial safety
 
@@ -25,6 +30,9 @@ These instructions apply to every automated contributor working in this reposito
 - Never invent missing values or silently forward-fill event data.
 - Keep observed data, statistical results, inferences, hypotheses, and judgements distinct.
 - Every material claim needs provenance, confidence, and explicit invalidation conditions.
+- Do not introduce active default weights, thresholds, scores, or sizing rules without an
+  explicit method version, calibration status, component output, and documented evidence.
+- Missing correlation or classification evidence is unknown, never zero risk or diversification.
 - Never add live brokerage execution without an approved ADR and explicit user authorization.
 - Never commit credentials, personal portfolio exports, licensed datasets, or vendor payloads.
 

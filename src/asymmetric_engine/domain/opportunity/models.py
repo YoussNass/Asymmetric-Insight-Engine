@@ -17,6 +17,11 @@ from pydantic import (
 )
 
 from asymmetric_engine.domain.evidence import Claim, EvidenceItem
+from asymmetric_engine.domain.temporal import (
+    KnowledgeBoundary,
+    KnowledgeExclusionReason,
+    KnowledgeMode,
+)
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 ThesisSummary = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20)]
@@ -30,13 +35,6 @@ class OpportunityStatus(StrEnum):
     ELIGIBLE = "eligible"
     READY_FOR_PORTFOLIO_REVIEW = "ready_for_portfolio_review"
     INVALIDATED = "invalidated"
-
-
-class KnowledgeMode(StrEnum):
-    """Knowledge boundary used to evaluate point-in-time evidence."""
-
-    HISTORICAL_RECONSTRUCTION = "historical_reconstruction"
-    LIVE_SYSTEM_REPLAY = "live_system_replay"
 
 
 class OpportunityState(BaseModel):
@@ -69,6 +67,11 @@ class OpportunityState(BaseModel):
     def validate_point_in_time_and_references(self) -> Self:
         """Enforce provenance, temporal availability, and readiness invariants."""
 
+        boundary = KnowledgeBoundary(
+            as_of=self.as_of,
+            knowledge_mode=self.knowledge_mode,
+        )
+
         evidence_ids = [item.evidence_id for item in self.evidence]
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("duplicate evidence records are not allowed")
@@ -77,18 +80,24 @@ class OpportunityState(BaseModel):
         if len(claim_ids) != len(set(claim_ids)):
             raise ValueError("duplicate claim records are not allowed")
 
+        exclusions = {
+            item.evidence_id: item.knowledge_exclusion_reason(boundary) for item in self.evidence
+        }
         future_evidence = [
-            item.evidence_id for item in self.evidence if item.available_at > self.as_of
+            evidence_id
+            for evidence_id, reason in exclusions.items()
+            if reason is KnowledgeExclusionReason.SOURCE_NOT_AVAILABLE
         ]
         if future_evidence:
             raise ValueError("opportunity contains evidence unavailable at as_of")
 
-        if self.knowledge_mode is KnowledgeMode.LIVE_SYSTEM_REPLAY:
-            unrecorded_evidence = [
-                item.evidence_id for item in self.evidence if item.recorded_at > self.as_of
-            ]
-            if unrecorded_evidence:
-                raise ValueError("live replay contains evidence not recorded at as_of")
+        unrecorded_evidence = [
+            evidence_id
+            for evidence_id, reason in exclusions.items()
+            if reason is KnowledgeExclusionReason.RECORD_NOT_INGESTED
+        ]
+        if unrecorded_evidence:
+            raise ValueError("live replay contains evidence not recorded at as_of")
 
         known_ids = set(evidence_ids)
         referenced_ids = {

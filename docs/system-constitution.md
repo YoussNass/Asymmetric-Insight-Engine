@@ -80,6 +80,27 @@ Every analytical state must also declare its temporal knowledge mode. Historical
 uses only source versions publicly knowable by `as_of`; live-system replay additionally uses only
 records actually ingested by `as_of`. The two modes must never be silently interchanged.
 
+The Temporal shared kernel is the canonical owner of this boundary. Evidence, Opportunity,
+Market State, Portfolio, Execution, and Learning must consume it rather than define local time
+filters or import temporal semantics from one another.
+
+## Canonical analytical ownership
+
+The decision chain has five non-interchangeable state boundaries:
+
+1. Investment Underwriting owns the standalone opportunity assessment.
+2. Portfolio Exposure owns descriptive instrument look-through and evidence-backed economic
+   dependencies.
+3. Portfolio Fit measures how an unchanged standalone opportunity interacts with the current
+   portfolio.
+4. Marginal Allocation compares explicit before/after states, constraints, frictions, and other
+   eligible uses of capital.
+5. Execution owns staging and implementation after an allocation decision.
+
+No downstream context may recreate, overwrite, or silently rescore an upstream state. Instrument
+containment and economic causality are separate graph layers: a shared ticker, fund constituent,
+theme, or label is not by itself evidence of a causal dependency.
+
 ## Scoring contract
 
 The canonical sequence is:
@@ -91,6 +112,10 @@ Eligibility gates -> multidimensional state vector -> calibrated scenarios
 
 There is no universal score whose increase always means a better investment. Higher momentum,
 for example, can represent either healthy expansion or euphoria depending on regime and price.
+
+Any contextual scalar must identify its policy and method version, calibration status, component
+vector, eligibility gate, missing inputs, assumptions, and before/after deltas. An uncalibrated
+heuristic is an experiment, not an active allocation default.
 
 ## Version 1 scope
 

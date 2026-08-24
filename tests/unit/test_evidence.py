@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from asymmetric_engine.domain.evidence import Claim, ClaimType, Confidence, DataQuality
+from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from tests.factories import BASE_TIME, make_evidence
 
 
@@ -50,3 +51,22 @@ def test_claim_rejects_duplicate_evidence_references() -> None:
             confidence=Confidence(score=0.9, rationale="Single primary source."),
             invalidation_condition="The primary source is corrected.",
         )
+
+
+def test_evidence_uses_the_shared_knowledge_boundary() -> None:
+    evidence = make_evidence(
+        available_at=BASE_TIME - timedelta(days=1),
+        recorded_at=BASE_TIME + timedelta(days=1),
+    )
+
+    reconstruction = KnowledgeBoundary(
+        as_of=BASE_TIME,
+        knowledge_mode=KnowledgeMode.HISTORICAL_RECONSTRUCTION,
+    )
+    replay = KnowledgeBoundary(
+        as_of=BASE_TIME,
+        knowledge_mode=KnowledgeMode.LIVE_SYSTEM_REPLAY,
+    )
+
+    assert evidence.is_knowable_at(reconstruction)
+    assert not evidence.is_knowable_at(replay)
