@@ -28,6 +28,8 @@ These instructions apply to every automated contributor working in this reposito
 - Never make future data visible to a historical calculation.
 - Never treat evidence ingested after `as_of` as present in a live-system replay.
 - Never invent missing values or silently forward-fill event data.
+- Never describe locally known source versions as universe completeness without an authoritative
+  expected-source manifest.
 - Keep observed data, statistical results, inferences, hypotheses, and judgements distinct.
 - Every material claim needs provenance, confidence, and explicit invalidation conditions.
 - Do not introduce active default weights, thresholds, scores, or sizing rules without an
@@ -35,6 +37,8 @@ These instructions apply to every automated contributor working in this reposito
 - Missing correlation or classification evidence is unknown, never zero risk or diversification.
 - Never add live brokerage execution without an approved ADR and explicit user authorization.
 - Never commit credentials, personal portfolio exports, licensed datasets, or vendor payloads.
+- Provider tests and CI use deterministic fixtures; live provider access must be an explicit outer
+  interface operation.
 
 ## Change workflow
 

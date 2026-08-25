@@ -92,9 +92,12 @@ def test_sqlite_round_trip_preserves_exact_content_across_restart(tmp_path: Path
 
     assert inserted.status is AppendStatus.INSERTED
     assert restarted.list_by_subject("company:testco") == (inserted.document,)
+    assert restarted.get(inserted.document.document_id) == inserted.document
     assert restarted.read_content(inserted.document.document_id) == make_draft().content
     with pytest.raises(KeyError):
         repository.read_content(inserted.document.document_id.__class__(int=0))
+    with pytest.raises(KeyError):
+        repository.get(inserted.document.document_id.__class__(int=0))
 
 
 def test_reingestion_is_idempotent_and_preserves_first_recorded_at(tmp_path: Path) -> None:

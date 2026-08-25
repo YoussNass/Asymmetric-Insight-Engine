@@ -192,6 +192,18 @@ class SQLiteSourceDocumentRepository:
             ).fetchall()
         return tuple(self._document_from_row(row) for row in rows)
 
+    def get(self, document_id: UUID) -> SourceDocument:
+        """Return immutable metadata for one exact source document."""
+
+        with closing(self._connect()) as connection, connection:
+            row = connection.execute(
+                f"SELECT * FROM {TABLE_NAME} WHERE document_id = ?",
+                (str(document_id),),
+            ).fetchone()
+        if row is None:
+            raise KeyError(document_id)
+        return self._document_from_row(row)
+
     def read_content(self, document_id: UUID) -> bytes:
         """Return exact source bytes for audit and deterministic reprocessing."""
 

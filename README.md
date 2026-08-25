@@ -37,10 +37,12 @@ without replacing the causal thesis.
 
 ## Current status
 
-Chapter 2 is complete. Chapter 3 starts with an append-only, version-aware source-document ledger
-and point-in-time query use case backed by synthetic fixtures and a SQLite reference adapter.
-Real providers, financial transformations, signals, portfolio logic, and user interfaces remain
-outside this first Data and Evidence vertical slice.
+Chapter 2 is complete. Chapter 3 establishes an append-only, version-aware source-document ledger,
+canonical point-in-time queries, a narrowly admitted SEC EDGAR periodic-filing adapter, and
+controlled evidence operations. SQLite remains a local/reference persistence adapter.
+
+Financial extraction, signals, portfolio logic, order execution, filing discovery, and a complete
+user interface remain outside Chapter 3.
 
 ## Quick start
 
@@ -54,6 +56,49 @@ uv run ruff format --check .
 uv run mypy src tests
 uv run pytest
 ```
+
+### Controlled SEC evidence operations
+
+Declare the SEC-required application identity and a monitored contact in your local environment.
+Never commit the real value; the address below is only a placeholder:
+
+```bash
+export AIE_SEC_USER_AGENT="AIE-Research your-contact@example.com"
+```
+
+Ingest one exact filing reference into a local append-only ledger:
+
+```bash
+uv run asymmetric-engine evidence ingest-sec \
+  --database ./evidence-ledger.sqlite3 \
+  --reference 0000320193/0000320193-24-000123
+```
+
+Query what AIE had actually ingested by a decision time:
+
+```bash
+uv run asymmetric-engine evidence list \
+  --database ./evidence-ledger.sqlite3 \
+  --subject company:sec-cik-0000320193 \
+  --as-of 2026-08-25T18:00:00+00:00 \
+  --knowledge-mode live_system_replay
+```
+
+Use `evidence coverage` with the same boundary arguments to inspect known-version exclusions and
+temporal-provenance warnings. Verify an exact stored document with:
+
+```bash
+uv run asymmetric-engine evidence verify \
+  --database ./evidence-ledger.sqlite3 \
+  --document-id <UUID>
+```
+
+All completed operations emit machine-readable JSON. Exit code `0` means success, `2` means an
+invalid request, missing record, storage failure, or partial batch failure, and `3` means integrity
+verification detected altered bytes.
+
+The coverage command describes only versions already known to the ledger. It does not prove that
+the filing universe is complete.
 
 Or build and diagnose the same runtime boundary used by CI:
 

@@ -8,6 +8,7 @@ from urllib.request import Request
 
 import pytest
 
+from asymmetric_engine.application.evidence_ingestion import InvalidSourceReferenceError
 from asymmetric_engine.domain.evidence import AvailabilityBasis, SourceType
 from asymmetric_engine.infrastructure.providers import sec_edgar
 from asymmetric_engine.infrastructure.providers.sec_edgar import (
@@ -79,7 +80,7 @@ def test_amendment_keeps_record_identity_but_has_a_distinct_version() -> None:
     ["", "AAPL/0000320193-24-000123", "0320193/invalid", "320193", "0/0000320193-24-000123"],
 )
 def test_sec_provider_rejects_noncanonical_references(reference: str) -> None:
-    with pytest.raises(ValueError, match="SEC reference"):
+    with pytest.raises(InvalidSourceReferenceError, match="SEC reference"):
         SecEdgarProvider(lambda _: filing_bytes()).fetch(reference)
 
 
@@ -90,6 +91,10 @@ def test_sec_provider_rejects_noncanonical_references(reference: str) -> None:
         (filing_bytes(cik="0000000001"), "CIK"),
         (filing_bytes(report_date="20241399"), "period-of-report"),
         (b"<SEC-DOCUMENT>\n<ACCESSION-NUMBER>0000320193-24-000123", "CENTRAL-INDEX-KEY"),
+        (
+            filing_bytes().replace(b"Example Corp", b"Example \xff Corp"),
+            "valid UTF-8",
+        ),
     ],
 )
 def test_sec_provider_fails_closed_on_inconsistent_headers(content: bytes, message: str) -> None:
@@ -103,8 +108,14 @@ def test_sec_provider_rejects_forms_outside_the_admitted_slice() -> None:
 
 
 class FakeResponse:
-    def __init__(self, content: bytes, content_length: str | None = None) -> None:
+    def __init__(
+        self,
+        content: bytes,
+        content_length: str | None = None,
+        final_url: str = "https://www.sec.gov/Archives/edgar/data/1/filing.txt",
+    ) -> None:
         self._content = content
+        self._final_url = final_url
         self.headers = Message()
         if content_length is not None:
             self.headers["Content-Length"] = content_length
@@ -117,6 +128,9 @@ class FakeResponse:
 
     def read(self, limit: int) -> bytes:
         return self._content[:limit]
+
+    def geturl(self) -> str:
+        return self._final_url
 
 
 def test_http_fetcher_declares_identity_and_preserves_bytes(
@@ -164,9 +178,11 @@ def test_http_fetcher_enforces_a_conservative_request_interval(
     ("response", "message"),
     [
         (FakeResponse(b"abc", "invalid"), "Content-Length"),
+        (FakeResponse(b"abc", "-1"), "Content-Length"),
         (FakeResponse(b"abc", "101"), "size limit"),
         (FakeResponse(b"x" * 101), "size limit"),
         (FakeResponse(b""), "empty"),
+        (FakeResponse(b"abc", final_url="https://example.test/filing.txt"), "redirected"),
     ],
 )
 def test_http_fetcher_rejects_unusable_responses(

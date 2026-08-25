@@ -54,6 +54,9 @@ addressed by exact `CIK/accession` reference.
   retries remain outside this slice.
 - Missing fields, identity mismatches, unsupported forms, invalid dates, empty payloads, and access
   failures stop ingestion. They are never repaired with guessed values.
+- Amendments are additive versions. This adapter does not yet discover post-acceptance corrections
+  or provider removals; a future lifecycle monitor must append a separately sourced observation
+  and must never delete or rewrite the bytes AIE previously recorded.
 - CI uses synthetic SEC-format fixtures and never contacts sec.gov.
 
 ## Consequences
@@ -66,6 +69,8 @@ addressed by exact `CIK/accession` reference.
 - Exact historical public-availability reconstruction remains unresolved. A later slice may use a
   separately archived dissemination feed or another verifiable observation source, but must not
   rewrite already-recorded documents.
+- A locally retained filing is evidence of what AIE observed, not a claim that SEC still serves the
+  filing or that no later correction/removal event exists.
 - The adapter does not yet discover filings, resolve tickers, parse XBRL facts, schedule polling,
   retry requests, or produce claims.
 

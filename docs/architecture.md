@@ -72,6 +72,12 @@ and append-only source metadata. It exists to validate provider version identity
 restatement handling, and shared knowledge-boundary queries. It is not a production persistence
 decision and does not change the PostgreSQL, immutable snapshot, Parquet, and DuckDB direction.
 
+The final Chapter 3 slice adds a controlled CLI around those application ports. Real SEC access is
+explicit, sequential, rate-limited, and configured through a declared local user agent. Tests and
+CI never contact providers. Integrity verification re-reads exact bytes; knowledge-coverage
+reporting describes only versions known to the ledger and cannot assert source-universe
+completeness without a separate expected-source manifest.
+
 ## AI boundary
 
 AI adapters may extract claims, entities, relations, or candidate hypotheses. Their output is

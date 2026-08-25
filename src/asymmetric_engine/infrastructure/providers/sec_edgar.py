@@ -11,6 +11,12 @@ from typing import cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from asymmetric_engine.application.evidence_ingestion import (
+    InvalidSourceReferenceError,
+    SourceProviderAccessError,
+    SourceProviderPayloadError,
+    UnsupportedSourceError,
+)
 from asymmetric_engine.domain.evidence import (
     AvailabilityBasis,
     SourceDocumentDraft,
@@ -23,15 +29,15 @@ REFERENCE_PATTERN = re.compile(r"^(?P<cik>[0-9]{1,10})/(?P<accession>[0-9]{10}-[
 CONTACT_PATTERN = re.compile(r"^[^\s]+\s+[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
-class ProviderAccessError(RuntimeError):
+class ProviderAccessError(SourceProviderAccessError):
     """Raised when an admitted provider cannot be reached or returns an unusable response."""
 
 
-class ProviderPayloadError(RuntimeError):
+class ProviderPayloadError(SourceProviderPayloadError):
     """Raised when provider bytes contradict the requested immutable identity."""
 
 
-class UnsupportedSecFilingError(ProviderPayloadError):
+class UnsupportedSecFilingError(UnsupportedSourceError):
     """Raised when a valid EDGAR submission is outside the deliberately narrow scope."""
 
 
@@ -91,6 +97,9 @@ class SecEdgarHttpFetcher:
         )
         try:
             with urlopen(request, timeout=self._timeout_seconds) as response:
+                final_url = cast(str, response.geturl())
+                if not final_url.startswith(f"{SEC_ARCHIVE_ROOT}/"):
+                    raise ProviderAccessError("SEC request redirected outside the admitted archive")
                 content_length = response.headers.get("Content-Length")
                 if content_length is not None:
                     try:
@@ -99,6 +108,8 @@ class SecEdgarHttpFetcher:
                         raise ProviderAccessError(
                             "SEC returned an invalid Content-Length header"
                         ) from error
+                    if declared_size < 0:
+                        raise ProviderAccessError("SEC returned an invalid Content-Length header")
                     if declared_size > self._max_payload_bytes:
                         raise ProviderAccessError("SEC filing exceeds the configured size limit")
                 content = cast(bytes, response.read(self._max_payload_bytes + 1))
@@ -126,18 +137,21 @@ class SecEdgarProvider:
         match = pattern.search(content, 0, min(len(content), 1_000_000))
         if match is None:
             raise ProviderPayloadError(f"SEC filing header is missing {field}")
-        return match.group(1).decode("utf-8", errors="strict").strip()
+        try:
+            return match.group(1).decode("utf-8", errors="strict").strip()
+        except UnicodeDecodeError as error:
+            raise ProviderPayloadError(f"SEC filing header {field} is not valid UTF-8") from error
 
     def fetch(self, reference: str) -> SourceDocumentDraft:
         """Fetch ``CIK/accession`` while preserving the complete submission bytes."""
 
         match = REFERENCE_PATTERN.fullmatch(reference)
         if match is None:
-            raise ValueError("SEC reference must use CIK/##########-##-######")
+            raise InvalidSourceReferenceError("SEC reference must use CIK/##########-##-######")
 
         cik_number = int(match.group("cik"))
         if cik_number == 0:
-            raise ValueError("SEC reference CIK must be positive")
+            raise InvalidSourceReferenceError("SEC reference CIK must be positive")
         cik = str(cik_number)
         cik_padded = cik.zfill(10)
         accession = match.group("accession")

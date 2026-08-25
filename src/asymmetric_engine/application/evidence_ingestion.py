@@ -37,6 +37,26 @@ class SourceVersionConflictError(RuntimeError):
     """Raised when a provider reuses one version identity for different content or metadata."""
 
 
+class SourceProviderError(RuntimeError):
+    """Base error for an expected failure at an external source boundary."""
+
+
+class SourceProviderAccessError(SourceProviderError):
+    """Raised when a source cannot be reached or returns an unusable response."""
+
+
+class SourceProviderPayloadError(SourceProviderError):
+    """Raised when source bytes contradict their requested immutable identity."""
+
+
+class UnsupportedSourceError(SourceProviderError):
+    """Raised when valid source material is outside an admitted provider capability."""
+
+
+class InvalidSourceReferenceError(ValueError):
+    """Raised when a source reference does not match its provider's public grammar."""
+
+
 class Clock(Protocol):
     """Injectable ingestion clock."""
 
@@ -59,6 +79,9 @@ class SourceDocumentRepository(Protocol):
 
     def list_by_subject(self, subject_id: str) -> tuple[SourceDocument, ...]:
         """Return every stored version for a canonical subject identity."""
+
+    def get(self, document_id: UUID) -> SourceDocument:
+        """Return immutable metadata for one exact source document."""
 
     def read_content(self, document_id: UUID) -> bytes:
         """Return the exact immutable payload used to compute the content hash."""
@@ -83,7 +106,7 @@ class IngestSourceDocument:
 
         normalized_reference = reference.strip()
         if not normalized_reference:
-            raise ValueError("reference must not be empty")
+            raise InvalidSourceReferenceError("reference must not be empty")
         draft = self._provider.fetch(normalized_reference)
         recorded_at = self._clock.now()
         available_at = (
@@ -92,7 +115,7 @@ class IngestSourceDocument:
             else draft.available_at
         )
         if available_at is None:  # pragma: no cover - guarded by the domain contract
-            raise ValueError("source draft does not establish an availability boundary")
+            raise AssertionError("source draft does not establish an availability boundary")
         identity = json.dumps(
             (draft.provider, draft.provider_record_id, draft.provider_version),
             ensure_ascii=False,
