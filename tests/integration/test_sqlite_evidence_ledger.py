@@ -15,7 +15,11 @@ from asymmetric_engine.application.evidence_ingestion import (
     ListSourceDocumentsAt,
     SourceVersionConflictError,
 )
-from asymmetric_engine.domain.evidence import SourceDocumentDraft, SourceType
+from asymmetric_engine.domain.evidence import (
+    AvailabilityBasis,
+    SourceDocumentDraft,
+    SourceType,
+)
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from asymmetric_engine.infrastructure.persistence import SQLiteSourceDocumentRepository
 from asymmetric_engine.infrastructure.persistence.sqlite_evidence_ledger import TABLE_NAME
@@ -49,6 +53,7 @@ def make_draft(**overrides: object) -> SourceDocumentDraft:
         "source_uri": "https://example.test/testco/2025-q1",
         "source_type": SourceType.FILING,
         "effective_at": BASE_TIME - timedelta(days=90),
+        "availability_basis": AvailabilityBasis.PROVIDER_ASSERTED,
         "available_at": BASE_TIME - timedelta(days=1),
         "media_type": "application/json",
         "content": b'{"revenue": 125000000}',
@@ -204,3 +209,40 @@ def test_repository_defends_content_metadata_and_file_backing(tmp_path: Path) ->
         )
     with pytest.raises(ValueError, match="file-backed"):
         SQLiteSourceDocumentRepository(":memory:")
+
+
+def test_repository_adds_availability_provenance_to_a_first_slice_database(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "first-slice.sqlite3"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            f"""
+            CREATE TABLE {TABLE_NAME} (
+                document_id TEXT PRIMARY KEY,
+                provider TEXT NOT NULL,
+                provider_record_id TEXT NOT NULL,
+                provider_version TEXT NOT NULL,
+                subject_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                source_uri TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                effective_at TEXT NOT NULL,
+                available_at TEXT NOT NULL,
+                recorded_at TEXT NOT NULL,
+                media_type TEXT NOT NULL,
+                content_hash TEXT NOT NULL,
+                content_size_bytes INTEGER NOT NULL CHECK (content_size_bytes > 0),
+                content BLOB NOT NULL,
+                UNIQUE (provider, provider_record_id, provider_version)
+            )
+            """
+        )
+
+    SQLiteSourceDocumentRepository(database_path)
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1] for row in connection.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall()
+        }
+    assert "availability_basis" in columns
