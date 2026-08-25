@@ -9,11 +9,13 @@ from asymmetric_engine.domain.evidence.models import (
     SourceType,
 )
 from asymmetric_engine.domain.evidence.source_documents import (
+    AvailabilityBasis,
     SourceDocument,
     SourceDocumentDraft,
 )
 
 __all__ = [
+    "AvailabilityBasis",
     "Claim",
     "ClaimType",
     "Confidence",

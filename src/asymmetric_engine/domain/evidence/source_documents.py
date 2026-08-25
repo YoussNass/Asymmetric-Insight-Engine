@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated, Self
 from uuid import UUID
 
@@ -29,6 +30,13 @@ SubjectId = Annotated[
 ]
 
 
+class AvailabilityBasis(StrEnum):
+    """How the source document's public-availability boundary was established."""
+
+    PROVIDER_ASSERTED = "provider_asserted"
+    OBSERVED_AT_INGESTION = "observed_at_ingestion"
+
+
 class SourceDocumentDraft(BaseModel):
     """Exact provider payload and immutable source-version metadata before ingestion."""
 
@@ -42,9 +50,21 @@ class SourceDocumentDraft(BaseModel):
     source_uri: NonEmptyString
     source_type: SourceType
     effective_at: AwareDatetime
-    available_at: AwareDatetime
+    availability_basis: AvailabilityBasis
+    available_at: AwareDatetime | None
     media_type: NonEmptyString = "application/octet-stream"
     content: bytes = Field(min_length=1, repr=False)
+
+    @model_validator(mode="after")
+    def validate_availability_evidence(self) -> Self:
+        """Require an explicit timestamp unless ingestion itself is the observation."""
+
+        if self.availability_basis is AvailabilityBasis.PROVIDER_ASSERTED:
+            if self.available_at is None:
+                raise ValueError("provider-asserted availability requires available_at")
+        elif self.available_at is not None:
+            raise ValueError("observed-at-ingestion availability must not provide available_at")
+        return self
 
 
 class SourceDocument(BaseModel):
@@ -61,6 +81,7 @@ class SourceDocument(BaseModel):
     source_uri: NonEmptyString
     source_type: SourceType
     effective_at: AwareDatetime
+    availability_basis: AvailabilityBasis
     available_at: AwareDatetime
     recorded_at: AwareDatetime
     media_type: NonEmptyString
@@ -93,6 +114,7 @@ class SourceDocument(BaseModel):
             self.source_uri,
             self.source_type,
             self.effective_at,
+            self.availability_basis,
             self.available_at,
             self.media_type,
             self.content_hash,

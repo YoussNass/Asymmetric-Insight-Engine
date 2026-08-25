@@ -34,5 +34,21 @@ without vendor credentials, licensing assumptions, or production infrastructure.
 - no claim extraction, fundamental calculation, score, signal, or allocation;
 - no licensed or personal dataset in the repository.
 
-The next slice may add one freely accessible provider only after its availability semantics,
-historical-version capability, rate limits, license, and failure behaviour are documented.
+## Second vertical slice: first real provider
+
+ADR 0008 proposes SEC EDGAR periodic filings as the first real provider. The slice adds:
+
+- a reusable provider-admission checklist;
+- exact `CIK/accession` references for complete submissions;
+- explicit record/version mapping for 10-K and 10-Q filings and amendments;
+- a declared-user-agent, timeout-bounded, payload-bounded HTTP fetcher;
+- fail-closed SEC header validation;
+- an explicit `availability_basis` contract.
+
+SEC does not expose a timestamp for first public availability. This adapter therefore records
+`available_at == recorded_at` with `availability_basis == observed_at_ingestion`. That policy is
+safe for live replay and conservative for historical backfills. It must not be silently replaced
+with the EDGAR acceptance timestamp.
+
+This slice does not add filing discovery, ticker resolution, XBRL extraction, scheduled polling,
+network calls in CI, or claims derived from filings.

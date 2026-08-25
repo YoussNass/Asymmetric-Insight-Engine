@@ -10,7 +10,11 @@ from hashlib import sha256
 from typing import Protocol
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from asymmetric_engine.domain.evidence import SourceDocument, SourceDocumentDraft
+from asymmetric_engine.domain.evidence import (
+    AvailabilityBasis,
+    SourceDocument,
+    SourceDocumentDraft,
+)
 from asymmetric_engine.domain.temporal import KnowledgeBoundary
 
 
@@ -81,6 +85,14 @@ class IngestSourceDocument:
         if not normalized_reference:
             raise ValueError("reference must not be empty")
         draft = self._provider.fetch(normalized_reference)
+        recorded_at = self._clock.now()
+        available_at = (
+            recorded_at
+            if draft.availability_basis is AvailabilityBasis.OBSERVED_AT_INGESTION
+            else draft.available_at
+        )
+        if available_at is None:  # pragma: no cover - guarded by the domain contract
+            raise ValueError("source draft does not establish an availability boundary")
         identity = json.dumps(
             (draft.provider, draft.provider_record_id, draft.provider_version),
             ensure_ascii=False,
@@ -96,8 +108,9 @@ class IngestSourceDocument:
             source_uri=draft.source_uri,
             source_type=draft.source_type,
             effective_at=draft.effective_at,
-            available_at=draft.available_at,
-            recorded_at=self._clock.now(),
+            availability_basis=draft.availability_basis,
+            available_at=available_at,
+            recorded_at=recorded_at,
             media_type=draft.media_type,
             content_hash=sha256(draft.content).hexdigest(),
             content_size_bytes=len(draft.content),

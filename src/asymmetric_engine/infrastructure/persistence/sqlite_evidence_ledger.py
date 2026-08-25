@@ -14,7 +14,7 @@ from asymmetric_engine.application.evidence_ingestion import (
     AppendStatus,
     SourceVersionConflictError,
 )
-from asymmetric_engine.domain.evidence import SourceDocument, SourceType
+from asymmetric_engine.domain.evidence import AvailabilityBasis, SourceDocument, SourceType
 
 TABLE_NAME = "evidence_source_documents"
 
@@ -47,6 +47,7 @@ class SQLiteSourceDocumentRepository:
                     source_uri TEXT NOT NULL,
                     source_type TEXT NOT NULL,
                     effective_at TEXT NOT NULL,
+                    availability_basis TEXT NOT NULL,
                     available_at TEXT NOT NULL,
                     recorded_at TEXT NOT NULL,
                     media_type TEXT NOT NULL,
@@ -72,6 +73,14 @@ class SQLiteSourceDocumentRepository:
                 END;
                 """
             )
+            columns = {
+                row[1] for row in connection.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall()
+            }
+            if "availability_basis" not in columns:
+                connection.execute(
+                    f"ALTER TABLE {TABLE_NAME} ADD COLUMN availability_basis TEXT NOT NULL "
+                    f"DEFAULT '{AvailabilityBasis.PROVIDER_ASSERTED.value}'"
+                )
 
     @staticmethod
     def _serialize_datetime(value: datetime) -> str:
@@ -89,6 +98,7 @@ class SQLiteSourceDocumentRepository:
             source_uri=row["source_uri"],
             source_type=SourceType(row["source_type"]),
             effective_at=datetime.fromisoformat(row["effective_at"]),
+            availability_basis=AvailabilityBasis(row["availability_basis"]),
             available_at=datetime.fromisoformat(row["available_at"]),
             recorded_at=datetime.fromisoformat(row["recorded_at"]),
             media_type=row["media_type"],
@@ -138,13 +148,14 @@ class SQLiteSourceDocumentRepository:
                     source_uri,
                     source_type,
                     effective_at,
+                    availability_basis,
                     available_at,
                     recorded_at,
                     media_type,
                     content_hash,
                     content_size_bytes,
                     content
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(document.document_id),
@@ -156,6 +167,7 @@ class SQLiteSourceDocumentRepository:
                     document.source_uri,
                     document.source_type.value,
                     self._serialize_datetime(document.effective_at),
+                    document.availability_basis.value,
                     self._serialize_datetime(document.available_at),
                     self._serialize_datetime(document.recorded_at),
                     document.media_type,

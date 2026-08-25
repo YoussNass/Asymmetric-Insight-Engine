@@ -16,6 +16,7 @@ from asymmetric_engine.application.evidence_ingestion import (
     ListSourceDocumentsAt,
 )
 from asymmetric_engine.domain.evidence import (
+    AvailabilityBasis,
     SourceDocument,
     SourceDocumentDraft,
     SourceType,
@@ -68,6 +69,7 @@ def make_draft(**overrides: object) -> SourceDocumentDraft:
         "source_uri": "https://example.test/testco/2025-q1",
         "source_type": SourceType.FILING,
         "effective_at": BASE_TIME - timedelta(days=90),
+        "availability_basis": AvailabilityBasis.PROVIDER_ASSERTED,
         "available_at": BASE_TIME - timedelta(days=1),
         "media_type": "application/json",
         "content": b'{"revenue": 125000000}',
@@ -92,6 +94,7 @@ def make_document(
         source_uri=f"https://example.test/{provider_version}",
         source_type=SourceType.FILING,
         effective_at=BASE_TIME - timedelta(days=90),
+        availability_basis=AvailabilityBasis.PROVIDER_ASSERTED,
         available_at=available_at,
         recorded_at=recorded_at,
         media_type="application/json",
@@ -201,3 +204,24 @@ def test_source_contracts_reject_empty_content_and_impossible_ingestion_order() 
             available_at=BASE_TIME,
             recorded_at=BASE_TIME - timedelta(seconds=1),
         )
+
+
+def test_observed_availability_uses_the_ingestion_clock_and_is_explicit() -> None:
+    draft = make_draft(
+        availability_basis=AvailabilityBasis.OBSERVED_AT_INGESTION,
+        available_at=None,
+    )
+    result = IngestSourceDocument(
+        provider=StaticProvider(draft),
+        repository=CapturingRepository(),
+        clock=FixedClock(BASE_TIME),
+    ).execute("observed-source")
+
+    assert result.document.availability_basis is AvailabilityBasis.OBSERVED_AT_INGESTION
+    assert result.document.available_at == BASE_TIME
+    assert result.document.recorded_at == BASE_TIME
+
+    with pytest.raises(ValidationError, match="must not provide available_at"):
+        make_draft(availability_basis=AvailabilityBasis.OBSERVED_AT_INGESTION)
+    with pytest.raises(ValidationError, match="requires available_at"):
+        make_draft(available_at=None)
