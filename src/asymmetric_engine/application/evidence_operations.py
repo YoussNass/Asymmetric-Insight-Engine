@@ -109,6 +109,17 @@ class IngestSourceDocuments:
         self._ingestion = ingestion
 
     @staticmethod
+    def validate_references(references: tuple[str, ...]) -> tuple[str, ...]:
+        """Normalize and reject an empty or ambiguous batch before side effects begin."""
+
+        normalized = tuple(reference.strip() for reference in references)
+        if not normalized or any(not reference for reference in normalized):
+            raise InvalidBatchInputError("at least one non-empty reference is required")
+        if len(normalized) != len(set(normalized)):
+            raise InvalidBatchInputError("duplicate references are not allowed")
+        return normalized
+
+    @staticmethod
     def _classify_failure(error: Exception) -> BatchFailureKind:
         if isinstance(error, UnsupportedSourceError):
             return BatchFailureKind.UNSUPPORTED_SOURCE
@@ -125,11 +136,7 @@ class IngestSourceDocuments:
     def execute(self, references: tuple[str, ...]) -> BatchIngestionResult:
         """Continue across expected provider failures without hiding programming defects."""
 
-        normalized = tuple(reference.strip() for reference in references)
-        if not normalized or any(not reference for reference in normalized):
-            raise InvalidBatchInputError("at least one non-empty reference is required")
-        if len(normalized) != len(set(normalized)):
-            raise InvalidBatchInputError("duplicate references are not allowed")
+        normalized = self.validate_references(references)
 
         expected_errors = (
             InvalidSourceReferenceError,

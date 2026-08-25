@@ -27,7 +27,7 @@ from asymmetric_engine.domain.evidence import (
 SEC_ARCHIVE_ROOT = "https://www.sec.gov/Archives/edgar/data"
 SUPPORTED_FORMS = frozenset({"10-K", "10-K/A", "10-Q", "10-Q/A"})
 REFERENCE_PATTERN = re.compile(r"^(?P<cik>[0-9]{1,10})/(?P<accession>[0-9]{10}-[0-9]{2}-[0-9]{6})$")
-CONTACT_PATTERN = re.compile(r"^[^\s]+\s+[^\s@]+@[^\s@]+\.[^\s@]+$")
+CONTACT_PATTERN = re.compile(r"^\S(?:[^\r\n]*\S)? +[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 class ProviderAccessError(SourceProviderAccessError):
@@ -162,6 +162,10 @@ class SecEdgarProvider:
         accession_path = accession.replace("-", "")
         source_uri = f"{SEC_ARCHIVE_ROOT}/{cik}/{accession_path}/{accession}.txt"
         content = self._fetch_bytes(source_uri)
+        if not content.startswith(b"<SEC-DOCUMENT>") or not content.rstrip().endswith(
+            b"</SEC-DOCUMENT>"
+        ):
+            raise ProviderPayloadError("SEC payload is not a complete submission document")
 
         payload_accession = self._header_value(content, "ACCESSION-NUMBER")
         payload_cik = self._header_value(content, "CENTRAL-INDEX-KEY").zfill(10)

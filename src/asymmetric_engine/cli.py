@@ -143,25 +143,32 @@ def _required_text(value: str, field: str) -> str:
     return normalized
 
 
+def _existing_repository(database_path: Path) -> SQLiteSourceDocumentRepository:
+    if not database_path.is_file():
+        raise CliUsageError(f"evidence database does not exist: {database_path}")
+    return SQLiteSourceDocumentRepository(database_path, initialize_schema=False)
+
+
 def _run_ingest_sec(args: argparse.Namespace) -> int:
     user_agent = os.environ.get(SEC_USER_AGENT_ENV, "").strip()
     if not user_agent:
         raise CliUsageError(f"{SEC_USER_AGENT_ENV} must identify the application and contact email")
-    repository = SQLiteSourceDocumentRepository(args.database)
     try:
         fetcher = SecEdgarHttpFetcher(user_agent=user_agent)
     except ValueError as error:
         raise CliUsageError(str(error)) from error
     try:
-        result = IngestSourceDocuments(
-            IngestSourceDocument(
-                provider=SecEdgarProvider(fetcher.fetch),
-                repository=repository,
-                clock=SystemClock(),
-            )
-        ).execute(tuple(args.references))
+        references = IngestSourceDocuments.validate_references(tuple(args.references))
     except InvalidBatchInputError as error:
         raise CliUsageError(str(error)) from error
+    repository = SQLiteSourceDocumentRepository(args.database)
+    result = IngestSourceDocuments(
+        IngestSourceDocument(
+            provider=SecEdgarProvider(fetcher.fetch),
+            repository=repository,
+            clock=SystemClock(),
+        )
+    ).execute(references)
 
     outcomes: list[dict[str, Any]] = []
     for outcome in result.outcomes:
@@ -201,7 +208,7 @@ def _run_ingest_sec(args: argparse.Namespace) -> int:
 def _run_list_documents(args: argparse.Namespace) -> int:
     boundary = _knowledge_boundary(args)
     subject_id = _required_text(args.subject, "subject")
-    documents = ListSourceDocumentsAt(SQLiteSourceDocumentRepository(args.database)).execute(
+    documents = ListSourceDocumentsAt(_existing_repository(args.database)).execute(
         subject_id=subject_id, boundary=boundary
     )
     print(
@@ -221,7 +228,7 @@ def _run_list_documents(args: argparse.Namespace) -> int:
 def _run_coverage(args: argparse.Namespace) -> int:
     boundary = _knowledge_boundary(args)
     subject_id = _required_text(args.subject, "subject")
-    report = InspectKnowledgeCoverage(SQLiteSourceDocumentRepository(args.database)).execute(
+    report = InspectKnowledgeCoverage(_existing_repository(args.database)).execute(
         subject_id=subject_id, boundary=boundary
     )
     print(
@@ -245,9 +252,7 @@ def _run_coverage(args: argparse.Namespace) -> int:
 
 
 def _run_verify(args: argparse.Namespace) -> int:
-    report = VerifySourceDocument(SQLiteSourceDocumentRepository(args.database)).execute(
-        args.document_id
-    )
+    report = VerifySourceDocument(_existing_repository(args.database)).execute(args.document_id)
     print(
         json.dumps(
             {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from email.message import Message
+from http.client import IncompleteRead
 from urllib.error import URLError
 from urllib.request import Request
 
@@ -39,6 +40,7 @@ def filing_bytes(
         f"\n<CENTRAL-INDEX-KEY>{cik}"
         "\n</COMPANY-DATA></FILER>"
         "\n<DOCUMENT>exact filing bytes</DOCUMENT>"
+        "\n</SEC-DOCUMENT>"
     ).encode()
 
 
@@ -90,7 +92,10 @@ def test_sec_provider_rejects_noncanonical_references(reference: str) -> None:
         (filing_bytes(accession="0000320193-24-999999"), "accession"),
         (filing_bytes(cik="0000000001"), "CIK"),
         (filing_bytes(report_date="20241399"), "period-of-report"),
-        (b"<SEC-DOCUMENT>\n<ACCESSION-NUMBER>0000320193-24-000123", "CENTRAL-INDEX-KEY"),
+        (
+            b"<SEC-DOCUMENT>\n<ACCESSION-NUMBER>0000320193-24-000123\n</SEC-DOCUMENT>",
+            "CENTRAL-INDEX-KEY",
+        ),
         (
             filing_bytes().replace(b"Example Corp", b"Example \xff Corp"),
             "valid UTF-8",
@@ -105,6 +110,13 @@ def test_sec_provider_fails_closed_on_inconsistent_headers(content: bytes, messa
 def test_sec_provider_rejects_forms_outside_the_admitted_slice() -> None:
     with pytest.raises(UnsupportedSecFilingError, match="8-K"):
         SecEdgarProvider(lambda _: filing_bytes(form="8-K")).fetch(REFERENCE)
+
+
+def test_sec_provider_rejects_a_truncated_complete_submission() -> None:
+    with pytest.raises(ProviderPayloadError, match="complete submission"):
+        SecEdgarProvider(lambda _: filing_bytes().removesuffix(b"\n</SEC-DOCUMENT>")).fetch(
+            REFERENCE
+        )
 
 
 class FakeResponse:
@@ -201,9 +213,13 @@ def test_http_fetcher_rejects_unusable_responses(
         fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/filing.txt")
 
 
-def test_http_fetcher_normalizes_transport_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("error", [URLError("offline"), IncompleteRead(b"partial", 1)])
+def test_http_fetcher_normalizes_transport_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+) -> None:
     def fail(*_args: object, **_kwargs: object) -> FakeResponse:
-        raise URLError("offline")
+        raise error
 
     monkeypatch.setattr(sec_edgar, "urlopen", fail)
     fetcher = SecEdgarHttpFetcher(user_agent="AIE admin@example.com")
@@ -228,3 +244,7 @@ def test_http_fetcher_rejects_unsafe_configuration(kwargs: dict[str, object]) ->
     fetcher = SecEdgarHttpFetcher(user_agent="AIE admin@example.com")
     with pytest.raises(ValueError, match="canonical"):
         fetcher.fetch("https://example.test/filing.txt")
+
+
+def test_http_fetcher_accepts_a_multiword_application_identity() -> None:
+    SecEdgarHttpFetcher(user_agent="Asymmetric Insight Engine admin@example.com")

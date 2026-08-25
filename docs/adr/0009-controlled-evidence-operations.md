@@ -28,6 +28,8 @@ Chapter 3 ends with the following operational contracts:
   exposes every outcome. Unexpected programming errors still fail loudly.
 - The CLI emits deterministic JSON for ingestion, point-in-time listing, knowledge-boundary
   coverage, and content-integrity verification.
+- Listing, coverage, and verification require an existing ledger and never create one as a side
+  effect. Ingestion is the only command allowed to initialize local storage.
 - Exit code `0` means complete success, `2` means invalid usage, missing data, storage failure, or
   at least one classified batch failure, and `3` means stored-content corruption was detected.
 - Integrity verification re-reads stored bytes and recomputes both SHA-256 and byte size.

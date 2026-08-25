@@ -33,6 +33,7 @@ class FakeSecResponse:
             b"\n<CENTRAL-INDEX-KEY>0000320193"
             b"\n</COMPANY-DATA></FILER>"
             b"\n<DOCUMENT>exact filing bytes</DOCUMENT>"
+            b"\n</SEC-DOCUMENT>"
         )
         self.headers = Message()
         self.headers["Content-Length"] = str(len(self.content))
@@ -102,11 +103,12 @@ def test_evidence_cli_rejects_malformed_identity_and_ambiguous_batch(
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    database_path = tmp_path / "ledger.sqlite3"
     command = [
         "evidence",
         "ingest-sec",
         "--database",
-        str(tmp_path / "ledger.sqlite3"),
+        str(database_path),
         "--reference",
         SEC_REFERENCE,
     ]
@@ -116,12 +118,14 @@ def test_evidence_cli_rejects_malformed_identity_and_ambiguous_batch(
     malformed = json.loads(capsys.readouterr().out)
     assert malformed["error"] == "CliUsageError"
     assert "user_agent" in malformed["message"]
+    assert not database_path.exists()
 
     monkeypatch.setenv("AIE_SEC_USER_AGENT", "AIE admin@example.com")
     assert main([*command, "--reference", SEC_REFERENCE]) == 2
     duplicated = json.loads(capsys.readouterr().out)
     assert duplicated["error"] == "CliUsageError"
     assert "duplicate" in duplicated["message"]
+    assert not database_path.exists()
 
 
 def test_evidence_cli_ingests_lists_reports_and_verifies_without_real_network(
@@ -263,6 +267,23 @@ def test_evidence_cli_rejects_blank_subject_without_masking_programming_errors(
     blank_subject = json.loads(capsys.readouterr().out)
     assert blank_subject["error"] == "CliUsageError"
     assert "subject" in blank_subject["message"]
+
+    missing_database = tmp_path / "missing.sqlite3"
+    valid_boundary_arguments = [
+        "--database",
+        str(missing_database),
+        "--subject",
+        "company:sec-cik-0000320193",
+        "--as-of",
+        "2026-08-25T18:00:00+00:00",
+        "--knowledge-mode",
+        "historical_reconstruction",
+    ]
+    assert main(["evidence", "list", *valid_boundary_arguments]) == 2
+    absent_database = json.loads(capsys.readouterr().out)
+    assert absent_database["error"] == "CliUsageError"
+    assert "does not exist" in absent_database["message"]
+    assert not missing_database.exists()
 
     monkeypatch.setenv("AIE_SEC_USER_AGENT", "AIE admin@example.com")
 

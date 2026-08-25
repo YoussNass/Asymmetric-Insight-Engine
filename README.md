@@ -90,7 +90,7 @@ temporal-provenance warnings. Verify an exact stored document with:
 ```bash
 uv run asymmetric-engine evidence verify \
   --database ./evidence-ledger.sqlite3 \
-  --document-id <UUID>
+  --document-id "$DOCUMENT_ID"
 ```
 
 All completed operations emit machine-readable JSON. Exit code `0` means success, `2` means an
