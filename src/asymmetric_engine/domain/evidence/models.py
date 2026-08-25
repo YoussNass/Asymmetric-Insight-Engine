@@ -22,6 +22,14 @@ from asymmetric_engine.domain.temporal import (
 )
 
 NonEmptyString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+ContentHash = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        to_lower=True,
+        pattern=r"^[0-9a-f]{64}$",
+    ),
+]
 
 
 class SourceType(StrEnum):
@@ -89,14 +97,7 @@ class EvidenceItem(BaseModel):
     effective_at: AwareDatetime
     available_at: AwareDatetime
     recorded_at: AwareDatetime
-    content_hash: Annotated[
-        str,
-        StringConstraints(
-            strip_whitespace=True,
-            to_lower=True,
-            pattern=r"^[0-9a-f]{64}$",
-        ),
-    ]
+    content_hash: ContentHash
     quality: DataQuality
 
     @model_validator(mode="after")
