@@ -1,6 +1,6 @@
 # ADR 0008: Admit SEC EDGAR periodic filings conservatively
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-25
 
 ## Context
