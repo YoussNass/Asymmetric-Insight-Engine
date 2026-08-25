@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from datetime import UTC, datetime
+from http.client import HTTPException
 from threading import Lock
 from time import monotonic, sleep
 from typing import cast
@@ -95,6 +96,7 @@ class SecEdgarHttpFetcher:
                 "User-Agent": self._user_agent,
             },
         )
+        declared_size: int | None = None
         try:
             with urlopen(request, timeout=self._timeout_seconds) as response:
                 final_url = cast(str, response.geturl())
@@ -113,8 +115,10 @@ class SecEdgarHttpFetcher:
                     if declared_size > self._max_payload_bytes:
                         raise ProviderAccessError("SEC filing exceeds the configured size limit")
                 content = cast(bytes, response.read(self._max_payload_bytes + 1))
-        except (HTTPError, URLError, TimeoutError, OSError) as error:
+        except (HTTPError, URLError, HTTPException, TimeoutError, OSError) as error:
             raise ProviderAccessError("SEC filing request failed") from error
+        if declared_size is not None and len(content) != declared_size:
+            raise ProviderAccessError("SEC payload size does not match Content-Length")
         if len(content) > self._max_payload_bytes:
             raise ProviderAccessError("SEC filing exceeds the configured size limit")
         if not content:

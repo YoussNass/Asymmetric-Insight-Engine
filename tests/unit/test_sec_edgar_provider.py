@@ -179,6 +179,7 @@ def test_http_fetcher_enforces_a_conservative_request_interval(
     [
         (FakeResponse(b"abc", "invalid"), "Content-Length"),
         (FakeResponse(b"abc", "-1"), "Content-Length"),
+        (FakeResponse(b"abc", "4"), "does not match"),
         (FakeResponse(b"abc", "101"), "size limit"),
         (FakeResponse(b"x" * 101), "size limit"),
         (FakeResponse(b""), "empty"),
