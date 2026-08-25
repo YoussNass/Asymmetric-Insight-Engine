@@ -11,10 +11,10 @@ and failures are explicit.
 
 The candidates considered for the first adapter were SEC EDGAR, FRED/ALFRED, and the ECB Data
 Portal. SEC EDGAR best matches the v1 listed-equity scope, exposes stable accession numbers and
-complete submission archives, requires no paid subscription or API credential, and permits reuse
-of public filing content. FRED/ALFRED has stronger native vintage semantics but is macro context,
-not issuer evidence, and requires an API key. ECB is also macro context and remains a later
-candidate.
+complete submission archives, requires no paid subscription or API credential, and is explicitly
+documented by SEC as free to access and reuse for public filing content. FRED/ALFRED has stronger
+native vintage semantics but is macro context, not issuer evidence, and requires an API key. ECB
+is also macro context and remains a later candidate.
 
 SEC acceptance time is not the public-availability time. The SEC says filings are often published
 one to three minutes later, sometimes later, and that no timestamp records first availability on
@@ -50,10 +50,13 @@ addressed by exact `CIK/accession` reference.
 - Because SEC provides no exact first-publication timestamp, `available_at` is set to the AIE
   ingestion observation and marked `observed_at_ingestion`. Acceptance time is never substituted.
 - Automated access must use a declared application/contact user agent, a bounded timeout, bounded
-  payload size, canonical SEC archive URLs, and a workload below the SEC maximum. Scheduling and
-  retries remain outside this slice.
+  payload size, canonical SEC archive URLs, and a workload no higher than the SEC maximum, with a
+  more conservative default. Scheduling and retries remain outside this slice.
 - Missing fields, identity mismatches, unsupported forms, invalid dates, empty payloads, and access
   failures stop ingestion. They are never repaired with guessed values.
+- Amendments are additive versions. This adapter does not yet discover post-acceptance corrections
+  or provider removals; a future lifecycle monitor must append a separately sourced observation
+  and must never delete or rewrite the bytes AIE previously recorded.
 - CI uses synthetic SEC-format fixtures and never contacts sec.gov.
 
 ## Consequences
@@ -66,6 +69,8 @@ addressed by exact `CIK/accession` reference.
 - Exact historical public-availability reconstruction remains unresolved. A later slice may use a
   separately archived dissemination feed or another verifiable observation source, but must not
   rewrite already-recorded documents.
+- A locally retained filing is evidence of what AIE observed, not a claim that SEC still serves the
+  filing or that no later correction/removal event exists.
 - The adapter does not yet discover filings, resolve tickers, parse XBRL facts, schedule polling,
   retry requests, or produce claims.
 
