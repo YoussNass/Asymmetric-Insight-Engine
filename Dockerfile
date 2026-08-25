@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.11.33 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.5-alpine3.22@sha256:24a1eb3c84d51222710307631ef8107731326cc2b4bcab74955a766307fde06b AS uv
 
 FROM python:3.12.13-alpine3.24@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df AS builder
 

@@ -27,3 +27,9 @@ updates:
       time: "06:30"
       timezone: Europe/Rome
     open-pull-requests-limit: 5
+    ignore:
+      # Runtime minor/major upgrades require an explicit compatibility decision.
+      - dependency-name: python
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
