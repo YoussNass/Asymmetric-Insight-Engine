@@ -37,10 +37,10 @@ without replacing the causal thesis.
 
 ## Current status
 
-Chapter 2: engineering foundation. The repository currently provides domain contracts,
-architecture decisions, a diagnostic CLI, a reproducible container, and automated quality
-gates. Financial ingestion, signals, portfolio logic, and user interfaces will be delivered in
-later vertical slices.
+Chapter 2 is complete. Chapter 3 starts with an append-only, version-aware source-document ledger
+and point-in-time query use case backed by synthetic fixtures and a SQLite reference adapter.
+Real providers, financial transformations, signals, portfolio logic, and user interfaces remain
+outside this first Data and Evidence vertical slice.
 
 ## Quick start
 

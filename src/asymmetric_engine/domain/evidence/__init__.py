@@ -8,6 +8,10 @@ from asymmetric_engine.domain.evidence.models import (
     EvidenceItem,
     SourceType,
 )
+from asymmetric_engine.domain.evidence.source_documents import (
+    SourceDocument,
+    SourceDocumentDraft,
+)
 
 __all__ = [
     "Claim",
@@ -15,5 +19,7 @@ __all__ = [
     "Confidence",
     "DataQuality",
     "EvidenceItem",
+    "SourceDocument",
+    "SourceDocumentDraft",
     "SourceType",
 ]

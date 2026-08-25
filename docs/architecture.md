@@ -67,6 +67,11 @@ Persistence is deferred until the Data and Evidence chapter. The intended split 
 
 No domain contract may depend on this storage choice.
 
+Chapter 3 begins with a SQLite reference adapter that atomically stores exact synthetic payloads
+and append-only source metadata. It exists to validate provider version identity, idempotency,
+restatement handling, and shared knowledge-boundary queries. It is not a production persistence
+decision and does not change the PostgreSQL, immutable snapshot, Parquet, and DuckDB direction.
+
 ## AI boundary
 
 AI adapters may extract claims, entities, relations, or candidate hypotheses. Their output is

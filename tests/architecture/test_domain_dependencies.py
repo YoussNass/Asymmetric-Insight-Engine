@@ -8,8 +8,13 @@ from collections.abc import Iterator
 from pathlib import Path
 
 DOMAIN_ROOT = Path(__file__).parents[2] / "src" / "asymmetric_engine" / "domain"
+APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
+FORBIDDEN_APPLICATION_PREFIXES = (
+    "asymmetric_engine.infrastructure",
+    "asymmetric_engine.interfaces",
+)
 
 
 def imported_modules(path: Path) -> Iterator[str]:
@@ -62,3 +67,14 @@ def test_domain_imports_only_approved_dependencies() -> None:
                 violations.append(f"{path.relative_to(DOMAIN_ROOT)} imports {module}")
 
     assert not violations, "Domain dependency violations:\n" + "\n".join(violations)
+
+
+def test_application_does_not_import_outer_layers() -> None:
+    assert APPLICATION_ROOT.is_dir(), f"Application root does not exist: {APPLICATION_ROOT}"
+    violations: list[str] = []
+    for path in APPLICATION_ROOT.rglob("*.py"):
+        for module in imported_modules(path):
+            if module.startswith(FORBIDDEN_APPLICATION_PREFIXES):
+                violations.append(f"{path.relative_to(APPLICATION_ROOT)} imports {module}")
+
+    assert not violations, "Application dependency violations:\n" + "\n".join(violations)
