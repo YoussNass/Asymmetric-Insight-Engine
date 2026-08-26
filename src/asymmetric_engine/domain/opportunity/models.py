@@ -314,8 +314,18 @@ class UnderwritingDimension(BaseModel):
     claim_ids: tuple[UUID, ...] = Field(min_length=1)
     fact_ids: tuple[UnderwritingObjectId, ...] = ()
     missing_data: tuple[NonEmptyString, ...] = ()
+    conflicts: tuple[NonEmptyString, ...] = ()
+    assumptions: tuple[NonEmptyString, ...] = ()
+    invalidation_conditions: tuple[NonEmptyString, ...] = ()
 
-    @field_validator("claim_ids", "fact_ids", "missing_data")
+    @field_validator(
+        "claim_ids",
+        "fact_ids",
+        "missing_data",
+        "conflicts",
+        "assumptions",
+        "invalidation_conditions",
+    )
     @classmethod
     def reject_duplicate_references(cls, value: tuple[object, ...]) -> tuple[object, ...]:
         return _reject_duplicates(value, message="duplicate dimension entries are not allowed")

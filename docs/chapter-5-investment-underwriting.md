@@ -57,9 +57,10 @@ The Opportunity State preserves exactly these dimensions rather than averaging t
 | Operating execution | Can management and operations deliver the required capacity, product, and timing? |
 | Valuation and asymmetry | What explicit per-share outcomes follow under bear, base, and bull assumptions? |
 
-Each dimension independently reports `positive`, `mixed`, `negative`, or `unknown`, together with
-its rationale, lineage, missing data, conflicts, assumptions, and invalidations. An unknown
-dimension remains unknown; it is never converted into zero or silently offset by a positive one.
+Each dimension independently reports `supportive`, `mixed`, `adverse`, or `unknown`, together with
+its rationale, lineage, missing data, conflicts, assumptions, and invalidation conditions. An
+unknown dimension remains unknown; it is never converted into zero or silently offset by a
+supportive one.
 
 ## Eligibility gates
 

@@ -58,6 +58,9 @@ def test_fingerprint_ignores_only_semantically_unordered_collection_order() -> N
                     "claim_ids": tuple(reversed(dimension.claim_ids)),
                     "fact_ids": tuple(reversed(dimension.fact_ids)),
                     "missing_data": tuple(reversed(dimension.missing_data)),
+                    "conflicts": tuple(reversed(dimension.conflicts)),
+                    "assumptions": tuple(reversed(dimension.assumptions)),
+                    "invalidation_conditions": tuple(reversed(dimension.invalidation_conditions)),
                 }
             )
             for dimension in reversed(draft.dimensions)

@@ -655,6 +655,9 @@ def make_underwriting_draft(
                 "derived:revenue-growth",
                 "derived:gross-margin",
             ),
+            invalidation_conditions=(
+                "A restatement removes the reported revenue or gross-profit improvement.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.CASH_GENERATION_AND_EARNINGS_QUALITY,
@@ -720,6 +723,10 @@ def make_underwriting_draft(
             claim_ids=(VALUE_CAPTURE_CLAIM_ID, CAPITAL_RISK_CLAIM_ID),
             fact_ids=("reported:revenue-2025", "derived:gross-margin"),
             missing_data=("Independent HBM share and unit-economics evidence",),
+            conflicts=(
+                "Issuer evidence supports HBM progress but does not independently establish "
+                "durable competitive share.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.OPERATING_EXECUTION,
@@ -741,6 +748,13 @@ def make_underwriting_draft(
                 "derived:net-debt",
             ),
             missing_data=("Calibrated valuation method and scenario probabilities",),
+            assumptions=(
+                "Enterprise values are illustrative scenario inputs, not inferred price targets.",
+                "Scenario labels do not imply probabilities.",
+            ),
+            invalidation_conditions=(
+                "A reviewed valuation method supersedes the illustrative scenario bridge.",
+            ),
         ),
     )
     gates = (

@@ -165,6 +165,11 @@ def test_catalyst_window_and_duplicate_component_references_are_rejected() -> No
         revalidate(catalyst, claim_ids=(catalyst.claim_ids[0],) * 2)
     with pytest.raises(ValidationError, match="duplicate risk"):
         revalidate(draft.risks[0], claim_ids=(draft.risks[0].claim_ids[0],) * 2)
+    with pytest.raises(ValidationError, match="duplicate dimension"):
+        revalidate(
+            draft.dimensions[0],
+            assumptions=("Repeated dimension assumption.",) * 2,
+        )
 
 
 def test_draft_rejects_duplicate_documents_and_disclosures() -> None:

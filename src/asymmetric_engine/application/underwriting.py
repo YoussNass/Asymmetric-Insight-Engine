@@ -115,6 +115,11 @@ class BuildOpportunityState:
                             "claim_ids": tuple(sorted(dimension.claim_ids, key=str)),
                             "fact_ids": tuple(sorted(dimension.fact_ids)),
                             "missing_data": tuple(sorted(dimension.missing_data)),
+                            "conflicts": tuple(sorted(dimension.conflicts)),
+                            "assumptions": tuple(sorted(dimension.assumptions)),
+                            "invalidation_conditions": tuple(
+                                sorted(dimension.invalidation_conditions)
+                            ),
                         }
                     )
                     for dimension in draft.dimensions
