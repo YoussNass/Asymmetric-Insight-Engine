@@ -5,7 +5,13 @@ from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 
-from asymmetric_engine.domain.evidence import Claim, ClaimType, Confidence, DataQuality
+from asymmetric_engine.domain.evidence import (
+    Claim,
+    ClaimType,
+    Confidence,
+    ConfidenceCalibrationStatus,
+    DataQuality,
+)
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from tests.factories import BASE_TIME, make_evidence
 
@@ -51,6 +57,23 @@ def test_claim_rejects_duplicate_evidence_references() -> None:
             confidence=Confidence(score=0.9, rationale="Single primary source."),
             invalidation_condition="The primary source is corrected.",
         )
+
+
+def test_calibrated_confidence_requires_an_identifiable_method() -> None:
+    with pytest.raises(ValidationError, match="requires method_version"):
+        Confidence(
+            score=0.8,
+            rationale="A calibration claim without an identifiable method.",
+            calibration_status=ConfidenceCalibrationStatus.CALIBRATED,
+        )
+
+    calibrated = Confidence(
+        score=0.8,
+        rationale="Validated on a declared out-of-sample calibration set.",
+        calibration_status=ConfidenceCalibrationStatus.CALIBRATED,
+        method_version="claim-confidence-v1",
+    )
+    assert calibrated.method_version == "claim-confidence-v1"
 
 
 def test_evidence_uses_the_shared_knowledge_boundary() -> None:

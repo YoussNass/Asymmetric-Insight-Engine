@@ -29,7 +29,9 @@ hypotheses. It does not select securities or allocate capital.
 ### Causal Alpha
 
 Builds temporal causal chains, dependency graphs, bottleneck hypotheses, second-order effects,
-and the Reality-Expectations-Price gap.
+and the Reality-Expectations-Price gap. It may hand a complete, falsifiable beneficiary hypothesis
+to Investment Underwriting as `ready_for_underwriting`; that state is not evidence of investability
+or permission to allocate capital.
 
 ### Investment Underwriting
 
@@ -78,6 +80,10 @@ invalidation conditions. The system may return `insufficient evidence` or `no al
 Counts over locally known evidence must not be described as complete coverage unless they are
 compared with an authoritative, point-in-time expected-source manifest.
 
+Numerical claim confidence must expose whether it is calibrated and identify the calibrated
+method when applicable. An uncalibrated annotation is neither an empirical probability nor an
+eligibility, ranking, or allocation input.
+
 Every analytical state must also declare its temporal knowledge mode. Historical reconstruction
 uses only source versions publicly knowable by `as_of`; live-system replay additionally uses only
 records actually ingested by `as_of`. The two modes must never be silently interchanged.
@@ -102,6 +108,10 @@ The decision chain has five non-interchangeable state boundaries:
 No downstream context may recreate, overwrite, or silently rescore an upstream state. Instrument
 containment and economic causality are separate graph layers: a shared ticker, fund constituent,
 theme, or label is not by itself evidence of a causal dependency.
+
+Causal Alpha owns the ordered change-to-driver-to-actor-to-beneficiary path and its mechanisms.
+Investment Underwriting consumes that path without treating causal readiness as proof of company
+quality, economic capture, valuation, or return asymmetry.
 
 ## Scoring contract
 

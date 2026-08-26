@@ -16,6 +16,8 @@ These instructions apply to every automated contributor working in this reposito
 - User interfaces must call application use cases rather than contain financial logic.
 - Shared facts must have one canonical owner; do not duplicate scoring across engines.
 - The Temporal shared kernel owns `KnowledgeMode` and decision-time filtering for every context.
+- Causal Alpha owns typed change-to-driver-to-actor-to-beneficiary paths and ends at
+  `ready_for_underwriting`, never an investment or allocation decision.
 - Underwriting owns standalone opportunity state; Portfolio may consume but never recreate or
   mutate it.
 - Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,
@@ -31,7 +33,13 @@ These instructions apply to every automated contributor working in this reposito
 - Never describe locally known source versions as universe completeness without an authoritative
   expected-source manifest.
 - Keep observed data, statistical results, inferences, hypotheses, and judgements distinct.
+- Back every causal node with claims; a real-world-change node requires an observed or statistical
+  signal claim, while a causal edge requires inferential or hypothesis support.
+- Do not treat a label, correlation, issuer mention, or instrument containment as causal proof;
+  every causal edge needs an explicit mechanism and inferential or hypothesis claim support.
 - Every material claim needs provenance, confidence, and explicit invalidation conditions.
+- Keep confidence calibration status visible; uncalibrated annotations are not gates, ranking
+  inputs, or probabilities.
 - Do not introduce active default weights, thresholds, scores, or sizing rules without an
   explicit method version, calibration status, component output, and documented evidence.
 - Missing correlation or classification evidence is unknown, never zero risk or diversification.

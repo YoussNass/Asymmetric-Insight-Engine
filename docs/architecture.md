@@ -78,8 +78,39 @@ CI never contact providers. Integrity verification re-reads exact bytes; knowled
 reporting describes only versions known to the ledger and cannot assert source-universe
 completeness without a separate expected-source manifest.
 
+## Evidence-to-causal boundary
+
+Chapter 4 introduces a narrow Causal Alpha contract before Underwriting:
+
+```text
+real-world change -> economic driver -> supply-chain actor -> listed beneficiary
+```
+
+Each node has one typed economic role and cites its supporting claims. A real-world-change node
+requires an observation or statistical result, which is the explicit input signal. Each forward
+edge states a mechanism and requires inferential or hypothesis support; an observation, theme
+label, instrument containment relationship, or correlation cannot by itself establish causality.
+The beneficiary-mapping edge must resolve to evidence whose immutable source has the target
+company's canonical subject identity.
+
+Causal evidence links to one immutable source-document version with a locator and extraction
+method. The application builder verifies the source bytes and metadata, applies the canonical
+knowledge boundary, and content-addresses the complete input. Collection ordering does not change
+the resulting fingerprint; a material claim, mechanism, temporal boundary, or source-version
+change does.
+
+Canonical output orders nodes and edges by their economic stage rather than alphabetically. Every
+readiness state includes a rationale. Claim confidence exposes whether it is calibrated and which
+method produced it when applicable; uncalibrated annotations cannot become gates or ranking inputs.
+
+`ready_for_underwriting` means that a complete, falsifiable path is structurally suitable for the
+next bounded context. It conveys no conclusion about company quality, value capture, valuation,
+expected return, price, timing, portfolio fit, sizing, or execution.
+
 ## AI boundary
 
 AI adapters may extract claims, entities, relations, or candidate hypotheses. Their output is
 untrusted until validated against source provenance and domain rules. Deterministic code owns
 time filtering, numerical transformations, scoring, constraints, and portfolio calculations.
+The Chapter 4 reference slice therefore uses deterministic manual fixture extraction; it does not
+grant an AI adapter authority to create a validated causal decision.
