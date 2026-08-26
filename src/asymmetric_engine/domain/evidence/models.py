@@ -99,6 +99,9 @@ class EvidenceItem(BaseModel):
     recorded_at: AwareDatetime
     content_hash: ContentHash
     quality: DataQuality
+    source_document_id: UUID | None = None
+    source_locator: NonEmptyString | None = None
+    extraction_method: NonEmptyString | None = None
 
     @model_validator(mode="after")
     def validate_ingestion_order(self) -> Self:
@@ -106,6 +109,18 @@ class EvidenceItem(BaseModel):
 
         if self.recorded_at < self.available_at:
             raise ValueError("recorded_at must be greater than or equal to available_at")
+        source_link = (
+            self.source_document_id,
+            self.source_locator,
+            self.extraction_method,
+        )
+        if any(value is not None for value in source_link) and not all(
+            value is not None for value in source_link
+        ):
+            raise ValueError(
+                "source_document_id, source_locator, and extraction_method "
+                "must be provided together"
+            )
         return self
 
     def knowledge_exclusion_reason(

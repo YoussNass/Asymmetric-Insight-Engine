@@ -37,12 +37,18 @@ without replacing the causal thesis.
 
 ## Current status
 
-Chapter 2 is complete. Chapter 3 establishes an append-only, version-aware source-document ledger,
-canonical point-in-time queries, a narrowly admitted SEC EDGAR periodic-filing adapter, and
-controlled evidence operations. SQLite remains a local/reference persistence adapter.
+Chapters 2 and 3 are complete. Chapter 4 is in review and adds the first causal vertical slice:
+typed real-world-change, economic-driver, supply-chain-actor, and beneficiary nodes; claim-backed
+directional mechanisms; exact ledger provenance; and a deterministic `ready_for_underwriting`
+hand-off. SQLite remains a local/reference persistence adapter.
 
-Financial extraction, signals, portfolio logic, order execution, filing discovery, and a complete
-user interface remain outside Chapter 3.
+The reference case traces an AI infrastructure-demand hypothesis through HBM supply to Micron.
+It proves the analytical contract with synthetic fixture bytes; it is not an investment
+recommendation and does not perform valuation or establish profitable value capture. See
+[`Chapter 4: Causal vertical slice`](docs/chapter-4-causal-vertical-slice.md).
+
+Automated extraction, normalized financial facts, Underwriting, signals, portfolio logic, order
+execution, filing discovery, and a complete user interface remain outside the implemented scope.
 
 ## Quick start
 
@@ -109,7 +115,7 @@ docker run --rm asymmetric-insight-engine:local
 
 ## Repository map
 
-- `src/asymmetric_engine/domain`: pure business contracts and invariants.
+- `src/asymmetric_engine/domain`: pure evidence, temporal, causal, and opportunity contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
 - `src/asymmetric_engine/interfaces`: CLI, API, and future user interfaces.
