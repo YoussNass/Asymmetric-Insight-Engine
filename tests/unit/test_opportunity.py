@@ -99,6 +99,12 @@ def test_opportunity_rejects_duplicate_claim_records() -> None:
         build_state(evidence=(evidence,), claims=(claim, duplicate))
 
 
+@pytest.mark.parametrize("field", ["invalidation_conditions", "missing_data"])
+def test_opportunity_rejects_duplicate_warning_text(field: str) -> None:
+    with pytest.raises(ValidationError, match="duplicate entries"):
+        build_state(**{field: ("The same warning.", "The same warning.")})
+
+
 def test_opportunity_rejects_unknown_evidence_reference() -> None:
     evidence = make_evidence()
     claim = Claim(

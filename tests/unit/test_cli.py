@@ -248,6 +248,42 @@ def test_evidence_cli_returns_machine_readable_reference_failures(
     assert payload["outcomes"][0]["failure_kind"] == "invalid_reference"
 
 
+@pytest.mark.parametrize(
+    ("as_of", "message"),
+    [
+        ("not-a-date", "ISO-8601"),
+        ("2026-08-25T18:00:00", "timezone offset"),
+    ],
+)
+def test_evidence_cli_rejects_invalid_decision_timestamps_before_storage_access(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    as_of: str,
+    message: str,
+) -> None:
+    database_path = tmp_path / "ledger.sqlite3"
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(
+            [
+                "evidence",
+                "list",
+                "--database",
+                str(database_path),
+                "--subject",
+                "company:sec-cik-0000320193",
+                "--as-of",
+                as_of,
+                "--knowledge-mode",
+                "historical_reconstruction",
+            ]
+        )
+
+    assert exit_info.value.code == 2
+    assert message in capsys.readouterr().err
+    assert not database_path.exists()
+
+
 def test_evidence_cli_rejects_blank_subject_without_masking_programming_errors(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

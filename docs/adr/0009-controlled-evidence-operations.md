@@ -1,6 +1,6 @@
 # ADR 0009: Complete Chapter 3 with controlled evidence operations
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-25
 
 ## Context

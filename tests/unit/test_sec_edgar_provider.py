@@ -186,6 +186,26 @@ def test_http_fetcher_enforces_a_conservative_request_interval(
     assert waits == pytest.approx([0.15])
 
 
+def test_http_fetcher_does_not_sleep_after_the_request_interval_has_elapsed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = [FakeResponse(b"first"), FakeResponse(b"second")]
+    times = iter((10.0, 10.3))
+    waits: list[float] = []
+    monkeypatch.setattr(sec_edgar, "urlopen", lambda *_args, **_kwargs: responses.pop(0))
+    fetcher = SecEdgarHttpFetcher(
+        user_agent="AIE admin@example.com",
+        min_interval_seconds=0.2,
+        monotonic_clock=lambda: next(times),
+        sleeper=waits.append,
+    )
+
+    fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/first.txt")
+    fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/second.txt")
+
+    assert waits == []
+
+
 @pytest.mark.parametrize(
     ("response", "message"),
     [
