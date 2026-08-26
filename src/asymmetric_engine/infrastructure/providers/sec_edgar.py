@@ -12,6 +12,12 @@ from typing import cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from asymmetric_engine.application.evidence_ingestion import (
+    InvalidSourceReferenceError,
+    SourceProviderAccessError,
+    SourceProviderPayloadError,
+    UnsupportedSourceError,
+)
 from asymmetric_engine.domain.evidence import (
     AvailabilityBasis,
     SourceDocumentDraft,
@@ -24,15 +30,15 @@ REFERENCE_PATTERN = re.compile(r"^(?P<cik>[0-9]{1,10})/(?P<accession>[0-9]{10}-[
 CONTACT_PATTERN = re.compile(r"^\S(?:[^\r\n]*\S)? +[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
-class ProviderAccessError(RuntimeError):
+class ProviderAccessError(SourceProviderAccessError):
     """Raised when an admitted provider cannot be reached or returns an unusable response."""
 
 
-class ProviderPayloadError(RuntimeError):
+class ProviderPayloadError(SourceProviderPayloadError):
     """Raised when provider bytes contradict the requested immutable identity."""
 
 
-class UnsupportedSecFilingError(ProviderPayloadError):
+class UnsupportedSecFilingError(UnsupportedSourceError):
     """Raised when a valid EDGAR submission is outside the deliberately narrow scope."""
 
 
@@ -145,11 +151,11 @@ class SecEdgarProvider:
 
         match = REFERENCE_PATTERN.fullmatch(reference)
         if match is None:
-            raise ValueError("SEC reference must use CIK/##########-##-######")
+            raise InvalidSourceReferenceError("SEC reference must use CIK/##########-##-######")
 
         cik_number = int(match.group("cik"))
         if cik_number == 0:
-            raise ValueError("SEC reference CIK must be positive")
+            raise InvalidSourceReferenceError("SEC reference CIK must be positive")
         cik = str(cik_number)
         cik_padded = cik.zfill(10)
         accession = match.group("accession")

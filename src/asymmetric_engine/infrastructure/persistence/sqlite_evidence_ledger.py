@@ -22,11 +22,17 @@ TABLE_NAME = "evidence_source_documents"
 class SQLiteSourceDocumentRepository:
     """Persist exact payloads and immutable metadata atomically for local use and tests."""
 
-    def __init__(self, database_path: str | Path) -> None:
+    def __init__(
+        self,
+        database_path: str | Path,
+        *,
+        initialize_schema: bool = True,
+    ) -> None:
         self._database_path = str(database_path)
         if self._database_path == ":memory:":
             raise ValueError("SQLite evidence ledger requires a file-backed database")
-        self._initialize_schema()
+        if initialize_schema:
+            self._initialize_schema()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
@@ -191,6 +197,18 @@ class SQLiteSourceDocumentRepository:
                 (subject_id,),
             ).fetchall()
         return tuple(self._document_from_row(row) for row in rows)
+
+    def get(self, document_id: UUID) -> SourceDocument:
+        """Return immutable metadata for one exact source document."""
+
+        with closing(self._connect()) as connection, connection:
+            row = connection.execute(
+                f"SELECT * FROM {TABLE_NAME} WHERE document_id = ?",
+                (str(document_id),),
+            ).fetchone()
+        if row is None:
+            raise KeyError(document_id)
+        return self._document_from_row(row)
 
     def read_content(self, document_id: UUID) -> bytes:
         """Return exact source bytes for audit and deterministic reprocessing."""

@@ -36,7 +36,7 @@ without vendor credentials, licensing assumptions, or production infrastructure.
 
 ## Second vertical slice: first real provider
 
-ADR 0008 proposes SEC EDGAR periodic filings as the first real provider. The slice adds:
+ADR 0008 admits SEC EDGAR periodic filings as the first real provider. The slice adds:
 
 - a reusable provider-admission checklist;
 - exact `CIK/accession` references for complete submissions;
@@ -52,3 +52,47 @@ with the EDGAR acceptance timestamp.
 
 This slice does not add filing discovery, ticker resolution, XBRL extraction, scheduled polling,
 network calls in CI, or claims derived from filings.
+
+## Final vertical slice: controlled evidence operations
+
+The completion slice makes the spine usable without expanding it into financial analysis:
+
+```text
+exact SEC references
+-> sequential, rate-limited acquisition
+-> immutable append or classified failure
+-> deterministic JSON result
+-> point-in-time listing
+-> knowledge-boundary coverage report
+-> exact-byte integrity verification
+```
+
+The CLI provides:
+
+- `evidence ingest-sec` for one or more exact references;
+- `evidence list` for documents included by `as_of` and `knowledge_mode`;
+- `evidence coverage` for known-version inclusion, exclusion, and temporal provenance;
+- `evidence verify` for stored byte-size and SHA-256 verification.
+
+Successful commands return exit code `0`; invalid configuration, a missing record, or any failed
+batch member returns `2`; detected content corruption returns `3`. Every completed operation emits
+JSON on standard output so callers can retain and inspect the exact result.
+
+`KnowledgeCoverageReport` deliberately does not claim filing-universe completeness. Until AIE owns
+an authoritative expected-source manifest, it can only explain the versions already known to its
+ledger. An empty report means `no_source_versions_recorded`, not `no filing exists`.
+
+## Chapter completion boundary
+
+When ADR 0009 and its implementation are accepted, Chapter 3 is complete at the evidence-source
+level. The following remain intentionally deferred:
+
+- SEC filing discovery and ticker/CIK master data;
+- expected-filing manifests and durable ingestion-run audit;
+- provider correction/removal monitoring;
+- exact historical SEC first-publication reconstruction;
+- distributed rate limiting, scheduled polling, and retry orchestration;
+- XBRL parsing, normalized financial facts, claims, scores, signals, and backtests.
+
+Those capabilities must enter later slices behind the contracts established here; none may alter
+already-recorded source bytes or silently relax the temporal boundary.

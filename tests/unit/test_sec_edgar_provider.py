@@ -9,6 +9,7 @@ from urllib.request import Request
 
 import pytest
 
+from asymmetric_engine.application.evidence_ingestion import InvalidSourceReferenceError
 from asymmetric_engine.domain.evidence import AvailabilityBasis, SourceType
 from asymmetric_engine.infrastructure.providers import sec_edgar
 from asymmetric_engine.infrastructure.providers.sec_edgar import (
@@ -81,7 +82,7 @@ def test_amendment_keeps_record_identity_but_has_a_distinct_version() -> None:
     ["", "AAPL/0000320193-24-000123", "0320193/invalid", "320193", "0/0000320193-24-000123"],
 )
 def test_sec_provider_rejects_noncanonical_references(reference: str) -> None:
-    with pytest.raises(ValueError, match="SEC reference"):
+    with pytest.raises(InvalidSourceReferenceError, match="SEC reference"):
         SecEdgarProvider(lambda _: filing_bytes()).fetch(reference)
 
 
@@ -183,6 +184,26 @@ def test_http_fetcher_enforces_a_conservative_request_interval(
     fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/second.txt")
 
     assert waits == pytest.approx([0.15])
+
+
+def test_http_fetcher_does_not_sleep_after_the_request_interval_has_elapsed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = [FakeResponse(b"first"), FakeResponse(b"second")]
+    times = iter((10.0, 10.3))
+    waits: list[float] = []
+    monkeypatch.setattr(sec_edgar, "urlopen", lambda *_args, **_kwargs: responses.pop(0))
+    fetcher = SecEdgarHttpFetcher(
+        user_agent="AIE admin@example.com",
+        min_interval_seconds=0.2,
+        monotonic_clock=lambda: next(times),
+        sleeper=waits.append,
+    )
+
+    fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/first.txt")
+    fetcher.fetch("https://www.sec.gov/Archives/edgar/data/1/second.txt")
+
+    assert waits == []
 
 
 @pytest.mark.parametrize(
