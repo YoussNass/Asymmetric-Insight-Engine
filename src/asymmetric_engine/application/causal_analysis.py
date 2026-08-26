@@ -8,7 +8,12 @@ from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from asymmetric_engine.application.evidence_ingestion import SourceDocumentRepository
-from asymmetric_engine.domain.causal import CausalAnalysis, CausalAnalysisDraft
+from asymmetric_engine.domain.causal import (
+    CausalAnalysis,
+    CausalAnalysisDraft,
+    CausalEdgeKind,
+    CausalNodeKind,
+)
 from asymmetric_engine.domain.evidence import SourceDocument
 
 
@@ -82,16 +87,35 @@ class BuildCausalAnalysis:
 
     @staticmethod
     def _canonicalize_draft(draft: CausalAnalysisDraft) -> CausalAnalysisDraft:
+        node_order = {
+            CausalNodeKind.REAL_WORLD_CHANGE: 0,
+            CausalNodeKind.ECONOMIC_DRIVER: 1,
+            CausalNodeKind.SUPPLY_CHAIN_ACTOR: 2,
+            CausalNodeKind.BENEFICIARY: 3,
+        }
+        edge_order = {
+            CausalEdgeKind.CHANGE_DRIVES_DRIVER: 0,
+            CausalEdgeKind.DRIVER_TRANSMITS_TO_ACTOR: 1,
+            CausalEdgeKind.ACTOR_MAPS_TO_BENEFICIARY: 2,
+        }
         values: dict[str, Any] = draft.model_dump(mode="python")
         values["source_document_ids"] = tuple(sorted(draft.source_document_ids, key=str))
-        values["nodes"] = tuple(sorted(draft.nodes, key=lambda item: item.node_id))
+        values["nodes"] = tuple(
+            sorted(
+                (
+                    node.model_copy(update={"claim_ids": tuple(sorted(node.claim_ids, key=str))})
+                    for node in draft.nodes
+                ),
+                key=lambda item: (node_order[item.kind], item.node_id),
+            )
+        )
         values["edges"] = tuple(
             sorted(
                 (
                     edge.model_copy(update={"claim_ids": tuple(sorted(edge.claim_ids, key=str))})
                     for edge in draft.edges
                 ),
-                key=lambda item: item.edge_id,
+                key=lambda item: (edge_order[item.kind], item.edge_id),
             )
         )
         values["evidence"] = tuple(sorted(draft.evidence, key=lambda item: str(item.evidence_id)))

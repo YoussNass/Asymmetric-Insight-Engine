@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from asymmetric_engine.application.causal_analysis import BuildCausalAnalysis
 from asymmetric_engine.application.evidence_ingestion import IngestSourceDocument
-from asymmetric_engine.domain.causal import CausalReadiness
+from asymmetric_engine.domain.causal import CausalNodeKind, CausalReadiness
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from asymmetric_engine.infrastructure.persistence import SQLiteSourceDocumentRepository
 from asymmetric_engine.infrastructure.providers.sec_edgar import SecEdgarProvider
@@ -65,8 +65,14 @@ def test_sec_ledger_to_causal_beneficiary_handoff_is_reproducible(tmp_path: Path
         "company:sec-cik-0000723125"
     }
     assert len(analysis.edges) == 3
-    assert len(analysis.claims) == 3
+    assert len(analysis.claims) == 6
     assert len(analysis.evidence) == 3
+    assert tuple(node.kind for node in analysis.nodes) == (
+        CausalNodeKind.REAL_WORLD_CHANGE,
+        CausalNodeKind.ECONOMIC_DRIVER,
+        CausalNodeKind.SUPPLY_CHAIN_ACTOR,
+        CausalNodeKind.BENEFICIARY,
+    )
     assert {document.provider_version for document in analysis.source_documents} == {
         "0001045810-24-000029",
         "0000723125-24-000027",
@@ -74,6 +80,7 @@ def test_sec_ledger_to_causal_beneficiary_handoff_is_reproducible(tmp_path: Path
     assert repository.read_content(nvidia.document_id) == NVIDIA_CONTENT
     assert repository.read_content(micron.document_id) == MICRON_CONTENT
     assert analysis.missing_data
+    assert analysis.readiness_rationale
     assert all(claim.confidence.rationale for claim in analysis.claims)
     assert all(claim.invalidation_condition for claim in analysis.claims)
 

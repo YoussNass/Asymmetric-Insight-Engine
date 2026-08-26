@@ -70,6 +70,16 @@ class CausalNode(BaseModel):
     kind: CausalNodeKind
     label: NonEmptyString
     subject_id: SubjectId | None = None
+    claim_ids: tuple[UUID, ...] = Field(min_length=1)
+
+    @field_validator("claim_ids")
+    @classmethod
+    def reject_duplicate_claim_references(cls, value: tuple[UUID, ...]) -> tuple[UUID, ...]:
+        """Repeated claim references must not inflate support for a graph node."""
+
+        if len(value) != len(set(value)):
+            raise ValueError("duplicate claim_ids are not allowed")
+        return value
 
     @model_validator(mode="after")
     def require_canonical_beneficiary_identity(self) -> Self:
@@ -122,6 +132,7 @@ class CausalAnalysisDraft(BaseModel):
     knowledge_boundary: KnowledgeBoundary
     method_version: NonEmptyString
     readiness: CausalReadiness
+    readiness_rationale: NonEmptyString
     source_document_ids: tuple[UUID, ...] = Field(min_length=1)
     nodes: tuple[CausalNode, ...] = Field(min_length=2)
     edges: tuple[CausalEdge, ...] = Field(min_length=1)
@@ -199,6 +210,20 @@ class CausalAnalysisDraft(BaseModel):
             raise ValueError("every evidence item must support at least one claim")
 
         referenced_claims: set[UUID] = set()
+        observed_signal_types = {ClaimType.OBSERVATION, ClaimType.STATISTICAL_RESULT}
+        for node in self.nodes:
+            unknown_claims = set(node.claim_ids).difference(claims)
+            if unknown_claims:
+                raise ValueError(f"node {node.node_id} references unknown claim_ids")
+            if node.kind is CausalNodeKind.REAL_WORLD_CHANGE and not any(
+                claims[claim_id].claim_type in observed_signal_types for claim_id in node.claim_ids
+            ):
+                raise ValueError(
+                    f"real-world change node {node.node_id} requires an observed or "
+                    "statistical signal claim"
+                )
+            referenced_claims.update(node.claim_ids)
+
         referenced_nodes: set[str] = set()
         allowed_roles = {
             CausalEdgeKind.CHANGE_DRIVES_DRIVER: (
@@ -236,7 +261,7 @@ class CausalAnalysisDraft(BaseModel):
             referenced_nodes.update((edge.source_node_id, edge.target_node_id))
 
         if referenced_claims != set(claims):
-            raise ValueError("every claim must support at least one causal edge")
+            raise ValueError("every claim must support at least one node or causal edge")
         if referenced_nodes != set(nodes):
             raise ValueError("every node must participate in at least one causal edge")
         if {item.source_document_id for item in self.evidence} != source_document_ids:
@@ -342,4 +367,21 @@ class CausalAnalysis(CausalAnalysisDraft):
             raise ValueError(
                 "every beneficiary requires a source document for its canonical subject"
             )
+
+        nodes = {node.node_id: node for node in self.nodes}
+        claims = {claim.claim_id: claim for claim in self.claims}
+        evidence = {item.evidence_id: item for item in self.evidence}
+        for edge in self.edges:
+            if edge.kind is not CausalEdgeKind.ACTOR_MAPS_TO_BENEFICIARY:
+                continue
+            beneficiary_subject = nodes[edge.target_node_id].subject_id
+            supporting_subjects = {
+                documents[cast(UUID, evidence[evidence_id].source_document_id)].subject_id
+                for claim_id in edge.claim_ids
+                for evidence_id in claims[claim_id].evidence_ids
+            }
+            if beneficiary_subject not in supporting_subjects:
+                raise ValueError(
+                    f"beneficiary edge {edge.edge_id} requires evidence from its target subject"
+                )
         return self

@@ -37,7 +37,7 @@ without replacing the causal thesis.
 
 ## Current status
 
-Chapters 2 and 3 are complete. Chapter 4 is in review and adds the first causal vertical slice:
+Chapters 2, 3, and 4 are complete. Chapter 4 adds the first causal vertical slice:
 typed real-world-change, economic-driver, supply-chain-actor, and beneficiary nodes; claim-backed
 directional mechanisms; exact ledger provenance; and a deterministic `ready_for_underwriting`
 hand-off. SQLite remains a local/reference persistence adapter.
@@ -47,8 +47,9 @@ It proves the analytical contract with synthetic fixture bytes; it is not an inv
 recommendation and does not perform valuation or establish profitable value capture. See
 [`Chapter 4: Causal vertical slice`](docs/chapter-4-causal-vertical-slice.md).
 
-Automated extraction, normalized financial facts, Underwriting, signals, portfolio logic, order
-execution, filing discovery, and a complete user interface remain outside the implemented scope.
+Automated extraction and signal discovery, normalized financial facts, Underwriting, portfolio
+logic, order execution, filing discovery, and a complete user interface remain outside the
+implemented scope.
 
 ## Quick start
 

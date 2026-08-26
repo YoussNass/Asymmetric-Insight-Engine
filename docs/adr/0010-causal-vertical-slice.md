@@ -1,6 +1,6 @@
 # ADR 0010: Introduce a causal vertical slice before underwriting
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-26
 
 ## Context
@@ -22,12 +22,17 @@ Chapter 4 introduces one deterministic causal-analysis contract with this ordere
 real-world change -> economic driver -> supply-chain actor -> listed beneficiary
 ```
 
-The path is represented by typed nodes and typed directional edges. Every edge:
+The path is represented by typed nodes and typed directional edges. Every node cites one or more
+material claims. A `real_world_change` node specifically requires an observation or statistical
+result, making the initial signal distinct from the causal interpretation. Every edge:
 
 - states its economic mechanism in plain language;
 - cites one or more material claims;
 - includes at least one claim classified as an inference or hypothesis;
 - ultimately resolves to exact evidence items and immutable source-document versions.
+
+The final beneficiary-mapping edge must cite evidence from the canonical subject it identifies;
+merely including an unrelated document about that company elsewhere in the case is insufficient.
 
 An evidence item used by this bounded context must identify its source document, source locator,
 and extraction method. Its provenance, timestamps, and content hash must match the immutable
@@ -37,7 +42,7 @@ verifies both SHA-256 and byte length.
 Each analysis declares an `as_of` boundary and either `historical_reconstruction` or
 `live_system_replay`. Sources and extracted evidence outside that boundary are rejected rather
 than silently omitted. Material missing data, conflicts, assumptions, confidence rationales, and
-invalidation conditions remain visible.
+invalidation conditions remain visible. Every readiness state carries a plain-language rationale.
 
 The allowed readiness states are:
 
@@ -51,8 +56,13 @@ calculate valuation, expected return, balance-sheet quality, per-share economics
 position size, timing, or orders.
 
 The same validated input and exact source versions produce the same SHA-256 fingerprint and
-analysis identifier. There is no aggregate causal score, weighting formula, or automatic causal
-discovery in this slice.
+analysis identifier. Canonical output retains the economic stage order even when input collections
+arrive in a different order. There is no aggregate causal score, weighting formula, or automatic
+causal discovery in this slice.
+
+Claim-level confidence declares a calibration status and optional method version. The reference
+case labels its confidence annotations `uncalibrated`; they are review aids, not empirical
+probabilities, thresholds, ranking inputs, or an eligibility formula.
 
 ## Reference case
 
@@ -72,22 +82,25 @@ CI never contact SEC systems, and the fixture does not claim to reproduce an ent
 Chapter 4 is complete only when:
 
 1. the full typed path can be built from ledger-backed evidence;
-2. every reference between document, evidence, claim, edge, and node is validated;
-3. future or not-yet-recorded knowledge is rejected under the selected temporal mode;
-4. missing, altered, or provenance-mismatched source content fails closed;
-5. incomplete, incorrectly ordered, unsupported, duplicated, or invalidated graphs cannot be
+2. every reference between document, evidence, claim, node, and edge is validated;
+3. the initial signal is an observed or statistical claim rather than a hidden inference;
+4. beneficiary mapping is directly supported by evidence about that canonical subject;
+5. future or not-yet-recorded knowledge is rejected under the selected temporal mode;
+6. missing, altered, or provenance-mismatched source content fails closed;
+7. incomplete, incorrectly ordered, unsupported, duplicated, or invalidated graphs cannot be
    marked ready for Underwriting;
-6. the reference case is reproducible with a stable fingerprint and identifier;
-7. unit, integration, architecture, typing, packaging, Python 3.12/3.13, and container checks pass;
-8. the architectural decision is reviewed before its status changes from `Proposed` to
-   `Accepted`.
+8. readiness includes an explicit rationale and confidence calibration status remains visible;
+9. the reference case is reproducible with a stable fingerprint and identifier;
+10. unit, integration, architecture, typing, packaging, Python 3.12/3.13, and container checks
+    pass.
 
 ## Consequences
 
 - AIE gains an auditable bridge from immutable evidence to a falsifiable beneficiary hypothesis.
 - Causality remains an explicit, reviewable interpretation rather than a property inferred from a
   theme label or correlation.
-- Claim-level confidence remains visible but is not collapsed into a magic score.
+- Claim-level confidence and its calibration status remain visible but are not collapsed into a
+  magic score.
 - The reference case proves the contract, not the general truth or profitability of the thesis.
 - Automated extraction, entity resolution, graph databases, causal discovery, normalized
   financial facts, Underwriting, ranking, portfolio construction, and execution remain deferred.

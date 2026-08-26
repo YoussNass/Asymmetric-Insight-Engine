@@ -55,6 +55,13 @@ class ClaimType(StrEnum):
     QUALITATIVE_JUDGEMENT = "qualitative_judgement"
 
 
+class ConfidenceCalibrationStatus(StrEnum):
+    """Whether a numerical confidence annotation has empirical calibration evidence."""
+
+    UNCALIBRATED = "uncalibrated"
+    CALIBRATED = "calibrated"
+
+
 class Confidence(BaseModel):
     """A bounded confidence assessment with an explicit rationale."""
 
@@ -62,6 +69,19 @@ class Confidence(BaseModel):
 
     score: float = Field(ge=0.0, le=1.0)
     rationale: NonEmptyString
+    calibration_status: ConfidenceCalibrationStatus = ConfidenceCalibrationStatus.UNCALIBRATED
+    method_version: NonEmptyString | None = None
+
+    @model_validator(mode="after")
+    def require_method_for_calibrated_confidence(self) -> Self:
+        """A calibrated scalar must identify the method whose calibration supports it."""
+
+        if (
+            self.calibration_status is ConfidenceCalibrationStatus.CALIBRATED
+            and self.method_version is None
+        ):
+            raise ValueError("calibrated confidence requires method_version")
+        return self
 
 
 class DataQuality(BaseModel):

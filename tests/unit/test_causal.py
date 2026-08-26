@@ -15,7 +15,11 @@ from asymmetric_engine.domain.causal import (
     CausalNodeKind,
     CausalReadiness,
 )
-from asymmetric_engine.domain.evidence import ClaimType, EvidenceItem
+from asymmetric_engine.domain.evidence import (
+    ClaimType,
+    ConfidenceCalibrationStatus,
+    EvidenceItem,
+)
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from tests.causal_factories import RECORDED_AT, make_causal_draft, make_reference_sources
 
@@ -43,6 +47,16 @@ def test_reference_causal_path_is_ready_only_for_underwriting() -> None:
     ]
     assert draft.missing_data
     assert draft.invalidation_conditions
+    assert draft.readiness_rationale
+    assert all(
+        claim.confidence.calibration_status is ConfidenceCalibrationStatus.UNCALIBRATED
+        for claim in draft.claims
+    )
+    change = draft.nodes[0]
+    signal_claims = {
+        claim.claim_id: claim for claim in draft.claims if claim.claim_id in change.claim_ids
+    }
+    assert {claim.claim_type for claim in signal_claims.values()} == {ClaimType.OBSERVATION}
     assert "portfolio" not in draft.model_dump_json().lower()
 
 
@@ -64,6 +78,7 @@ def test_node_identity_and_edge_reference_invariants() -> None:
             node_id="beneficiary:unknown",
             kind=CausalNodeKind.BENEFICIARY,
             label="Unknown beneficiary",
+            claim_ids=(draft.claims[0].claim_id,),
         )
     with pytest.raises(ValidationError, match="only beneficiary"):
         CausalNode(
@@ -71,6 +86,15 @@ def test_node_identity_and_edge_reference_invariants() -> None:
             kind=CausalNodeKind.ECONOMIC_DRIVER,
             label="Incorrectly identified driver",
             subject_id="company:test",
+            claim_ids=(draft.claims[0].claim_id,),
+        )
+
+    duplicated_claim_node = draft.nodes[0].model_copy(
+        update={"claim_ids": (draft.nodes[0].claim_ids[0],) * 2}
+    )
+    with pytest.raises(ValidationError, match="duplicate claim_ids"):
+        duplicated_claim_node.__class__.model_validate(
+            duplicated_claim_node.model_dump(mode="python")
         )
 
     duplicated_claim_edge = draft.edges[0].model_copy(
@@ -229,13 +253,32 @@ def test_edge_lineage_rejects_unknown_nodes_claims_and_wrong_roles() -> None:
 
 def test_edge_requires_inferential_support_and_no_claim_can_dangle() -> None:
     draft = make_causal_draft()
-    observation = draft.claims[0].model_copy(update={"claim_type": ClaimType.OBSERVATION})
+    edge_claim_id = draft.edges[0].claim_ids[0]
+    observation = next(
+        claim for claim in draft.claims if claim.claim_id == edge_claim_id
+    ).model_copy(update={"claim_type": ClaimType.OBSERVATION})
+    changed_claims = tuple(
+        observation if claim.claim_id == edge_claim_id else claim for claim in draft.claims
+    )
     with pytest.raises(ValidationError, match="inference or hypothesis"):
-        rebuild(draft, claims=(observation, *draft.claims[1:]))
+        rebuild(draft, claims=changed_claims)
 
     unused_claim = draft.claims[0].model_copy(update={"claim_id": uuid4()})
     with pytest.raises(ValidationError, match="every claim"):
         rebuild(draft, claims=(*draft.claims, unused_claim))
+
+
+def test_real_world_change_requires_a_separate_observed_signal_claim() -> None:
+    draft = make_causal_draft()
+    inference_claim_id = draft.edges[0].claim_ids[0]
+    unsupported_change = draft.nodes[0].model_copy(update={"claim_ids": (inference_claim_id,)})
+
+    with pytest.raises(ValidationError, match="observed or statistical signal"):
+        rebuild(draft, nodes=(unsupported_change, *draft.nodes[1:]))
+
+    unknown_signal = draft.nodes[0].model_copy(update={"claim_ids": (uuid4(),)})
+    with pytest.raises(ValidationError, match="unknown claim_ids"):
+        rebuild(draft, nodes=(unknown_signal, *draft.nodes[1:]))
 
 
 def test_every_node_and_source_document_must_participate() -> None:
@@ -244,6 +287,7 @@ def test_every_node_and_source_document_must_participate() -> None:
         node_id="driver:unused",
         kind=CausalNodeKind.ECONOMIC_DRIVER,
         label="Unused driver",
+        claim_ids=(draft.claims[0].claim_id,),
     )
     with pytest.raises(ValidationError, match="every node"):
         rebuild(draft, nodes=(*draft.nodes, unused_node))
@@ -258,6 +302,7 @@ def test_ready_for_underwriting_requires_one_connected_complete_path() -> None:
         node_id="driver:disconnected",
         kind=CausalNodeKind.ECONOMIC_DRIVER,
         label="Disconnected driver",
+        claim_ids=(draft.nodes[1].claim_ids[0],),
     )
     disconnected_edge = draft.edges[1].model_copy(
         update={"source_node_id": disconnected_driver.node_id}

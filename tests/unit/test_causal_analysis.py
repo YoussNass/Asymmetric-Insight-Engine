@@ -15,7 +15,12 @@ from asymmetric_engine.application.causal_analysis import (
     CausalAnalysisSourceNotFoundError,
 )
 from asymmetric_engine.application.evidence_ingestion import AppendResult, AppendStatus
-from asymmetric_engine.domain.causal import CausalAnalysis, CausalAnalysisDraft
+from asymmetric_engine.domain.causal import (
+    CausalAnalysis,
+    CausalAnalysisDraft,
+    CausalEdgeKind,
+    CausalNodeKind,
+)
 from asymmetric_engine.domain.evidence import SourceDocument
 from tests.causal_factories import RECORDED_AT, make_causal_draft, make_reference_sources
 
@@ -81,6 +86,17 @@ def test_builder_produces_a_deterministic_content_addressed_analysis() -> None:
     assert tuple(document.document_id for document in first.source_documents) == tuple(
         sorted(draft.source_document_ids, key=str)
     )
+    assert tuple(node.kind for node in first.nodes) == (
+        CausalNodeKind.REAL_WORLD_CHANGE,
+        CausalNodeKind.ECONOMIC_DRIVER,
+        CausalNodeKind.SUPPLY_CHAIN_ACTOR,
+        CausalNodeKind.BENEFICIARY,
+    )
+    assert tuple(edge.kind for edge in first.edges) == (
+        CausalEdgeKind.CHANGE_DRIVES_DRIVER,
+        CausalEdgeKind.DRIVER_TRANSMITS_TO_ACTOR,
+        CausalEdgeKind.ACTOR_MAPS_TO_BENEFICIARY,
+    )
 
 
 def test_fingerprint_ignores_semantically_irrelevant_collection_order() -> None:
@@ -88,10 +104,19 @@ def test_fingerprint_ignores_semantically_irrelevant_collection_order() -> None:
     reordered = rebuild(
         draft,
         source_document_ids=tuple(reversed(draft.source_document_ids)),
-        nodes=tuple(reversed(draft.nodes)),
-        edges=tuple(reversed(draft.edges)),
+        nodes=tuple(
+            node.model_copy(update={"claim_ids": tuple(reversed(node.claim_ids))})
+            for node in reversed(draft.nodes)
+        ),
+        edges=tuple(
+            edge.model_copy(update={"claim_ids": tuple(reversed(edge.claim_ids))})
+            for edge in reversed(draft.edges)
+        ),
         evidence=tuple(reversed(draft.evidence)),
-        claims=tuple(reversed(draft.claims)),
+        claims=tuple(
+            claim.model_copy(update={"evidence_ids": tuple(reversed(claim.evidence_ids))})
+            for claim in reversed(draft.claims)
+        ),
         invalidation_conditions=tuple(reversed(draft.invalidation_conditions)),
         missing_data=tuple(reversed(draft.missing_data)),
         assumptions=tuple(reversed(draft.assumptions)),
@@ -226,6 +251,53 @@ def test_verified_analysis_rejects_future_sources_and_unbacked_beneficiaries() -
     )
     with pytest.raises(ValidationError, match="every beneficiary"):
         CausalAnalysis.model_validate(values)
+
+
+def test_beneficiary_mapping_requires_evidence_from_the_target_subject() -> None:
+    repository, draft = make_repository()
+    beneficiary_edge = next(
+        edge for edge in draft.edges if edge.kind is CausalEdgeKind.ACTOR_MAPS_TO_BENEFICIARY
+    )
+    first_edge = next(
+        edge for edge in draft.edges if edge.kind is CausalEdgeKind.CHANGE_DRIVES_DRIVER
+    )
+    nvidia_document_id = next(
+        document.document_id
+        for document in repository.documents.values()
+        if document.subject_id == "company:sec-cik-0001045810"
+    )
+    nvidia_evidence_id = next(
+        item.evidence_id for item in draft.evidence if item.source_document_id == nvidia_document_id
+    )
+    replacement_claim = next(
+        claim for claim in draft.claims if claim.claim_id == first_edge.claim_ids[0]
+    ).model_copy(update={"evidence_ids": (nvidia_evidence_id,)})
+    original_mapping_claim_id = beneficiary_edge.claim_ids[0]
+    changed_claims = tuple(
+        replacement_claim if claim.claim_id == replacement_claim.claim_id else claim
+        for claim in draft.claims
+    )
+    changed_nodes = tuple(
+        node.model_copy(update={"claim_ids": (*node.claim_ids, original_mapping_claim_id)})
+        if node.kind is CausalNodeKind.BENEFICIARY
+        else node
+        for node in draft.nodes
+    )
+    changed_edges = tuple(
+        edge.model_copy(update={"claim_ids": (replacement_claim.claim_id,)})
+        if edge.kind is CausalEdgeKind.ACTOR_MAPS_TO_BENEFICIARY
+        else edge
+        for edge in draft.edges
+    )
+    invalid = rebuild(
+        draft,
+        claims=changed_claims,
+        nodes=changed_nodes,
+        edges=changed_edges,
+    )
+
+    with pytest.raises(ValidationError, match="evidence from its target subject"):
+        BuildCausalAnalysis(repository).execute(invalid)
 
 
 def test_repository_append_and_subject_listing_preserve_protocol_semantics() -> None:

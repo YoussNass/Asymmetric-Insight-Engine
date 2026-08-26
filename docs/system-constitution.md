@@ -80,6 +80,10 @@ invalidation conditions. The system may return `insufficient evidence` or `no al
 Counts over locally known evidence must not be described as complete coverage unless they are
 compared with an authoritative, point-in-time expected-source manifest.
 
+Numerical claim confidence must expose whether it is calibrated and identify the calibrated
+method when applicable. An uncalibrated annotation is neither an empirical probability nor an
+eligibility, ranking, or allocation input.
+
 Every analytical state must also declare its temporal knowledge mode. Historical reconstruction
 uses only source versions publicly knowable by `as_of`; live-system replay additionally uses only
 records actually ingested by `as_of`. The two modes must never be silently interchanged.

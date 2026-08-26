@@ -19,6 +19,7 @@ from asymmetric_engine.domain.evidence import (
     Claim,
     ClaimType,
     Confidence,
+    ConfidenceCalibrationStatus,
     DataQuality,
     EvidenceItem,
     SourceDocument,
@@ -43,7 +44,8 @@ NVIDIA_CONTENT = b"""<SEC-DOCUMENT>
 </COMPANY-DATA></FILER>
 <DOCUMENT>
 AIE SYNTHETIC TEST FIXTURE, NOT AN SEC FILING COPY.
-Issuer-reported data-centre growth was associated with expanding AI infrastructure demand.
+NVIDIA reported fiscal 2024 Data Center revenue increased 217% year over year as demand
+for AI infrastructure expanded.
 </DOCUMENT>
 </SEC-DOCUMENT>"""
 
@@ -64,6 +66,9 @@ AI servers require increasing memory bandwidth and content. HBM3E volume product
 NVIDIA_EVIDENCE_ID = UUID("11111111-1111-4111-8111-111111111111")
 MEMORY_DEMAND_EVIDENCE_ID = UUID("22222222-2222-4222-8222-222222222222")
 MICRON_HBM_EVIDENCE_ID = UUID("33333333-3333-4333-8333-333333333333")
+AI_DEMAND_OBSERVATION_CLAIM_ID = UUID("10101010-1010-4010-8010-101010101010")
+MEMORY_REQUIREMENT_OBSERVATION_CLAIM_ID = UUID("20202020-2020-4020-8020-202020202020")
+HBM_PRODUCTION_OBSERVATION_CLAIM_ID = UUID("30303030-3030-4030-8030-303030303030")
 AI_CHANGE_CLAIM_ID = UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 MEMORY_DRIVER_CLAIM_ID = UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")
 MICRON_BENEFICIARY_CLAIM_ID = UUID("cccccccc-cccc-4ccc-8ccc-cccccccccccc")
@@ -138,6 +143,15 @@ def _linked_evidence(
     )
 
 
+def _uncalibrated_confidence(*, score: float, rationale: str) -> Confidence:
+    return Confidence(
+        score=score,
+        rationale=rationale,
+        calibration_status=ConfidenceCalibrationStatus.UNCALIBRATED,
+        method_version="manual-epistemic-v1",
+    )
+
+
 def make_causal_draft(
     *,
     documents: tuple[SourceDocument, SourceDocument] | None = None,
@@ -170,12 +184,49 @@ def make_causal_draft(
     )
     claims = (
         Claim(
+            claim_id=AI_DEMAND_OBSERVATION_CLAIM_ID,
+            text="NVIDIA reported that fiscal 2024 Data Center revenue increased 217%.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=(nvidia_evidence.evidence_id,),
+            confidence=_uncalibrated_confidence(
+                score=0.9,
+                rationale=(
+                    "Direct issuer disclosure; the annotation is not an empirical probability."
+                ),
+            ),
+            invalidation_condition="NVIDIA amends or restates the reported Data Center growth.",
+        ),
+        Claim(
+            claim_id=MEMORY_REQUIREMENT_OBSERVATION_CLAIM_ID,
+            text="Micron reported that AI cloud servers require increasing DRAM, including HBM.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=(memory_evidence.evidence_id,),
+            confidence=_uncalibrated_confidence(
+                score=0.9,
+                rationale=(
+                    "Direct issuer disclosure; independent demand confirmation remains missing."
+                ),
+            ),
+            invalidation_condition="Micron corrects the disclosed AI-server memory requirement.",
+        ),
+        Claim(
+            claim_id=HBM_PRODUCTION_OBSERVATION_CLAIM_ID,
+            text="Micron reported beginning volume production of 8-high 24GB HBM3E in 2024.",
+            claim_type=ClaimType.OBSERVATION,
+            evidence_ids=(hbm_evidence.evidence_id,),
+            confidence=_uncalibrated_confidence(
+                score=0.9,
+                rationale="Direct issuer disclosure; production economics are not established.",
+            ),
+            invalidation_condition="Micron corrects or withdraws the production disclosure.",
+        ),
+        Claim(
             claim_id=AI_CHANGE_CLAIM_ID,
             text="Expanding AI data-centre deployment is increasing AI infrastructure demand.",
             claim_type=ClaimType.INFERENCE,
-            evidence_ids=(nvidia_evidence.evidence_id,),
-            confidence=Confidence(
-                score=0.74,
+            evidence_ids=(nvidia_evidence.evidence_id, memory_evidence.evidence_id),
+            confidence=_uncalibrated_confidence(
+                score=0.7,
                 rationale=(
                     "The direction is supported by an issuer filing, but not independently "
                     "verified."
@@ -190,8 +241,8 @@ def make_causal_draft(
             text="More AI-server deployment increases demand for memory bandwidth and HBM supply.",
             claim_type=ClaimType.INFERENCE,
             evidence_ids=(nvidia_evidence.evidence_id, memory_evidence.evidence_id),
-            confidence=Confidence(
-                score=0.78,
+            confidence=_uncalibrated_confidence(
+                score=0.7,
                 rationale=(
                     "Two issuer disclosures support the mechanism; market-wide data is missing."
                 ),
@@ -207,8 +258,8 @@ def make_causal_draft(
             ),
             claim_type=ClaimType.HYPOTHESIS,
             evidence_ids=(hbm_evidence.evidence_id,),
-            confidence=Confidence(
-                score=0.68,
+            confidence=_uncalibrated_confidence(
+                score=0.6,
                 rationale="Production status supports eligibility, not profitable value capture.",
             ),
             invalidation_condition="Micron fails qualification, ramp, share, or economic capture.",
@@ -224,28 +275,39 @@ def make_causal_draft(
         ),
         method_version="causal-vertical-slice-v1",
         readiness=readiness,
+        readiness_rationale=(
+            "The observed signal and all three causal transitions are evidence-backed, typed, "
+            "and falsifiable; unresolved economics remain explicit for Underwriting."
+        ),
         source_document_ids=tuple(document.document_id for document in documents),
         nodes=(
             CausalNode(
                 node_id="change:ai-data-centre-expansion",
                 kind=CausalNodeKind.REAL_WORLD_CHANGE,
                 label="Expansion of AI data-centre deployment",
+                claim_ids=(AI_DEMAND_OBSERVATION_CLAIM_ID,),
             ),
             CausalNode(
                 node_id="driver:memory-bandwidth-demand",
                 kind=CausalNodeKind.ECONOMIC_DRIVER,
                 label="Rising memory bandwidth and content per AI server",
+                claim_ids=(MEMORY_REQUIREMENT_OBSERVATION_CLAIM_ID,),
             ),
             CausalNode(
                 node_id="actor:hbm-supply",
                 kind=CausalNodeKind.SUPPLY_CHAIN_ACTOR,
                 label="High-bandwidth-memory supply",
+                claim_ids=(
+                    MEMORY_REQUIREMENT_OBSERVATION_CLAIM_ID,
+                    HBM_PRODUCTION_OBSERVATION_CLAIM_ID,
+                ),
             ),
             CausalNode(
                 node_id="beneficiary:micron",
                 kind=CausalNodeKind.BENEFICIARY,
                 label="Micron Technology",
                 subject_id="company:sec-cik-0000723125",
+                claim_ids=(HBM_PRODUCTION_OBSERVATION_CLAIM_ID,),
             ),
         ),
         edges=(
@@ -285,6 +347,7 @@ def make_causal_draft(
             "Independent market-wide HBM supply-and-demand evidence.",
             "Micron HBM pricing, cost, share, and margin evidence.",
             "Valuation and per-share impact, reserved for Underwriting.",
+            "Empirical calibration data for claim confidence annotations.",
         ),
         assumptions=(
             "Issuer filings accurately describe product demand and production status.",

@@ -13,10 +13,11 @@ The analytical object must preserve this lineage:
 | --- | --- | --- |
 | Source document | Exact immutable bytes and provider version | Mutable URL treated as evidence |
 | Evidence | Located extraction with temporal provenance | Interpretation presented as fact |
-| Claim | Typed statement with confidence rationale | Untyped assertion or unsupported score |
+| Signal claim | Observed or statistical change with provenance | Causal inference presented as observation |
+| Causal node | Typed economic role supported by claims | Unreferenced graph label |
 | Causal edge | Directional economic mechanism supported by claims | Theme membership or correlation as causality |
-| Beneficiary | Canonical listed-company subject | Ticker string without identity |
-| Decision | Readiness for the next analytical stage | Buy, allocate, size, time, or trade |
+| Beneficiary mapping | Canonical subject plus direct subject evidence | Ticker string or unrelated company document |
+| Decision | Explained readiness for the next analytical stage | Buy, allocate, size, time, or trade |
 
 The graph follows four typed stages:
 
@@ -29,6 +30,11 @@ Only the corresponding forward edge type may connect each adjacent pair. A ready
 contain at least one complete path across all four stages. Branches are allowed, but every node,
 edge, claim, evidence item, and source document must participate in the analysis rather than
 remaining as an unreferenced artefact.
+
+Every node cites typed claims. The `real_world_change` node must cite at least one observation or
+statistical result: this is the thin slice's explicit signal. Causal edges must instead include an
+inference or hypothesis claim. The separation prevents the system from presenting an interpreted
+mechanism as an observed fact. Automated signal discovery remains deferred.
 
 ## Temporal and provenance rules
 
@@ -55,8 +61,11 @@ fixtures. Future AI extraction must use the same contract and remains untrusted 
 | `ready_for_underwriting` | Complete causal path suitable for economic evaluation | Complete lineage and invalidations |
 | `invalidated` | The causal thesis no longer holds | Explicit invalidation reason |
 
-Readiness is categorical. Claim confidence scores remain local to each claim, require a rationale,
-and are never averaged into a case score.
+Every state also includes `readiness_rationale`, so the hand-off itself is explainable. Readiness
+is categorical. Claim confidence annotations remain local to each claim, require a rationale,
+declare calibration status and method when applicable, and are never averaged into a case score.
+The reference annotations are explicitly `uncalibrated`: no decision gate or ranking consumes
+their numerical values.
 
 ## Reference hypothesis
 
@@ -78,6 +87,7 @@ supply to Micron as a candidate beneficiary. It deliberately records these limit
 
 - no independent market-wide HBM supply-and-demand dataset;
 - issuer reporting is not independent confirmation;
+- claim confidence annotations are not empirically calibrated;
 - no pricing, cost, competitive-share, valuation, or per-share impact analysis.
 
 Those omissions do not disappear when the causal graph is structurally ready. They define the
