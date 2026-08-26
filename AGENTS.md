@@ -23,12 +23,16 @@ These instructions apply to every automated contributor working in this reposito
 - Underwriting consumes one `ready_for_underwriting` causal analysis for the same candidate and
   canonical knowledge boundary; it must not accept portfolio, market-regime, sizing, tax, or
   execution inputs.
-- Underwriting reported facts require direct candidate-source provenance. Analyst-adjusted facts
-  must remain labelled, explained, and claim-backed; derived facts must reproduce from explicit
-  inputs under a versioned deterministic formula.
+- Underwriting reported facts require direct candidate-source provenance; market observations
+  require candidate market-data provenance. Analyst-adjusted facts must remain labelled,
+  explained, and claim-backed; derived facts must reproduce from explicit inputs under an admitted
+  versioned deterministic formula.
+- Monetary facts and scenarios declare their native ISO currency. Duration comparisons require a
+  matching economic period scope, and no formula may perform or imply an undeclared FX conversion.
 - A `ready_for_portfolio_review` state must preserve all eight underwriting dimensions, all six
-  categorical gates, bear/base/bull per-share valuation bridges, catalysts, risks, assumptions,
-  conflicts, missing data, and invalidations. It is never an allocation instruction.
+  categorical gates, bear/base/bull per-share valuation bridges, scenario horizon and observation
+  date, current capital-structure anchors, catalysts, risks, assumptions, conflicts, missing data,
+  and invalidations. It is never an allocation instruction.
 - Do not assign scenario probabilities, forecast distributions, or active decision weights unless
   the producing method is explicitly versioned, empirically calibrated, documented, and approved.
 - Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,

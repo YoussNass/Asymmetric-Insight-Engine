@@ -7,6 +7,7 @@ from hashlib import sha256
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
+from asymmetric_engine.application.causal_analysis import BuildCausalAnalysis
 from asymmetric_engine.application.evidence_ingestion import SourceDocumentRepository
 from asymmetric_engine.application.source_verification import (
     SourceDocumentIntegrityError,
@@ -14,6 +15,7 @@ from asymmetric_engine.application.source_verification import (
     SourceDocumentVerificationError,
     load_verified_source_document,
 )
+from asymmetric_engine.domain.causal import CausalAnalysisDraft
 from asymmetric_engine.domain.opportunity import (
     EligibilityGateKind,
     OpportunityState,
@@ -48,6 +50,16 @@ class BuildOpportunityState:
                     f"source document {document_id} no longer matches the immutable version "
                     "embedded in the causal analysis"
                 )
+        causal_values = canonical_draft.causal_analysis.model_dump(mode="python")
+        for generated_field in ("analysis_id", "input_fingerprint", "source_documents"):
+            causal_values.pop(generated_field)
+        rebuilt_causal_analysis = BuildCausalAnalysis(self._repository).execute(
+            CausalAnalysisDraft.model_validate(causal_values)
+        )
+        if rebuilt_causal_analysis != canonical_draft.causal_analysis:
+            raise UnderwritingSourceIntegrityError(
+                "causal analysis identity does not match its canonical verified content"
+            )
         documents = tuple(
             load_verified_source_document(self._repository, document_id)
             for document_id in canonical_draft.source_document_ids
@@ -133,6 +145,7 @@ class BuildOpportunityState:
                     gate.model_copy(
                         update={
                             "claim_ids": tuple(sorted(gate.claim_ids, key=str)),
+                            "fact_ids": tuple(sorted(gate.fact_ids)),
                             "missing_data": tuple(sorted(gate.missing_data)),
                         }
                     )

@@ -2,6 +2,7 @@
 
 from asymmetric_engine.domain.opportunity.models import (
     Catalyst,
+    CurrencyCode,
     DerivedFinancialFact,
     DerivedMetric,
     DimensionOutcome,
@@ -13,6 +14,7 @@ from asymmetric_engine.domain.opportunity.models import (
     FinancialMetric,
     FinancialPeriod,
     FinancialPeriodKind,
+    FinancialPeriodScope,
     FinancialUnit,
     GateResult,
     OpportunityState,
@@ -30,6 +32,7 @@ from asymmetric_engine.domain.temporal import KnowledgeMode
 
 __all__ = [
     "Catalyst",
+    "CurrencyCode",
     "DerivedFinancialFact",
     "DerivedMetric",
     "DimensionOutcome",
@@ -41,6 +44,7 @@ __all__ = [
     "FinancialMetric",
     "FinancialPeriod",
     "FinancialPeriodKind",
+    "FinancialPeriodScope",
     "FinancialUnit",
     "GateResult",
     "KnowledgeMode",

@@ -21,10 +21,12 @@ produce identical output for every portfolio and user.
 
 ## Financial facts and formulas
 
-Financial facts preserve the distinction between what the candidate reported and what an analyst
-adjusted. Every fact states its metric, decimal value, unit, period, basis, and supporting claims.
-An adjustment without an explanation is invalid. A duration metric cannot be attached to an
-instant date, and a balance-sheet metric cannot be attached to a duration period.
+Financial facts preserve the distinction between what the candidate reported, what the market
+source observed, and what an analyst adjusted. Every fact states its metric, canonical decimal
+value, unit, native currency when monetary, period, basis, and supporting claims. An adjustment
+without an explanation is invalid. A duration metric cannot be attached to an instant date, a
+balance-sheet metric cannot be attached to a duration period, and growth comparisons require the
+same declared economic period scope.
 
 Derived values are not trusted just because they were supplied. The domain recomputes these first
 canonical formulas:
@@ -35,12 +37,15 @@ canonical formulas:
 | Gross margin | `gross profit / revenue` |
 | Free cash flow | `operating cash flow - capital expenditures` |
 | Net debt | `total debt - cash and investments` |
-| Diluted-share growth | `(current diluted shares - prior diluted shares) / prior diluted shares` |
+| Diluted weighted-average-share growth | `(current weighted-average diluted shares - prior weighted-average diluted shares) / prior weighted-average diluted shares` |
 | ROIC | `NOPAT / invested capital` |
 
-Every formula has an explicit calculation version. Units, metric identity, compatible periods,
-distinct inputs, non-zero denominators, and submitted outputs are validated with decimal
-arithmetic.
+Every formula has an admitted calculation version. Units, currency, metric identity, compatible
+periods and duration scopes, distinct inputs, non-zero denominators, and submitted outputs are
+validated with decimal arithmetic. Monetary formulas reject mixed currencies rather than
+performing an undeclared FX conversion. Growth comparisons allow at most seven days of duration
+difference so that 52/53-week reporting calendars remain comparable without admitting a partial
+period as a fiscal year.
 
 ## Eight-dimensional state
 
@@ -91,10 +96,14 @@ enterprise value
 = scenario return
 ```
 
-Each scenario keeps its method version, assumptions, inferential claim support, fact support, and
-invalidation conditions. The reference price must match its fact exactly; current diluted shares
-and net debt anchor, but do not conceal, scenario-specific assumptions. The three implied prices
-and returns must be strictly ordered.
+Each scenario keeps its method version, explicit calibration status and rationale, native
+currency, reference-price observation date, future horizon, assumptions, inferential claim
+support, fact support, and invalidation conditions. The reference price and date must match a
+market-observed fact exactly. Current diluted shares outstanding and net debt are separate exact
+anchors; scenario-specific changes to either must be disclosed and claim-supported. The EPS
+weighted-average share denominator is not accepted as the current valuation share anchor. All
+three scenarios share observation, horizon, currency, and anchors, and their implied prices and
+returns must be strictly ordered.
 
 Chapter 5 intentionally assigns no probabilities. The system has not yet admitted a calibrated
 forecast distribution, so numeric probabilities would create false precision. The optional
@@ -107,7 +116,7 @@ The reference case continues the Chapter 4 Micron hypothesis. Selected reported 
 the official
 [Micron fiscal 2025 Form 10-K](https://www.sec.gov/Archives/edgar/data/723125/000072312525000028/mu-20250828.htm),
 including revenue, gross profit, cash flow, capital expenditure, cash and investments, debt,
-diluted shares, and stock-based compensation.
+diluted weighted-average shares, fiscal-year-end shares outstanding, and stock-based compensation.
 
 Tests store only short synthetic fixture excerpts with the real filing identity. The synthetic
 market source uses a round USD 100 reference price, and scenario enterprise values, NOPAT, invested
@@ -118,16 +127,17 @@ make the contract deterministic; they must not be read as current Micron data or
 
 The application builder:
 
-1. re-verifies every source's byte length and SHA-256 and confirms that causal sources still match
-   the immutable versions embedded in the hand-off;
+1. re-verifies every source's byte length and SHA-256, confirms that causal sources still match
+   the immutable versions embedded in the hand-off, and rebuilds the canonical causal identity;
 2. validates source metadata and exact evidence provenance;
 3. applies the same temporal boundary used by the causal analysis;
 4. validates all claim, fact, dimension, gate, scenario, catalyst, and risk references;
 5. canonicalizes unordered collections;
 6. hashes the complete material state and derives a deterministic identifier.
 
-Missing sources, altered bytes, future facts, reused identifiers, mismatched formulas, unsupported
-scenarios, incomplete lineages, duplicate dimensions or gates, and invalid readiness fail closed.
+Missing sources, altered bytes, forged hand-off identities, future facts, mixed currencies or
+period scopes, reused identifiers, mismatched formulas, unsupported scenarios, stale catalysts,
+incomplete lineages, duplicate dimensions or gates, and invalid readiness fail closed.
 
 ## Deferred work
 

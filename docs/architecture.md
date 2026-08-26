@@ -49,21 +49,25 @@ rather than silently rewriting prior knowledge.
 Chapter 5 implements the standalone Underwriting bounded context. It consumes one immutable
 `ready_for_underwriting` causal analysis for the same candidate and knowledge boundary, then owns:
 
-- normalized financial facts with explicit metric, unit, period, basis, and claim lineage;
+- normalized financial facts with explicit metric, unit, native currency when monetary, period
+  kind and scope, basis, and claim lineage;
 - deterministic derived facts with transparent formula and calculation version;
 - independent assessments of revenue and margins, cash and earnings quality, ROIC, balance sheet
   and capital needs, dilution and per-share economics, value capture and competition, operating
   execution, and valuation and asymmetry;
 - categorical eligibility gates for causal hand-off, survivability, value capture, per-share
   integrity, valuation completeness, and falsifiability;
-- bear, base, and bull enterprise-value-to-equity-to-per-share bridges;
+- bear, base, and bull enterprise-value-to-equity-to-per-share bridges with explicit observation
+  date, horizon, current capital-structure anchors, and scenario assumptions;
 - catalysts, risks, missing data, conflicts, assumptions, and invalidation conditions.
 
-The application builder independently verifies the causal and underwriting source bytes, confirms
-that each causal source still matches the immutable version embedded in the hand-off, checks the
-canonical temporal boundary, and content-addresses the complete input. Reported financial facts
-must have direct source provenance from the candidate company. Derived facts are recalculated from
-their declared inputs rather than trusted as submitted values.
+The application builder independently verifies the causal and underwriting source bytes, rebuilds
+the causal identity from its canonical verified content, confirms that each causal source still
+matches the immutable version embedded in the hand-off, checks the canonical temporal boundary,
+and content-addresses the complete input. Reported financial facts must have direct source
+provenance from the candidate company; market observations require candidate market-data
+provenance. Derived facts are recalculated from their declared inputs rather than trusted as
+submitted values. Monetary formulas require one native currency and never imply an FX conversion.
 
 Underwriting may mark the resulting immutable Opportunity State
 `ready_for_portfolio_review`. This means the standalone case is structurally complete enough for

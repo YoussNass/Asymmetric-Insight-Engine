@@ -35,6 +35,7 @@ from asymmetric_engine.domain.opportunity import (
     FinancialMetric,
     FinancialPeriod,
     FinancialPeriodKind,
+    FinancialPeriodScope,
     FinancialUnit,
     GateResult,
     OpportunityStatus,
@@ -69,7 +70,8 @@ Fiscal 2025 revenue was $37,378 million versus $25,111 million in 2024; gross pr
 $14,873 million, operating income was $9,770 million, and net income was $8,539 million.
 Operating cash flow was $17,525 million and capital expenditures were $15,857 million.
 Cash and marketable investments were $11,936 million; current and long-term debt totaled
-$14,577 million. Diluted weighted-average shares were 1,125 million versus 1,118 million.
+$14,577 million. Diluted weighted-average shares were 1,125 million versus 1,118 million,
+and common shares outstanding at the 2025 year end were 1,122 million.
 Stock-based compensation expense was $975 million. Data-center revenue and margin improvement
 were supported by AI demand and a richer HBM mix. Capital intensity, customer concentration,
 cyclicality, qualification, and production-ramp execution remain material risks.
@@ -217,7 +219,12 @@ def _claim(
 
 
 def _duration(start: date, end: date) -> FinancialPeriod:
-    return FinancialPeriod(kind=FinancialPeriodKind.DURATION, start_date=start, end_date=end)
+    return FinancialPeriod(
+        kind=FinancialPeriodKind.DURATION,
+        start_date=start,
+        end_date=end,
+        duration_scope=FinancialPeriodScope.FISCAL_YEAR,
+    )
 
 
 def _instant(end: date) -> FinancialPeriod:
@@ -232,14 +239,19 @@ def _reported_fact(
     unit: FinancialUnit,
     period: FinancialPeriod,
     claim_id: UUID,
+    basis: FinancialFactBasis = FinancialFactBasis.REPORTED,
 ) -> FinancialFact:
+    currency = (
+        "USD" if unit in {FinancialUnit.MONEY_MILLIONS, FinancialUnit.MONEY_PER_SHARE} else None
+    )
     return FinancialFact(
         fact_id=fact_id,
         metric=metric,
         value=Decimal(value),
         unit=unit,
+        currency=currency,
         period=period,
-        basis=FinancialFactBasis.REPORTED,
+        basis=basis,
         claim_ids=(claim_id,),
     )
 
@@ -255,6 +267,8 @@ def _scenario(
     enterprise_value_decimal = Decimal(enterprise_value)
     net_debt_decimal = Decimal(net_debt)
     shares_decimal = Decimal(diluted_shares)
+    anchor_net_debt = Decimal("2641")
+    anchor_diluted_shares = Decimal("1122")
     reference_price = Decimal("100")
     equity_value = enterprise_value_decimal - net_debt_decimal
     value_per_share = equity_value / shares_decimal
@@ -263,17 +277,26 @@ def _scenario(
         kind=kind,
         method="illustrative enterprise-value bridge",
         method_version="illustrative-ev-bridge-v1",
-        enterprise_value_usd_millions=enterprise_value_decimal,
-        net_debt_usd_millions=net_debt_decimal,
-        equity_value_usd_millions=equity_value,
-        diluted_shares_millions=shares_decimal,
-        value_per_share_usd=value_per_share,
-        reference_price_usd=reference_price,
+        calibration_status=ConfidenceCalibrationStatus.UNCALIBRATED,
+        calibration_rationale=(
+            "Contract-fixture scenarios have not been calibrated against out-of-sample outcomes."
+        ),
+        currency="USD",
+        reference_price_date=date(2026, 8, 25),
+        horizon_date=date(2027, 8, 31),
+        enterprise_value_millions=enterprise_value_decimal,
+        anchor_net_debt_millions=anchor_net_debt,
+        scenario_net_debt_millions=net_debt_decimal,
+        equity_value_millions=equity_value,
+        anchor_diluted_shares_millions=anchor_diluted_shares,
+        scenario_diluted_shares_millions=shares_decimal,
+        value_per_share=value_per_share,
+        reference_price=reference_price,
         return_from_reference=scenario_return,
         supporting_fact_ids=(
             "derived:free-cash-flow",
             "derived:net-debt",
-            "reported:diluted-shares-2025",
+            "reported:diluted-shares-outstanding-2025",
             "reported:reference-price",
             "reported:revenue-2025",
         ),
@@ -283,6 +306,14 @@ def _scenario(
             "the illustrative enterprise value is not a price target."
         ),
         assumptions=(assumption,),
+        net_debt_assumption=(
+            f"Net debt changes from the USD {anchor_net_debt} million anchor to USD "
+            f"{net_debt_decimal} million."
+        ),
+        diluted_shares_assumption=(
+            f"Diluted shares change from the {anchor_diluted_shares} million outstanding-share "
+            f"anchor to {shares_decimal} million."
+        ),
         invalidation_conditions=(
             "The operating and capital assumptions no longer support the stated enterprise value.",
         ),
@@ -372,7 +403,10 @@ def make_underwriting_draft(
         ),
         _claim(
             claim_id=PER_SHARE_CLAIM_ID,
-            text="Diluted shares increased and stock-based compensation remained material.",
+            text=(
+                "Diluted weighted-average shares increased, year-end shares outstanding were "
+                "reported, and stock-based compensation remained material."
+            ),
             claim_type=ClaimType.OBSERVATION,
             evidence_ids=(PER_SHARE_EVIDENCE_ID,),
             invalidation="The share-count or compensation disclosure is restated.",
@@ -447,7 +481,7 @@ def make_underwriting_draft(
             fact_id="reported:revenue-2024",
             metric=FinancialMetric.REVENUE,
             value="25111",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2024,
             claim_id=INCOME_CLAIM_ID,
         ),
@@ -455,7 +489,7 @@ def make_underwriting_draft(
             fact_id="reported:revenue-2025",
             metric=FinancialMetric.REVENUE,
             value="37378",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=INCOME_CLAIM_ID,
         ),
@@ -463,7 +497,7 @@ def make_underwriting_draft(
             fact_id="reported:gross-profit-2025",
             metric=FinancialMetric.GROSS_PROFIT,
             value="14873",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=INCOME_CLAIM_ID,
         ),
@@ -471,7 +505,7 @@ def make_underwriting_draft(
             fact_id="reported:operating-income-2025",
             metric=FinancialMetric.OPERATING_INCOME,
             value="9770",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=INCOME_CLAIM_ID,
         ),
@@ -479,7 +513,7 @@ def make_underwriting_draft(
             fact_id="reported:net-income-2025",
             metric=FinancialMetric.NET_INCOME,
             value="8539",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=INCOME_CLAIM_ID,
         ),
@@ -487,7 +521,7 @@ def make_underwriting_draft(
             fact_id="reported:operating-cash-flow-2025",
             metric=FinancialMetric.OPERATING_CASH_FLOW,
             value="17525",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=CASH_FLOW_CLAIM_ID,
         ),
@@ -495,7 +529,7 @@ def make_underwriting_draft(
             fact_id="reported:capital-expenditures-2025",
             metric=FinancialMetric.CAPITAL_EXPENDITURES,
             value="15857",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=CASH_FLOW_CLAIM_ID,
         ),
@@ -503,7 +537,7 @@ def make_underwriting_draft(
             fact_id="reported:cash-and-investments-2025",
             metric=FinancialMetric.CASH_AND_INVESTMENTS,
             value="11936",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=_instant(date(2025, 8, 28)),
             claim_id=BALANCE_CLAIM_ID,
         ),
@@ -511,13 +545,13 @@ def make_underwriting_draft(
             fact_id="reported:total-debt-2025",
             metric=FinancialMetric.TOTAL_DEBT,
             value="14577",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=_instant(date(2025, 8, 28)),
             claim_id=BALANCE_CLAIM_ID,
         ),
         _reported_fact(
             fact_id="reported:diluted-shares-2024",
-            metric=FinancialMetric.DILUTED_SHARES,
+            metric=FinancialMetric.DILUTED_WEIGHTED_AVERAGE_SHARES,
             value="1118",
             unit=FinancialUnit.SHARES_MILLIONS,
             period=fy2024,
@@ -525,17 +559,25 @@ def make_underwriting_draft(
         ),
         _reported_fact(
             fact_id="reported:diluted-shares-2025",
-            metric=FinancialMetric.DILUTED_SHARES,
+            metric=FinancialMetric.DILUTED_WEIGHTED_AVERAGE_SHARES,
             value="1125",
             unit=FinancialUnit.SHARES_MILLIONS,
             period=fy2025,
             claim_id=PER_SHARE_CLAIM_ID,
         ),
         _reported_fact(
+            fact_id="reported:diluted-shares-outstanding-2025",
+            metric=FinancialMetric.DILUTED_SHARES_OUTSTANDING,
+            value="1122",
+            unit=FinancialUnit.SHARES_MILLIONS,
+            period=_instant(date(2025, 8, 28)),
+            claim_id=PER_SHARE_CLAIM_ID,
+        ),
+        _reported_fact(
             fact_id="reported:share-based-compensation-2025",
             metric=FinancialMetric.SHARE_BASED_COMPENSATION,
             value="975",
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
             period=fy2025,
             claim_id=PER_SHARE_CLAIM_ID,
         ),
@@ -543,17 +585,22 @@ def make_underwriting_draft(
             fact_id="adjusted:normalized-nopat-2025",
             metric=FinancialMetric.NORMALIZED_NOPAT,
             value=Decimal("8636.68"),
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
+            currency="USD",
             period=fy2025,
             basis=FinancialFactBasis.ANALYST_ADJUSTED,
             claim_ids=(NORMALIZATION_CLAIM_ID,),
-            normalization_note="Illustrative operating income after an assumed 11.6% tax rate.",
+            normalization_note=(
+                "Illustrative operating income after an assumed 11.6% corporate operating-tax "
+                "rate; this is not investor or portfolio tax context."
+            ),
         ),
         FinancialFact(
             fact_id="adjusted:average-invested-capital-2025",
             metric=FinancialMetric.AVERAGE_INVESTED_CAPITAL,
             value=Decimal("50000"),
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
+            currency="USD",
             period=fy2025,
             basis=FinancialFactBasis.ANALYST_ADJUSTED,
             claim_ids=(NORMALIZATION_CLAIM_ID,),
@@ -563,9 +610,10 @@ def make_underwriting_draft(
             fact_id="reported:reference-price",
             metric=FinancialMetric.REFERENCE_SHARE_PRICE,
             value="100",
-            unit=FinancialUnit.USD_PER_SHARE,
+            unit=FinancialUnit.MONEY_PER_SHARE,
             period=_instant(date(2026, 8, 25)),
             claim_id=PRICE_CLAIM_ID,
+            basis=FinancialFactBasis.MARKET_OBSERVED,
         ),
     )
     facts = {fact.fact_id: fact for fact in financial_facts}
@@ -594,7 +642,8 @@ def make_underwriting_draft(
             metric=DerivedMetric.FREE_CASH_FLOW,
             value=facts["reported:operating-cash-flow-2025"].value
             - facts["reported:capital-expenditures-2025"].value,
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
+            currency="USD",
             formula=FinancialFormula.OPERATING_CASH_FLOW_MINUS_CAPEX,
             input_fact_ids=(
                 "reported:operating-cash-flow-2025",
@@ -607,7 +656,8 @@ def make_underwriting_draft(
             metric=DerivedMetric.NET_DEBT,
             value=facts["reported:total-debt-2025"].value
             - facts["reported:cash-and-investments-2025"].value,
-            unit=FinancialUnit.USD_MILLIONS,
+            unit=FinancialUnit.MONEY_MILLIONS,
+            currency="USD",
             formula=FinancialFormula.DEBT_MINUS_CASH,
             input_fact_ids=("reported:total-debt-2025", "reported:cash-and-investments-2025"),
             calculation_version="fundamental-formulas-v1",
@@ -674,6 +724,9 @@ def make_underwriting_draft(
                 "reported:share-based-compensation-2025",
                 "derived:free-cash-flow",
             ),
+            invalidation_conditions=(
+                "Restated cash-flow or capex data removes the observed cash-conversion pattern.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.RETURNS_ON_INVESTED_CAPITAL,
@@ -686,6 +739,9 @@ def make_underwriting_draft(
                 "derived:return-on-invested-capital",
             ),
             missing_data=("Independent review of normalized NOPAT and invested capital",),
+            invalidation_conditions=(
+                "Reviewed NOPAT or invested capital makes the illustrative ROIC unusable.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.BALANCE_SHEET_AND_CAPITAL_NEEDS,
@@ -698,6 +754,9 @@ def make_underwriting_draft(
                 "reported:capital-expenditures-2025",
                 "derived:net-debt",
             ),
+            invalidation_conditions=(
+                "Liquidity, leverage, or committed capital needs no longer support survivability.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.DILUTION_AND_PER_SHARE_ECONOMICS,
@@ -709,8 +768,12 @@ def make_underwriting_draft(
             fact_ids=(
                 "reported:diluted-shares-2024",
                 "reported:diluted-shares-2025",
+                "reported:diluted-shares-outstanding-2025",
                 "reported:share-based-compensation-2025",
                 "derived:diluted-share-growth",
+            ),
+            invalidation_conditions=(
+                "Updated fully diluted shares make the per-share bridge materially incomplete.",
             ),
         ),
         UnderwritingDimension(
@@ -727,6 +790,9 @@ def make_underwriting_draft(
                 "Issuer evidence supports HBM progress but does not independently establish "
                 "durable competitive share.",
             ),
+            invalidation_conditions=(
+                "Independent evidence shows that HBM economics accrue to rivals or customers.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.OPERATING_EXECUTION,
@@ -736,6 +802,9 @@ def make_underwriting_draft(
             ),
             claim_ids=(VALUE_CAPTURE_CLAIM_ID, CAPITAL_RISK_CLAIM_ID, CATALYST_CLAIM_ID),
             fact_ids=("reported:capital-expenditures-2025",),
+            invalidation_conditions=(
+                "Qualification, yield, capacity, or ramp failure prevents economic delivery.",
+            ),
         ),
         UnderwritingDimension(
             kind=UnderwritingDimensionKind.VALUATION_AND_ASYMMETRY,
@@ -744,10 +813,10 @@ def make_underwriting_draft(
             claim_ids=(PRICE_CLAIM_ID, VALUATION_ASSUMPTION_CLAIM_ID),
             fact_ids=(
                 "reported:reference-price",
-                "reported:diluted-shares-2025",
+                "reported:diluted-shares-outstanding-2025",
                 "derived:net-debt",
             ),
-            missing_data=("Calibrated valuation method and scenario probabilities",),
+            missing_data=("Calibrated valuation method and return distribution",),
             assumptions=(
                 "Enterprise values are illustrative scenario inputs, not inferred price targets.",
                 "Scenario labels do not imply probabilities.",
@@ -770,6 +839,11 @@ def make_underwriting_draft(
             rationale="Reported liquidity and cash generation permit a bounded resilience review.",
             method_version="underwriting-gates-v1",
             claim_ids=(BALANCE_CLAIM_ID, CASH_FLOW_CLAIM_ID),
+            fact_ids=(
+                "reported:cash-and-investments-2025",
+                "reported:total-debt-2025",
+                "derived:free-cash-flow",
+            ),
         ),
         EligibilityGate(
             kind=EligibilityGateKind.ECONOMIC_VALUE_CAPTURE,
@@ -779,6 +853,7 @@ def make_underwriting_draft(
             ),
             method_version="underwriting-gates-v1",
             claim_ids=(VALUE_CAPTURE_CLAIM_ID,),
+            fact_ids=("reported:revenue-2025", "derived:gross-margin"),
         ),
         EligibilityGate(
             kind=EligibilityGateKind.PER_SHARE_INTEGRITY,
@@ -786,6 +861,11 @@ def make_underwriting_draft(
             rationale="Diluted shares and stock compensation are explicit in the assessment.",
             method_version="underwriting-gates-v1",
             claim_ids=(PER_SHARE_CLAIM_ID,),
+            fact_ids=(
+                "reported:diluted-shares-outstanding-2025",
+                "reported:share-based-compensation-2025",
+                "derived:diluted-share-growth",
+            ),
         ),
         EligibilityGate(
             kind=EligibilityGateKind.VALUATION_COMPLETENESS,
@@ -793,6 +873,11 @@ def make_underwriting_draft(
             rationale="All three cases expose the enterprise-to-equity and per-share bridge.",
             method_version="underwriting-gates-v1",
             claim_ids=(PRICE_CLAIM_ID, VALUATION_ASSUMPTION_CLAIM_ID),
+            fact_ids=(
+                "reported:reference-price",
+                "reported:diluted-shares-outstanding-2025",
+                "derived:net-debt",
+            ),
         ),
         EligibilityGate(
             kind=EligibilityGateKind.FALSIFIABILITY,
@@ -915,7 +1000,7 @@ def make_underwriting_draft(
         ),
         missing_data=(
             "Independent HBM market-share and unit-economics evidence",
-            "Calibrated valuation method and scenario probabilities",
+            "Calibrated valuation method and return distribution",
             "Reviewed NOPAT and invested-capital normalization",
         ),
         assumptions=(

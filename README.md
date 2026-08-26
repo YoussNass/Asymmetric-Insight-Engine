@@ -38,15 +38,18 @@ without replacing the causal thesis.
 ## Current status
 
 Chapters 2, 3, and 4 are complete. Chapter 5 is proposed in the current branch and adds the first
-standalone Investment Underwriting slice: normalized reported and analyst-adjusted facts,
-versioned deterministic formulas, eight independent analytical dimensions, categorical
-eligibility gates, explicit bear/base/bull valuation bridges, probability-free payoff arithmetic,
-and a deterministic `ready_for_portfolio_review` hand-off.
+standalone Investment Underwriting slice: normalized reported, market-observed, and
+analyst-adjusted facts with native currency and fiscal-period scope; versioned deterministic
+formulas; eight independent analytical dimensions; categorical eligibility gates; dated
+bear/base/bull valuation bridges; probability-free payoff arithmetic; and a deterministic
+`ready_for_portfolio_review` hand-off.
 
 The reference case continues the Chapter 4 Micron hypothesis and uses selected reported values
-from Micron's fiscal 2025 Form 10-K. Short source excerpts and all market-price and valuation
-assumptions are deterministic test fixtures. The case proves the contract; it is not an investment
-recommendation, a complete Micron analysis, or evidence that the security is attractive. See
+from Micron's fiscal 2025 Form 10-K. It keeps diluted weighted-average shares used for EPS distinct
+from fiscal-year-end shares outstanding used as the current per-share valuation anchor. Short
+source excerpts and all market-price and valuation assumptions are deterministic test fixtures.
+The case proves the contract; it is not an investment recommendation, a complete Micron analysis,
+or evidence that the security is attractive. See
 [`Chapter 5: Standalone investment underwriting`](docs/chapter-5-investment-underwriting.md).
 
 Automated extraction and signal discovery, complete filing normalization, calibrated forecast

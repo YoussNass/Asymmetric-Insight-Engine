@@ -43,9 +43,11 @@ eligibility gates; and explicit enterprise-value-to-equity-to-per-share scenario
 
 Underwriting accepts one `ready_for_underwriting` causal analysis for the same candidate and
 knowledge boundary. It accepts no portfolio, market-regime, sizing, tax, or execution context.
-Reported facts require direct candidate-source provenance, analyst adjustments remain visibly
-labelled, and derived values must reproduce from declared inputs. Scenario probabilities and
-forecast distributions may be emitted only by a separately admitted and calibrated method.
+Reported facts require direct candidate-source provenance, market observations require candidate
+market-data provenance, analyst adjustments remain visibly labelled, and derived values must
+reproduce from declared inputs. Monetary facts and scenarios retain their native currency; no
+silent FX conversion is permitted. Scenario probabilities and forecast distributions may be
+emitted only by a separately admitted and calibrated method.
 
 `ready_for_portfolio_review` means that the standalone assessment is structurally complete,
 falsifiable, and auditable. It does not mean buy, attractive, allocatable, correctly timed, or
@@ -134,6 +136,11 @@ per-share integrity, valuation completeness, and falsifiability. Here, `operatin
 company's ability to deliver the thesis and is distinct from the downstream trade-execution
 bounded context. A passing gate establishes contract eligibility only; it does not turn the
 dimensions into a scalar recommendation.
+
+Per-share scenario bridges distinguish duration-based diluted weighted-average shares from the
+current diluted shares-outstanding anchor. They declare a reference-price observation date, a
+future horizon, native currency, current net-debt and share anchors, and any scenario-specific
+departure as an explicit supported assumption.
 
 ## Scoring contract
 

@@ -46,6 +46,32 @@ def test_reference_underwriting_is_multidimensional_and_portfolio_independent() 
     assert "allocatable" not in {status.value for status in OpportunityStatus}
 
 
+@pytest.mark.parametrize(
+    "forbidden_field",
+    (
+        "portfolio_id",
+        "holdings",
+        "available_cash",
+        "benchmark",
+        "tax_context",
+        "portfolio_correlation",
+        "portfolio_concentration",
+        "position_size",
+        "market_regime",
+        "trade_timing",
+        "execution_plan",
+        "allocation_decision",
+    ),
+)
+def test_underwriting_rejects_downstream_context_inputs(forbidden_field: str) -> None:
+    _, draft = make_underwriting_context()
+    values = draft.model_dump(mode="python")
+    values[forbidden_field] = "forbidden downstream context"
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        UnderwritingDraft.model_validate(values)
+
+
 def test_underwriting_requires_ready_causal_handoff_and_matching_beneficiary() -> None:
     _, draft = make_underwriting_context()
     incomplete = draft.causal_analysis.model_copy(
@@ -145,8 +171,8 @@ def test_scenario_rejects_inconsistent_equity_per_share_and_return_arithmetic() 
     _, draft = make_underwriting_context()
     scenario = draft.valuation_scenarios[0]
     for field, value, message in (
-        ("equity_value_usd_millions", Decimal("1"), "enterprise value minus net debt"),
-        ("value_per_share_usd", Decimal("1"), "equity value divided by diluted shares"),
+        ("equity_value_millions", Decimal("1"), "enterprise value minus net debt"),
+        ("value_per_share", Decimal("1"), "equity value divided by diluted shares"),
         ("return_from_reference", Decimal("1"), "calculated from value per share"),
     ):
         values = scenario.model_dump(mode="python")
@@ -161,20 +187,20 @@ def test_scenario_set_requires_supported_price_strict_order_and_matching_payoff(
     changed_price = Decimal("101")
     changed_base = base.model_copy(
         update={
-            "reference_price_usd": changed_price,
-            "return_from_reference": base.value_per_share_usd / changed_price - Decimal(1),
+            "reference_price": changed_price,
+            "return_from_reference": base.value_per_share / changed_price - Decimal(1),
         }
     )
-    with pytest.raises(ValidationError, match="reference price lacks exact fact support"):
+    with pytest.raises(ValidationError, match="reference price, date, currency, and basis"):
         rebuild(draft, valuation_scenarios=(bear, changed_base, bull))
 
     changed_base = base.model_copy(
         update={
-            "enterprise_value_usd_millions": bear.enterprise_value_usd_millions,
-            "net_debt_usd_millions": bear.net_debt_usd_millions,
-            "equity_value_usd_millions": bear.equity_value_usd_millions,
-            "diluted_shares_millions": bear.diluted_shares_millions,
-            "value_per_share_usd": bear.value_per_share_usd,
+            "enterprise_value_millions": bear.enterprise_value_millions,
+            "scenario_net_debt_millions": bear.scenario_net_debt_millions,
+            "equity_value_millions": bear.equity_value_millions,
+            "scenario_diluted_shares_millions": bear.scenario_diluted_shares_millions,
+            "value_per_share": bear.value_per_share,
             "return_from_reference": bear.return_from_reference,
         }
     )
@@ -190,6 +216,12 @@ def test_scenario_set_requires_supported_price_strict_order_and_matching_payoff(
 
 def test_scenario_probabilities_are_deliberately_absent() -> None:
     assert "probability" not in ValuationScenario.model_fields
+    _, draft = make_underwriting_context()
+    values = draft.valuation_scenarios[0].model_dump(mode="python")
+    values["probability"] = Decimal("0.25")
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        ValuationScenario.model_validate(values)
 
 
 def test_unknown_dimension_and_gate_require_missing_data() -> None:
