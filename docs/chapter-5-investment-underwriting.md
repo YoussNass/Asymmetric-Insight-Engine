@@ -47,6 +47,10 @@ performing an undeclared FX conversion. Growth comparisons allow at most seven d
 difference so that 52/53-week reporting calendars remain comparable without admitting a partial
 period as a fiscal year.
 
+Corporate operating-tax assumptions may remain visible when deriving NOPAT or standalone company
+economics. Investor domicile, tax lots, realized gains, replacement taxes, and other
+portfolio-specific tax context are never Underwriting inputs.
+
 ## Eight-dimensional state
 
 The Opportunity State preserves exactly these dimensions rather than averaging them:
