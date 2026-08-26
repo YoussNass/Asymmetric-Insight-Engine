@@ -58,6 +58,9 @@ jobs:
       - name: Diagnose installation
         run: uv run asymmetric-engine doctor
 
+      - name: Build package artifacts
+        run: uv build
+
   container:
     name: Container / Python 3.12
     runs-on: ubuntu-latest

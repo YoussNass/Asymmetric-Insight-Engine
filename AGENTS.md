@@ -20,6 +20,17 @@ These instructions apply to every automated contributor working in this reposito
   `ready_for_underwriting`, never an investment or allocation decision.
 - Underwriting owns standalone opportunity state; Portfolio may consume but never recreate or
   mutate it.
+- Underwriting consumes one `ready_for_underwriting` causal analysis for the same candidate and
+  canonical knowledge boundary; it must not accept portfolio, market-regime, sizing, tax, or
+  execution inputs.
+- Underwriting reported facts require direct candidate-source provenance. Analyst-adjusted facts
+  must remain labelled, explained, and claim-backed; derived facts must reproduce from explicit
+  inputs under a versioned deterministic formula.
+- A `ready_for_portfolio_review` state must preserve all eight underwriting dimensions, all six
+  categorical gates, bear/base/bull per-share valuation bridges, catalysts, risks, assumptions,
+  conflicts, missing data, and invalidations. It is never an allocation instruction.
+- Do not assign scenario probabilities, forecast distributions, or active decision weights unless
+  the producing method is explicitly versioned, empirically calibrated, documented, and approved.
 - Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,
   and execution as separate contracts.
 

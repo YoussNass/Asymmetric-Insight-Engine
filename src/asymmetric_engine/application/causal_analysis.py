@@ -8,6 +8,12 @@ from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from asymmetric_engine.application.evidence_ingestion import SourceDocumentRepository
+from asymmetric_engine.application.source_verification import (
+    SourceDocumentIntegrityError,
+    SourceDocumentNotFoundError,
+    SourceDocumentVerificationError,
+    load_verified_source_document,
+)
 from asymmetric_engine.domain.causal import (
     CausalAnalysis,
     CausalAnalysisDraft,
@@ -16,17 +22,9 @@ from asymmetric_engine.domain.causal import (
 )
 from asymmetric_engine.domain.evidence import SourceDocument
 
-
-class CausalAnalysisSourceError(RuntimeError):
-    """Base error for a causal analysis that cannot verify its declared source material."""
-
-
-class CausalAnalysisSourceNotFoundError(CausalAnalysisSourceError):
-    """Raised when a declared immutable source version is missing from the ledger."""
-
-
-class CausalAnalysisSourceIntegrityError(CausalAnalysisSourceError):
-    """Raised when stored bytes no longer match their immutable source metadata."""
+CausalAnalysisSourceError = SourceDocumentVerificationError
+CausalAnalysisSourceNotFoundError = SourceDocumentNotFoundError
+CausalAnalysisSourceIntegrityError = SourceDocumentIntegrityError
 
 
 class BuildCausalAnalysis:
@@ -68,22 +66,7 @@ class BuildCausalAnalysis:
         )
 
     def _load_verified_document(self, document_id: UUID) -> SourceDocument:
-        try:
-            document = self._repository.get(document_id)
-            content = self._repository.read_content(document_id)
-        except KeyError as error:
-            raise CausalAnalysisSourceNotFoundError(
-                f"source document {document_id} is missing from the evidence ledger"
-            ) from error
-        if len(content) != document.content_size_bytes:
-            raise CausalAnalysisSourceIntegrityError(
-                f"source document {document_id} byte length does not match its metadata"
-            )
-        if sha256(content).hexdigest() != document.content_hash:
-            raise CausalAnalysisSourceIntegrityError(
-                f"source document {document_id} SHA-256 does not match its metadata"
-            )
-        return document
+        return load_verified_source_document(self._repository, document_id)
 
     @staticmethod
     def _canonicalize_draft(draft: CausalAnalysisDraft) -> CausalAnalysisDraft:
