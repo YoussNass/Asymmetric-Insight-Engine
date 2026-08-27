@@ -37,19 +37,25 @@ without replacing the causal thesis.
 
 ## Current status
 
-Chapters 2, 3, and 4 are complete. Chapter 4 adds the first causal vertical slice:
-typed real-world-change, economic-driver, supply-chain-actor, and beneficiary nodes; claim-backed
-directional mechanisms; exact ledger provenance; and a deterministic `ready_for_underwriting`
-hand-off. SQLite remains a local/reference persistence adapter.
+Chapters 2, 3, and 4 are complete. Chapter 5 is proposed in the current branch and adds the first
+standalone Investment Underwriting slice: normalized reported, market-observed, and
+analyst-adjusted facts with native currency and fiscal-period scope; versioned deterministic
+formulas; eight independent analytical dimensions; categorical eligibility gates; dated
+bear/base/bull valuation bridges; probability-free payoff arithmetic; and a deterministic
+`ready_for_portfolio_review` hand-off.
 
-The reference case traces an AI infrastructure-demand hypothesis through HBM supply to Micron.
-It proves the analytical contract with synthetic fixture bytes; it is not an investment
-recommendation and does not perform valuation or establish profitable value capture. See
-[`Chapter 4: Causal vertical slice`](docs/chapter-4-causal-vertical-slice.md).
+The reference case continues the Chapter 4 Micron hypothesis and uses selected reported values
+from Micron's fiscal 2025 Form 10-K. It keeps diluted weighted-average shares used for EPS distinct
+from fiscal-year-end shares outstanding used as the current per-share valuation anchor. Short
+source excerpts and all market-price and valuation assumptions are deterministic test fixtures.
+The case proves the contract; it is not an investment recommendation, a complete Micron analysis,
+or evidence that the security is attractive. See
+[`Chapter 5: Standalone investment underwriting`](docs/chapter-5-investment-underwriting.md).
 
-Automated extraction and signal discovery, normalized financial facts, Underwriting, portfolio
-logic, order execution, filing discovery, and a complete user interface remain outside the
-implemented scope.
+Automated extraction and signal discovery, complete filing normalization, calibrated forecast
+distributions, Market State, portfolio exposure and fit, capital allocation, order execution,
+filing discovery, and a complete user interface remain outside the implemented scope. SQLite
+remains a local/reference persistence adapter.
 
 ## Quick start
 

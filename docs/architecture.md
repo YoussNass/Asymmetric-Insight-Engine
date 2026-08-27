@@ -46,9 +46,43 @@ rather than silently rewriting prior knowledge.
 
 ## Underwriting-to-portfolio boundary
 
-Underwriting may mark an opportunity `ready_for_portfolio_review`. It cannot declare it
-allocatable: sizing and allocation require portfolio-level capital, correlation, concentration,
-liquidity, risk, and tax context owned by the Portfolio and Capital Allocation module.
+Chapter 5 implements the standalone Underwriting bounded context. It consumes one immutable
+`ready_for_underwriting` causal analysis for the same candidate and knowledge boundary, then owns:
+
+- normalized financial facts with explicit metric, unit, native currency when monetary, period
+  kind and scope, basis, and claim lineage;
+- deterministic derived facts with transparent formula and calculation version;
+- independent assessments of revenue and margins, cash and earnings quality, ROIC, balance sheet
+  and capital needs, dilution and per-share economics, value capture and competition, operating
+  execution, and valuation and asymmetry;
+- categorical eligibility gates for causal hand-off, survivability, value capture, per-share
+  integrity, valuation completeness, and falsifiability;
+- bear, base, and bull enterprise-value-to-equity-to-per-share bridges with explicit observation
+  date, horizon, current capital-structure anchors, and scenario assumptions;
+- catalysts, risks, missing data, conflicts, assumptions, and invalidation conditions.
+
+The application builder independently verifies the causal and underwriting source bytes, rebuilds
+the causal identity from its canonical verified content, confirms that each causal source still
+matches the immutable version embedded in the hand-off, checks the canonical temporal boundary,
+and content-addresses the complete input. Reported financial facts must have direct source
+provenance from the candidate company; market observations require candidate market-data
+provenance. Derived facts are recalculated from their declared inputs rather than trusted as
+submitted values. Monetary formulas require one native currency and never imply an FX conversion.
+
+Underwriting may mark the resulting immutable Opportunity State
+`ready_for_portfolio_review`. This means the standalone case is structurally complete enough for
+the next bounded context. It is not a recommendation and cannot declare the opportunity
+allocatable: Market State, portfolio exposure, portfolio fit, competing uses of capital,
+correlation, concentration, liquidity, tax context, sizing, and execution remain downstream.
+
+No portfolio holdings, cash balance, benchmark, risk budget, market-regime input, or execution
+parameter is accepted by the Underwriting contract. The same causal analysis, facts, assumptions,
+and temporal boundary therefore produce the same Opportunity State regardless of who owns what.
+
+Valuation scenarios carry no probability in this slice because no calibrated distribution model
+has been admitted. The displayed upside-to-downside ratio is transparent arithmetic over the
+explicit bear and bull returns; it is neither a universal score nor an eligibility, ranking, or
+allocation rule.
 
 ## Adjacent applications and experiments
 
