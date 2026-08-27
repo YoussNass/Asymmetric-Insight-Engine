@@ -160,8 +160,10 @@ heuristic is an experiment, not an active allocation default.
 
 ## Version 1 scope
 
-- global listed equities and cash as the investable universe;
-- indexes, ETFs, rates, commodities, and crypto initially as context variables;
+- global listed equities, policy-eligible diversified unleveraged equity ETFs, and cash as the
+  investable universe;
+- other ETFs and exchange-traded products, indexes, rates, commodities, and crypto initially as
+  context variables;
 - long-only decision support;
 - daily market updates and event-driven fundamental evidence;
 - Italian tax logic behind a replaceable adapter;
