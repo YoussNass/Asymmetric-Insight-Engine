@@ -41,7 +41,9 @@ currency.
 - Chapter 6A is long-only, consistent with the accepted V1 boundary.
 - A position's current value must equal `quantity × T0 unit price` exactly after canonical decimal
   normalization.
-- Cost basis is aggregate and explicitly reported, user-estimated, or unavailable.
+- Cost basis is aggregate and explicitly reported, user-estimated, or unavailable. Its reported
+  currency is preserved even when different from the instrument currency; this slice computes no
+  cross-currency gain or loss.
 - Tax treatment is account-level so it cannot diverge between rows in the same account.
 - Emergency reserve cash is non-investable. Strategic, opportunistic, and unallocated cash remain
   explicit investment-cash roles.

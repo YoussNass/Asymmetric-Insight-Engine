@@ -505,13 +505,6 @@ class PortfolioStateDraft(BaseModel):
                 raise ValueError(
                     f"position {position.position_id} current_value must equal quantity times price"
                 )
-            if (
-                position.cost_basis.total_cost is not None
-                and position.cost_basis.total_cost.currency != position.current_value.currency
-            ):
-                raise ValueError(
-                    f"position {position.position_id} cost basis requires the same native currency"
-                )
             require_record(
                 position.holdings_record_id,
                 PortfolioRecordKind.HOLDINGS_SNAPSHOT,

@@ -75,9 +75,10 @@ later ADR expands the investable universe.
 ### Preserve native currency without implicit FX
 
 Every monetary amount carries an ISO currency. A position value must exactly reproduce as
-quantity multiplied by its own T0 price, and cost basis must use the same native currency.
-Portfolio State may return subtotals grouped by currency; it exposes no cross-currency total,
-base-currency value, or undeclared FX conversion.
+quantity multiplied by its own T0 price. Aggregate cost basis preserves the currency reported by
+its source, which may differ from the instrument currency; Chapter 6A does not calculate a gain or
+loss across those currencies. Portfolio State may return subtotals grouped by currency; it exposes
+no cross-currency total, base-currency value, or undeclared FX conversion.
 
 ### Content-address the complete T0 input
 

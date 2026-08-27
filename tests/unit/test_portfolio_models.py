@@ -97,7 +97,7 @@ def test_position_cost_basis_and_account_tax_metadata_remain_basic_and_explicit(
     assert all(account.tax_metadata == draft.accounts[0].tax_metadata for account in draft.accounts)
     assert not hasattr(draft.positions[0], "tax_metadata")
     assert not hasattr(draft.cash_balances[0], "tax_metadata")
-    wrong_currency = draft.positions[0].model_copy(
+    account_currency_basis = draft.positions[0].model_copy(
         update={
             "cost_basis": PositionCostBasis(
                 status=CostBasisStatus.USER_ESTIMATED,
@@ -105,11 +105,13 @@ def test_position_cost_basis_and_account_tax_metadata_remain_basic_and_explicit(
             )
         }
     )
-    with pytest.raises(ValidationError, match="same native currency"):
-        rebuild_portfolio_draft(
-            draft,
-            positions=(wrong_currency, *draft.positions[1:]),
-        )
+    rebuilt = rebuild_portfolio_draft(
+        draft,
+        positions=(account_currency_basis, *draft.positions[1:]),
+    )
+    assert rebuilt.positions[0].cost_basis.total_cost is not None
+    assert rebuilt.positions[0].cost_basis.total_cost.currency == "EUR"
+    assert not hasattr(rebuilt.positions[0], "unrealized_gain")
 
 
 def test_etf_policy_rejects_ineligible_structures_and_unknown_benchmarks() -> None:
