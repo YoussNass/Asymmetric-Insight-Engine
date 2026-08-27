@@ -53,7 +53,8 @@ implementation.
 
 **Purpose:** establish the factual state consumed by every later portfolio calculation.
 
-**Status:** authorized next slice; not yet implemented.
+**Status:** implementation candidate complete on a dedicated branch; ADR 0014 review, remote CI,
+and explicit merge authorization remain required.
 
 In scope:
 
@@ -74,6 +75,10 @@ Out of scope:
 
 Exit criterion: AIE can reproduce what was owned and what capital was available at T0 without
 making an allocation recommendation.
+
+The candidate contract and deterministic reference case are documented in
+[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md). Chapter 6B remains blocked until
+ADR 0014 is accepted and Chapter 6A is merged.
 
 ### Chapter 6B — Minimal Portfolio Exposure
 

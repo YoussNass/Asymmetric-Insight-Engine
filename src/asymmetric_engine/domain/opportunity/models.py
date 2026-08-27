@@ -32,6 +32,7 @@ from asymmetric_engine.domain.evidence import (
 )
 from asymmetric_engine.domain.evidence.models import ContentHash, NonEmptyString
 from asymmetric_engine.domain.evidence.source_documents import SubjectId
+from asymmetric_engine.domain.financial import CurrencyCode, canonical_decimal
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 
 UnderwritingObjectId = Annotated[
@@ -43,14 +44,6 @@ UnderwritingObjectId = Annotated[
     ),
 ]
 ThesisSummary = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20)]
-CurrencyCode = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True,
-        to_upper=True,
-        pattern=r"^[A-Z]{3}$",
-    ),
-]
 
 _DECIMAL_TOLERANCE = Decimal("0.000000001")
 _FINANCIAL_CALCULATION_VERSION = "fundamental-formulas-v1"
@@ -72,17 +65,6 @@ _DIRECT_REPORT_SOURCE_TYPES = {
 
 def _is_close(actual: Decimal, expected: Decimal) -> bool:
     return abs(actual - expected) <= _DECIMAL_TOLERANCE
-
-
-def _canonical_decimal(value: Decimal) -> Decimal:
-    """Erase representation-only trailing zeroes after Pydantic's finiteness check."""
-
-    if value.is_zero():
-        return Decimal(0)
-    normalized = value.normalize()
-    if normalized == normalized.to_integral_value():
-        return normalized.quantize(Decimal(1))
-    return normalized
 
 
 def _reject_duplicates(value: tuple[object, ...], *, message: str) -> tuple[object, ...]:
@@ -236,7 +218,7 @@ class FinancialFact(BaseModel):
     @field_validator("value")
     @classmethod
     def normalize_value(cls, value: Decimal) -> Decimal:
-        return _canonical_decimal(value)
+        return canonical_decimal(value)
 
     @field_validator("claim_ids")
     @classmethod
@@ -347,7 +329,7 @@ class DerivedFinancialFact(BaseModel):
     @field_validator("value")
     @classmethod
     def normalize_value(cls, value: Decimal) -> Decimal:
-        return _canonical_decimal(value)
+        return canonical_decimal(value)
 
     @model_validator(mode="after")
     def validate_formula_identity(self) -> Self:
@@ -533,7 +515,7 @@ class ValuationScenario(BaseModel):
     )
     @classmethod
     def normalize_values(cls, value: Decimal) -> Decimal:
-        return _canonical_decimal(value)
+        return canonical_decimal(value)
 
     @field_validator(
         "supporting_fact_ids", "assumption_claim_ids", "assumptions", "invalidation_conditions"
@@ -585,7 +567,7 @@ class PayoffProfile(BaseModel):
     @field_validator("bear_return", "base_return", "bull_return", "upside_to_downside_ratio")
     @classmethod
     def normalize_values(cls, value: Decimal | None) -> Decimal | None:
-        return None if value is None else _canonical_decimal(value)
+        return None if value is None else canonical_decimal(value)
 
     @model_validator(mode="after")
     def require_supported_method(self) -> Self:

@@ -72,10 +72,18 @@ The case proves the contract; it is not an investment recommendation, a complete
 or evidence that the security is attractive. See
 [`Chapter 5: Standalone investment underwriting`](docs/chapter-5-investment-underwriting.md).
 
+Chapter 6A is the current implementation candidate. It adds a factual, immutable Portfolio State:
+canonical accounts and instruments, long-only positions, native-currency prices and cash roles,
+basic account tax and aggregate cost-basis metadata, the versioned ETF allow-list and benchmark,
+and a deterministic T0 fingerprint and audit envelope. It deliberately exposes only
+currency-grouped subtotals and contains no exposure, fit, score, sizing, allocation, timing, or
+execution logic. See [`Chapter 6A: Factual Portfolio State`](docs/chapter-6a-portfolio-state.md)
+and proposed [`ADR 0014`](docs/adr/0014-factual-portfolio-state-and-t0-snapshot.md).
+
 Automated extraction and signal discovery, complete filing normalization, calibrated forecast
-distributions, Market State, portfolio exposure and fit, capital allocation, order execution,
-filing discovery, and a complete user interface remain outside the implemented scope. SQLite
-remains a local/reference persistence adapter.
+distributions, live Portfolio providers and persistence, Market State, portfolio exposure and
+fit, capital allocation, order execution, filing discovery, and a complete user interface remain
+outside the implemented scope. SQLite remains a local/reference evidence persistence adapter.
 
 ## Quick start
 
@@ -142,7 +150,8 @@ docker run --rm asymmetric-insight-engine:local
 
 ## Repository map
 
-- `src/asymmetric_engine/domain`: pure evidence, temporal, causal, and opportunity contracts.
+- `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity, and
+  Portfolio State contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
 - `src/asymmetric_engine/interfaces`: CLI, API, and future user interfaces.

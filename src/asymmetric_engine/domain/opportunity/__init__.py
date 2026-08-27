@@ -1,8 +1,8 @@
 """Investment-underwriting and canonical opportunity-state contracts."""
 
+from asymmetric_engine.domain.financial import CurrencyCode
 from asymmetric_engine.domain.opportunity.models import (
     Catalyst,
-    CurrencyCode,
     DerivedFinancialFact,
     DerivedMetric,
     DimensionOutcome,
