@@ -24,6 +24,15 @@ Evidence -> Insight -> Causal Alpha -> Underwriting -> Opportunity State
 Market and regime state informs opportunity assessment, portfolio construction, and execution
 without replacing the causal thesis.
 
+For product communication and incremental delivery, the same mission is summarized as:
+
+```text
+UNDERSTAND -> UNDERWRITE -> ALLOCATE -> EXECUTE -> LEARN
+```
+
+This is a user-facing decision flow, not a requirement for five services or five bounded
+contexts. See the [`AIE delivery roadmap`](docs/roadmap.md).
+
 ## Non-negotiable principles
 
 - Every decision declares whether it is a historical reconstruction or a live-system replay and
@@ -35,11 +44,22 @@ without replacing the causal thesis.
 - AI-assisted extraction may propose claims, but calculations and validations remain deterministic.
 - No live order submission is included in version 1.
 
+## Delivery discipline
+
+New capabilities must pass the seven admission gates in the
+[`Complexity Budget`](docs/complexity-budget.md). Named concepts become capabilities, policies,
+state, or metrics inside an existing owner unless distinct language, invariants, and lifecycle
+justify a bounded context.
+
+The accepted roadmap implements the minimum complete decision flow first. Advanced Portfolio,
+Market State, attribution, and optimization capabilities remain in a deferred register with
+explicit graduation criteria; they are preserved without becoming premature active scope.
+
 ## Current status
 
-Chapters 2, 3, and 4 are complete. Chapter 5 is proposed in the current branch and adds the first
-standalone Investment Underwriting slice: normalized reported, market-observed, and
-analyst-adjusted facts with native currency and fiscal-period scope; versioned deterministic
+Chapters 2, 3, 4, and 5 are complete. Chapter 5 adds the first standalone Investment Underwriting
+slice: normalized reported, market-observed, and analyst-adjusted facts with native currency and
+fiscal-period scope; versioned deterministic
 formulas; eight independent analytical dimensions; categorical eligibility gates; dated
 bear/base/bull valuation bridges; probability-free payoff arithmetic; and a deterministic
 `ready_for_portfolio_review` hand-off.
@@ -127,6 +147,8 @@ docker run --rm asymmetric-insight-engine:local
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
 - `src/asymmetric_engine/interfaces`: CLI, API, and future user interfaces.
 - `docs`: system constitution, architecture, and Architecture Decision Records.
+- `docs/roadmap.md`: canonical delivery order and deferred capability register.
+- `docs/complexity-budget.md`: admission and graduation rules for new sophistication.
 - `tests`: unit, contract, integration, and architecture tests.
 
 The Market Screener remains a separate consumer of shared contracts. The Quantum Cycle Model is

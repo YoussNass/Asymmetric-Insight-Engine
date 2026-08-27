@@ -16,6 +16,21 @@ The domain layer contains pure financial and epistemic invariants. Application s
 orchestrate use cases through ports. Infrastructure implements data, persistence, model, and
 vendor adapters. Interfaces expose CLI, API, scheduled jobs, and future dashboards.
 
+## Conceptual decision flow
+
+The product should be understandable through five stages:
+
+```text
+UNDERSTAND -> UNDERWRITE -> ALLOCATE -> EXECUTE -> LEARN
+```
+
+This is a conceptual view, not a deployment topology or a requirement for exactly five bounded
+contexts. Evidence and the Temporal shared kernel support every stage. Understand includes
+evidence-backed discovery and Causal Alpha; Allocate includes Portfolio State, Exposure, Fit, and
+Marginal Allocation without collapsing their ownership contracts.
+
+The detailed delivery sequence is maintained in [`roadmap.md`](roadmap.md).
+
 ## Dependency rules
 
 - Domain imports Python standard library and domain-approved validation primitives only.
@@ -24,6 +39,17 @@ vendor adapters. Interfaces expose CLI, API, scheduled jobs, and future dashboar
 - Infrastructure implements application ports.
 - Interfaces invoke application services and contain no financial calculations.
 - Each fact, transformation, score, and decision has one canonical owner.
+
+## Complexity governance
+
+New sophistication is admitted through the [`Complexity Budget`](complexity-budget.md). A
+capability must identify the decision it changes, validation method, required point-in-time data,
+explanation, maintenance burden, and reason it is needed now.
+
+Named rules do not automatically become engines. Policies remain inside the context that owns the
+decision; metrics remain inspectable components; experimental extensions have no active decision
+authority. The required sequence is simple implementation, prospective measurement, observed
+failure, narrow complexity addition, and validation against the simpler baseline.
 
 ## Temporal model
 
@@ -83,6 +109,50 @@ Valuation scenarios carry no probability in this slice because no calibrated dis
 has been admitted. The displayed upside-to-downside ratio is transparent arithmetic over the
 explicit bear and bull returns; it is neither a universal score nor an eligibility, ranking, or
 allocation rule.
+
+## Portfolio Decision MVP boundary
+
+ADR 0012 establishes one Portfolio Decision bounded context with four separate immutable
+contracts:
+
+- Portfolio State records holdings, instruments, cash roles, and basic cost/tax metadata;
+- Portfolio Exposure derives descriptive direct and indirect exposure;
+- Portfolio Fit describes how an unchanged standalone Opportunity State interacts with current
+  exposure;
+- Marginal Allocation compares explicit before/after alternatives and owns the capital decision.
+
+The contracts remain distinct because they have different invariants and cannot overwrite one
+another. They do not require separate services, score engines, or chapters. Competition for
+Capital, ETF/cash hurdles, replacement, PAC, Legacy Holding, Runner, and concentration preferences
+remain policies or state within the appropriate owner.
+
+The minimum exposure path is initially:
+
+```text
+holding -> instrument -> underlying company -> sector -> geography -> economic driver
+```
+
+Unknown constituent or dependency coverage remains unresolved rather than being normalized away.
+Instrument containment and evidence-backed economic-driver classification remain separate
+provenance layers; neither ETF membership nor a shared label establishes causality.
+Structural correlation, factors, effective independent bets, advanced tax optimization, automated
+sizing, and portfolio optimization remain deferred until measured failure and data sufficiency
+justify them.
+
+Every derived Exposure, Fit, and Marginal Allocation state retains `as_of`, knowledge mode,
+method version, input fingerprint, missing inputs, conflicts, and assumptions as required by ADR
+0006.
+
+Marginal Allocation owns the target capital amount. Execution may stage that amount into tranches
+but cannot change standalone quality or silently choose a different strategic allocation.
+
+Downstream decision records should retain upstream identifiers and fingerprints and make exact
+versions retrievable. They should not recursively duplicate complete upstream payloads when an
+auditable immutable reference is sufficient.
+
+ADR 0013 admits only policy-eligible diversified, unleveraged equity ETFs as Portfolio
+instruments. Other ETFs and exchange-traded products remain context unless a later decision
+explicitly expands the scope. ETF alternatives never enter company Underwriting.
 
 ## Adjacent applications and experiments
 

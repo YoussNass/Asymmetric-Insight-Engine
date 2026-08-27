@@ -4,7 +4,8 @@
 
 1. Start from the latest `main`.
 2. Create an `agent/<short-description>` branch.
-3. Make one coherent change at a time.
+3. Make one coherent change at a time. New analytical capabilities must complete the
+   [`Complexity Budget`](docs/complexity-budget.md) review.
 4. Run every required quality check.
 5. Open a draft pull request with rationale, impact, validation, and limitations.
 6. Merge only after explicit approval and green required checks.
@@ -36,4 +37,6 @@ A change is complete only when:
 - type checking, linting, formatting, and tests pass;
 - no secret or restricted dataset is introduced;
 - documentation matches the implementation;
+- new sophistication has an architectural type, classification, owner, validation method, and
+  explicit deferred scope;
 - limitations and unresolved evidence are explicit.

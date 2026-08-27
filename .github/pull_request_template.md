@@ -6,6 +6,23 @@
 
 <!-- Explain the problem, decision, or requirement this addresses. -->
 
+## Complexity budget
+
+<!-- For a new analytical capability, complete every field. Use N/A with a reason for changes
+that do not alter analytical scope. -->
+
+- Architectural type:
+- Classification (`CORE NOW`, `SIMPLE POLICY`, `EXPERIMENTAL`, `DEFER`, or `REJECT`):
+- Decision supported or safety/audit invariant:
+- Simplest baseline and observed failure:
+- Point-in-time data and coverage requirements:
+- Validation method and rollback path:
+- Maintenance burden and explicitly deferred adjacent scope:
+
+- [ ] A named policy or metric has not been promoted into a new engine without an approved ADR.
+- [ ] Experimental output has no active gate, rank, size, allocation, or execution authority.
+- [ ] Missing data remains unknown rather than zero risk or diversification.
+
 ## Validation
 
 - [ ] `uv run ruff check .`

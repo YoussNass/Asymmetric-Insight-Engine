@@ -63,6 +63,26 @@ These instructions apply to every automated contributor working in this reposito
 - Provider tests and CI use deterministic fixtures; live provider access must be an explicit outer
   interface operation.
 
+## Complexity budget
+
+- Read `docs/complexity-budget.md` and `docs/roadmap.md` before proposing a new analytical
+  capability or changing the delivery sequence.
+- Classify every new concept as a bounded context, capability, policy, data/state, metric, or
+  experimental extension before naming a module or engine.
+- Assign `CORE NOW`, `SIMPLE POLICY`, `EXPERIMENTAL`, `DEFER`, or `REJECT` and document the owning
+  decision, data requirements, validation method, explanation, maintenance cost, and timing.
+- Prefer the simplest version that can be measured. Add sophistication only after a prospective
+  failure is recorded and the more complex method has an approved validation and rollback plan.
+- Experimental outputs cannot become active gates, rankings, sizes, allocations, or execution
+  defaults. Missing inputs remain unknown.
+- A named rule does not justify a new engine. Competition for Capital, ETF/cash hurdles,
+  replacement, PAC, cash roles, Legacy Holding, and Runner are policies or state inside their
+  canonical owner unless an ADR proves otherwise.
+- Preserve deferred capabilities and their graduation criteria in the roadmap rather than
+  implementing them early or silently deleting them.
+- Do not change the Version 1 investable universe implicitly. ETF eligibility requires its own
+  accepted ADR and an explicit Constitution decision before implementation.
+
 ## Change workflow
 
 - Work on an `agent/*` branch and open a draft pull request.
