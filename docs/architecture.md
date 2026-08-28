@@ -180,6 +180,10 @@ FX conversion. The application builder canonicalizes unordered collections and c
 the complete input. Its T0 audit envelope contains the state identifier, fingerprint, knowledge
 boundary, benchmark, and method version but no capital decision.
 
+Downstream consumers must verify a deserialized Portfolio State by rebuilding its canonical input
+before trusting the identifier and fingerprint. This detects altered state content or generated
+identity; verification of future live provider bytes remains an outer adapter responsibility.
+
 The full contract and limitations are documented in
 [`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md) and proposed ADR 0014.
 

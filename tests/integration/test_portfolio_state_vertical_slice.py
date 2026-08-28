@@ -14,6 +14,7 @@ def test_portfolio_state_round_trip_reproduces_owned_and_available_capital_at_t0
     restored = PortfolioState.model_validate_json(state.model_dump_json())
 
     assert restored == state
+    assert BuildPortfolioState().verify(restored) == state
     assert restored.position_values_by_currency() == {
         "EUR": Decimal("200"),
         "USD": Decimal("1100"),

@@ -76,6 +76,10 @@ The resulting state reports held-value and cash subtotals separately for EUR and
 unordered inputs does not change its fingerprint; changing a quantity, price, cost basis, account,
 or eligibility policy does.
 
+The application verifier rebuilds a deserialized state before downstream use. A changed position,
+fingerprint, state identifier, benchmark, boundary, or envelope is rejected when it no longer
+matches the canonical replay.
+
 The fixture proves the state contract and replay behavior. It is not a real portfolio, a provider
 integration, an ETF data-quality claim, or an investment recommendation.
 

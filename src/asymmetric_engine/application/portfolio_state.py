@@ -14,6 +14,10 @@ from asymmetric_engine.domain.portfolio import (
 )
 
 
+class PortfolioStateIntegrityError(ValueError):
+    """A serialized state no longer matches its canonical content address."""
+
+
 class BuildPortfolioState:
     """Canonicalize a T0 snapshot without adding exposure or allocation logic."""
 
@@ -53,6 +57,23 @@ class BuildPortfolioState:
                 "decision_record": decision_record,
             }
         )
+
+    def verify(self, state: PortfolioState) -> PortfolioState:
+        """Rebuild a serialized state and reject altered content or generated identity."""
+
+        draft_values = state.model_dump(mode="python")
+        for generated_field in (
+            "portfolio_state_id",
+            "input_fingerprint",
+            "decision_record",
+        ):
+            draft_values.pop(generated_field)
+        rebuilt = self.execute(PortfolioStateDraft.model_validate(draft_values))
+        if rebuilt != state:
+            raise PortfolioStateIntegrityError(
+                "Portfolio State identity does not match its canonical content"
+            )
+        return state
 
     @staticmethod
     def _canonicalize_draft(draft: PortfolioStateDraft) -> PortfolioStateDraft:

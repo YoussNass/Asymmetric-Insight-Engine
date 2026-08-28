@@ -88,6 +88,11 @@ The envelope preserves the Portfolio State identifier, input fingerprint, knowle
 benchmark identity, and method version. It intentionally contains no capital decision; later
 decision slices may reference it without recursively copying the full state.
 
+On deserialization or hand-off, the same application capability rebuilds the canonical draft and
+rejects state content or generated identifiers that no longer match the fingerprint. Verification
+confirms internal replay integrity; live source-byte verification remains a future provider and
+persistence responsibility.
+
 ### Exclude analytical and execution authority
 
 Chapter 6A contains no Opportunity State, ETF constituent expansion, exposure, portfolio fit,

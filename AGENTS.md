@@ -50,6 +50,8 @@ These instructions apply to every automated contributor working in this reposito
 - Content-address every canonical Portfolio State and retain its knowledge boundary, benchmark,
   method version, and input fingerprint in the T0 audit envelope; the envelope is not a capital
   decision.
+- Rebuild and verify a deserialized Portfolio State before downstream use; never trust a stored
+  fingerprint or generated identifier without canonical replay.
 
 ## Epistemic and financial safety
 

@@ -7,7 +7,10 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from asymmetric_engine.application.portfolio_state import BuildPortfolioState
+from asymmetric_engine.application.portfolio_state import (
+    BuildPortfolioState,
+    PortfolioStateIntegrityError,
+)
 from asymmetric_engine.domain.financial import MonetaryAmount
 from asymmetric_engine.domain.portfolio import PortfolioState
 from tests.portfolio_factories import make_portfolio_draft, rebuild_portfolio_draft
@@ -126,3 +129,21 @@ def test_verified_state_rejects_a_tampered_decision_record_envelope() -> None:
 
     with pytest.raises(ValidationError, match="preserve the Portfolio State fingerprint"):
         PortfolioState.model_validate(values)
+
+
+def test_integrity_replay_rejects_tampered_state_content() -> None:
+    builder = BuildPortfolioState()
+    state = builder.execute(make_portfolio_draft())
+    changed_position = state.positions[0].model_copy(
+        update={
+            "quantity": Decimal("11"),
+            "current_value": MonetaryAmount(amount=Decimal("1210"), currency="USD"),
+        }
+    )
+    values = state.model_dump(mode="python")
+    values["positions"] = (changed_position, *state.positions[1:])
+    tampered = PortfolioState.model_validate(values)
+
+    with pytest.raises(PortfolioStateIntegrityError, match="canonical content"):
+        builder.verify(tampered)
+    assert builder.verify(state) is state
