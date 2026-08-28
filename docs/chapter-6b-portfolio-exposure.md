@@ -7,9 +7,8 @@ from one verified factual Portfolio State. It shows instrument, company, sector,
 geography, and overlapping economic-driver exposure without producing a fit score or capital
 decision.
 
-The architectural decision remains proposed in
-[`ADR 0015`](adr/0015-minimal-point-in-time-portfolio-exposure.md) until owner review and merge
-authorization.
+The architectural decision is accepted in
+[`ADR 0015`](adr/0015-minimal-point-in-time-portfolio-exposure.md).
 
 ## Contract map
 

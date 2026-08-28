@@ -1,6 +1,6 @@
 # ADR 0015: Derive minimal point-in-time Portfolio Exposure
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-28
 
 ## Context

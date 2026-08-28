@@ -57,7 +57,7 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 6A are complete. Chapter 5 adds the first standalone Investment Underwriting
+Chapters 2 through 6B are complete. Chapter 5 adds the first standalone Investment Underwriting
 slice: normalized reported, market-observed, and analyst-adjusted facts with native currency and
 fiscal-period scope; versioned deterministic
 formulas; eight independent analytical dimensions; categorical eligibility gates; dated
@@ -78,11 +78,11 @@ basic account tax and aggregate cost-basis metadata, the versioned ETF allow-lis
 and a deterministic T0 fingerprint and audit envelope. It deliberately exposes only
 currency-grouped subtotals and contains no exposure, fit, score, sizing, allocation, timing, or
 execution logic. See [`Chapter 6A: Factual Portfolio State`](docs/chapter-6a-portfolio-state.md)
-and accepted [`ADR 0014`](docs/adr/0014-factual-portfolio-state-and-t0-snapshot.md). Chapter 6B is
-the current implementation candidate. It derives one-level direct and ETF look-through exposure,
+and accepted [`ADR 0014`](docs/adr/0014-factual-portfolio-state-and-t0-snapshot.md). Chapter 6B
+derives one-level direct and ETF look-through exposure,
 keeps EUR and USD books separate, exposes unresolved weight and HHI bounds, and produces only
 descriptive before/after views for an amount supplied from outside the capability. See
-[`Chapter 6B: Minimal Portfolio Exposure`](docs/chapter-6b-portfolio-exposure.md) and proposed
+[`Chapter 6B: Minimal Portfolio Exposure`](docs/chapter-6b-portfolio-exposure.md) and accepted
 [`ADR 0015`](docs/adr/0015-minimal-point-in-time-portfolio-exposure.md).
 
 Automated extraction and signal discovery, complete filing normalization, calibrated forecast

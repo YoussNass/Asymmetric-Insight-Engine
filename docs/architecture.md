@@ -189,7 +189,7 @@ The full contract and limitations are documented in
 
 ## Chapter 6B Portfolio Exposure boundary
 
-The Chapter 6B implementation candidate derives an immutable analytical view from one verified
+The Chapter 6B implementation derives an immutable analytical view from one verified
 Portfolio State. It references the upstream state ID, fingerprint, portfolio ID, and knowledge
 boundary instead of recursively copying factual holdings and cash.
 
@@ -215,8 +215,8 @@ State policy. The capability does not select its instrument or amount and emits 
 sizing, allocation, replacement, timing, or execution state. A new unheld stock candidate remains
 outside this slice until Chapter 6C consumes the immutable Underwriting hand-off.
 
-The full candidate contract and limitations are documented in
-[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md) and proposed ADR 0015.
+The full contract and limitations are documented in
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md) and accepted ADR 0015.
 
 ## Adjacent applications and experiments
 
