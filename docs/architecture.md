@@ -156,7 +156,7 @@ explicitly expands the scope. ETF alternatives never enter company Underwriting.
 
 ## Chapter 6A Portfolio State boundary
 
-The Chapter 6A implementation candidate establishes the factual contract at the start of the
+The Chapter 6A implementation establishes the factual contract at the start of the
 Portfolio Decision context. It consumes no Causal Alpha or Opportunity State and has no exposure,
 fit, sizing, allocation, market-regime, or execution fields.
 
@@ -185,7 +185,7 @@ before trusting the identifier and fingerprint. This detects altered state conte
 identity; verification of future live provider bytes remains an outer adapter responsibility.
 
 The full contract and limitations are documented in
-[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md) and proposed ADR 0014.
+[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md) and accepted ADR 0014.
 
 ## Adjacent applications and experiments
 

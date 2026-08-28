@@ -6,9 +6,8 @@ The Chapter 6A reference slice creates an immutable, content-addressed record of
 what capital was available at one decision-time boundary. It is the factual input to future
 Portfolio Exposure and Marginal Allocation work; it is not an investment recommendation.
 
-The architectural decision remains proposed in
-[`ADR 0014`](adr/0014-factual-portfolio-state-and-t0-snapshot.md) until owner review and merge
-authorization.
+The architectural decision is accepted in
+[`ADR 0014`](adr/0014-factual-portfolio-state-and-t0-snapshot.md).
 
 ## Contract map
 
@@ -85,7 +84,7 @@ integration, an ETF data-quality claim, or an investment recommendation.
 
 ## Exit criterion
 
-Chapter 6A is complete only after ADR 0014 is accepted and the implementation is merged with green
-CI. At that point AIE can reproduce owned positions and available capital at T0 without making an
-allocation recommendation. Chapter 6B then consumes the immutable state by identifier and
-fingerprint to derive descriptive exposure.
+Chapter 6A is complete: ADR 0014 is accepted and the implementation was merged with green CI. AIE
+can reproduce owned positions and available capital at T0 without making an allocation
+recommendation. Chapter 6B consumes the immutable state by identifier and fingerprint to derive
+descriptive exposure.

@@ -1,7 +1,7 @@
 # ADR 0014: Establish factual Portfolio State and the T0 capital snapshot
 
-- Status: Proposed
-- Date: 2026-08-27
+- Status: Accepted
+- Date: 2026-08-28
 
 ## Context
 
@@ -139,12 +139,12 @@ simpler and canonical.
 
 Rejected because no point-in-time FX source or conversion policy is admitted in Chapter 6A.
 
-## Acceptance criteria
+## Acceptance record
 
-This ADR may move to `Accepted` only when the owner reviews the implementation candidate and:
+The owner accepted this ADR and explicitly authorized the Chapter 6A merge on 2026-08-28 after:
 
 1. all required local checks and the remote Python and container CI jobs pass on the exact head;
 2. the state reproduces held value and investable cash by native currency at T0;
 3. representation, eligibility, and benchmark remain separate;
 4. no analytical or allocation authority enters the slice;
-5. the owner explicitly authorizes the Chapter 6A merge.
+5. exact-head remote CI passed for Python 3.12, Python 3.13, and the container build.
