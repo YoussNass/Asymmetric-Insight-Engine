@@ -8,8 +8,9 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2, 3, 4, and 5 are complete in `main`;
-- no canonical Portfolio, Market State, Execution, or Learning implementation exists;
+- Chapters 2 through 6A are complete in `main`;
+- factual Portfolio State is canonical; no Portfolio Exposure, Fit, Marginal Allocation, Market
+  State, Execution, or Learning implementation has been merged;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -85,6 +86,9 @@ explicit merge authorization.
 
 **Purpose:** expose hidden direct and indirect economic concentration descriptively.
 
+**Status:** implementation candidate complete on a dedicated branch; ADR 0015 review, exact-head
+remote CI, and explicit merge authorization remain required.
+
 In scope:
 
 ```text
@@ -112,6 +116,10 @@ Out of scope:
 
 Exit criterion: AIE can explain hidden exposure without modifying the Opportunity State or
 claiming unknown dependencies are diversification.
+
+The candidate contract and deterministic reference case are documented in
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C remains blocked
+until ADR 0015 is accepted and Chapter 6B is merged.
 
 ### Chapter 6C — Marginal Portfolio Decision
 

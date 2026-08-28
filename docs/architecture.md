@@ -187,6 +187,37 @@ identity; verification of future live provider bytes remains an outer adapter re
 The full contract and limitations are documented in
 [`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md) and accepted ADR 0014.
 
+## Chapter 6B Portfolio Exposure boundary
+
+The Chapter 6B implementation candidate derives an immutable analytical view from one verified
+Portfolio State. It references the upstream state ID, fingerprint, portfolio ID, and knowledge
+boundary instead of recursively copying factual holdings and cash.
+
+Portfolio Exposure admits only:
+
+- direct listed-equity company exposure;
+- one-level ETF company containment with holdings date, source evidence, coverage, and unresolved
+  residual;
+- evidence-backed sector, primary economic geography, and overlapping economic-driver tags;
+- native-currency instrument weights, resolved-company Top-N, and company HHI bounds;
+- current and supplied-hypothetical snapshots for an explicit positive amount.
+
+Instrument containment evidence is disjoint from classification evidence. Economic-driver tags
+require interpretive claims and retain confidence calibration status; they are not causal edges or
+ranking inputs. Missing classifications remain explicit unknown buckets.
+
+Every metric is calculated inside an unconverted currency book. When company identity is missing,
+HHI is reported as a lower and upper bound rather than converting residual weight into zero risk.
+Economic-driver exposures are non-additive and no cross-currency concentration number exists.
+
+The optional hypothetical must reference a canonical instrument already eligible under Portfolio
+State policy. The capability does not select its instrument or amount and emits no Fit, score,
+sizing, allocation, replacement, timing, or execution state. A new unheld stock candidate remains
+outside this slice until Chapter 6C consumes the immutable Underwriting hand-off.
+
+The full candidate contract and limitations are documented in
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md) and proposed ADR 0015.
+
 ## Adjacent applications and experiments
 
 The Market Screener is a separate application that consumes stable engine contracts and must not

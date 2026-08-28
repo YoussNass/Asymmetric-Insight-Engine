@@ -52,6 +52,20 @@ These instructions apply to every automated contributor working in this reposito
   decision.
 - Rebuild and verify a deserialized Portfolio State before downstream use; never trust a stored
   fingerprint or generated identifier without canonical replay.
+- Portfolio Exposure must verify Portfolio State first and retain only its immutable reference and
+  fingerprint; it must never mutate State or recursively redefine positions, cash, or eligibility.
+- Initial ETF look-through is one level only. Preserve holdings date, source evidence, coverage,
+  and unresolved residual; missing constituent weight is unknown, never diversification.
+- Keep ETF containment evidence separate from sector, geography, and economic-driver claims.
+  Instrument membership and driver tags are descriptive and must not be represented as causal
+  edges.
+- Exposure weights, Top-N, and HHI remain inside native-currency books. Without admitted FX, never
+  publish a cross-currency concentration metric. Bound HHI when company identity is unresolved.
+- Economic-driver tags may overlap and are non-additive. Uncalibrated classification confidence
+  cannot gate, rank, score, size, or allocate.
+- A hypothetical exposure amount is an explicit external input, not a sizing result or allocation
+  instruction. It must reference a canonical policy-eligible instrument and leave Portfolio State
+  unchanged.
 
 ## Epistemic and financial safety
 
