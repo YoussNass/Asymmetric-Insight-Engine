@@ -37,6 +37,21 @@ These instructions apply to every automated contributor working in this reposito
   the producing method is explicitly versioned, empirically calibrated, documented, and approved.
 - Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,
   and execution as separate contracts.
+- Portfolio State is factual data/state only. It must not import Causal Alpha or Underwriting or
+  contain exposure, fit, score, sizing, allocation, market-regime, or execution authority.
+- Portfolio accounts own basic tax metadata; positions and cash reference the canonical account
+  rather than duplicating account facts.
+- Keep representable holdings, instruments eligible for new capital, and the declared benchmark
+  as three separate concepts. Presence in a portfolio never grants eligibility.
+- Portfolio money remains in native currency. Without an explicit point-in-time FX contract,
+  expose currency-grouped subtotals and never a synthetic cross-currency total.
+- Emergency reserve cash is non-investable state. Other cash roles remain explicit and cannot be
+  silently reclassified by a later analytical contract.
+- Content-address every canonical Portfolio State and retain its knowledge boundary, benchmark,
+  method version, and input fingerprint in the T0 audit envelope; the envelope is not a capital
+  decision.
+- Rebuild and verify a deserialized Portfolio State before downstream use; never trust a stored
+  fingerprint or generated identifier without canonical replay.
 
 ## Epistemic and financial safety
 

@@ -154,6 +154,39 @@ ADR 0013 admits only policy-eligible diversified, unleveraged equity ETFs as Por
 instruments. Other ETFs and exchange-traded products remain context unless a later decision
 explicitly expands the scope. ETF alternatives never enter company Underwriting.
 
+## Chapter 6A Portfolio State boundary
+
+The Chapter 6A implementation establishes the factual contract at the start of the
+Portfolio Decision context. It consumes no Causal Alpha or Opportunity State and has no exposure,
+fit, sizing, allocation, market-regime, or execution fields.
+
+Portfolio State has one canonical owner for each input:
+
+- versioned input records carry provider version, source reference, effective, available, and
+  recorded times, and an exact content hash;
+- accounts own basic tax treatment and jurisdiction;
+- instruments own identity, type, native currency, and structural ETF facts;
+- positions reference accounts, instruments, holdings records, and the instrument's T0 price;
+- cash balances reference accounts and retain an explicit cash role;
+- the ETF eligibility policy owns the allow-list and benchmark designation.
+
+Representation, eligibility for new capital, and benchmark role are independent. Existing
+ineligible instruments remain representable. A diversified unleveraged equity ETF becomes
+eligible only through the versioned ADR 0013 policy; being held never grants eligibility.
+
+All money remains in native currency. The factual state validates `current value = quantity × T0
+price` and may produce currency-grouped subtotals, but it has no cross-currency total or implicit
+FX conversion. The application builder canonicalizes unordered collections and content-addresses
+the complete input. Its T0 audit envelope contains the state identifier, fingerprint, knowledge
+boundary, benchmark, and method version but no capital decision.
+
+Downstream consumers must verify a deserialized Portfolio State by rebuilding its canonical input
+before trusting the identifier and fingerprint. This detects altered state content or generated
+identity; verification of future live provider bytes remains an outer adapter responsibility.
+
+The full contract and limitations are documented in
+[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md) and accepted ADR 0014.
+
 ## Adjacent applications and experiments
 
 The Market Screener is a separate application that consumes stable engine contracts and must not
