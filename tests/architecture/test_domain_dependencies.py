@@ -11,6 +11,7 @@ DOMAIN_ROOT = Path(__file__).parents[2] / "src" / "asymmetric_engine" / "domain"
 APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 PORTFOLIO_ROOT = DOMAIN_ROOT / "portfolio"
 PORTFOLIO_STATE_FILES = (PORTFOLIO_ROOT / "models.py",)
+PORTFOLIO_EXPOSURE_FILES = (PORTFOLIO_ROOT / "exposure.py",)
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
 FORBIDDEN_APPLICATION_PREFIXES = (
@@ -98,3 +99,20 @@ def test_chapter_6a_portfolio_state_does_not_depend_on_analytical_neighbors() ->
                 violations.append(f"{path.relative_to(PORTFOLIO_ROOT)} imports {module}")
 
     assert not violations, "Chapter 6A boundary violations:\n" + "\n".join(violations)
+
+
+def test_chapter_6b_exposure_does_not_import_causal_or_underwriting_contexts() -> None:
+    """Descriptive look-through cannot recreate causal or standalone opportunity state."""
+
+    assert all(path.is_file() for path in PORTFOLIO_EXPOSURE_FILES)
+    forbidden_prefixes = (
+        "asymmetric_engine.domain.causal",
+        "asymmetric_engine.domain.opportunity",
+    )
+    violations: list[str] = []
+    for path in PORTFOLIO_EXPOSURE_FILES:
+        for module in imported_modules(path):
+            if module.startswith(forbidden_prefixes):
+                violations.append(f"{path.relative_to(PORTFOLIO_ROOT)} imports {module}")
+
+    assert not violations, "Chapter 6B boundary violations:\n" + "\n".join(violations)

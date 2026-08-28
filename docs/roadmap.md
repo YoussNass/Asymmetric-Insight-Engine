@@ -8,8 +8,9 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2, 3, 4, and 5 are complete in `main`;
-- no canonical Portfolio, Market State, Execution, or Learning implementation exists;
+- Chapters 2 through 6B are complete in `main`;
+- factual Portfolio State and minimal Portfolio Exposure are canonical; no Portfolio Fit,
+  Marginal Allocation, Market State, Execution, or Learning implementation has been merged;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -77,13 +78,15 @@ Exit criterion: AIE can reproduce what was owned and what capital was available 
 making an allocation recommendation.
 
 The contract and deterministic reference case are documented in
-[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md). Chapter 6B is the next authorized
-implementation slice; it still requires its own branch, tests, draft pull request, review, and
-explicit merge authorization.
+[`chapter-6a-portfolio-state.md`](chapter-6a-portfolio-state.md). Chapter 6B consumes this state by
+immutable identifier and verified fingerprint rather than redefining factual holdings or cash.
 
 ### Chapter 6B — Minimal Portfolio Exposure
 
 **Purpose:** expose hidden direct and indirect economic concentration descriptively.
+
+**Status:** complete; ADR 0015 accepted and implementation merged with exact-head local and remote
+verification.
 
 In scope:
 
@@ -112,6 +115,11 @@ Out of scope:
 
 Exit criterion: AIE can explain hidden exposure without modifying the Opportunity State or
 claiming unknown dependencies are diversification.
+
+The contract and deterministic reference case are documented in
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C1 is the next
+authorized implementation slice; it still requires its own ADR, branch, tests, draft pull request,
+review, and explicit merge authorization.
 
 ### Chapter 6C — Marginal Portfolio Decision
 
