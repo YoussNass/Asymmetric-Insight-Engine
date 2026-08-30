@@ -1,6 +1,6 @@
 # ADR 0016: Compare one explicit capital unit without a portfolio score
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-30
 
 ## Context
