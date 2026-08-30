@@ -9,8 +9,10 @@ implementation record.
 At the time of this roadmap:
 
 - Chapters 2 through 6B are complete in `main`;
-- factual Portfolio State and minimal Portfolio Exposure are canonical; no Portfolio Fit,
-  Marginal Allocation, Market State, Execution, or Learning implementation has been merged;
+- factual Portfolio State and minimal Portfolio Exposure are canonical;
+- Chapter 6C1 has an implementation candidate under proposed ADR 0016; no Portfolio Fit,
+  Marginal Allocation, Market State, Execution, or Learning implementation is canonical until its
+  own ADR and merge are explicitly accepted;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -117,9 +119,9 @@ Exit criterion: AIE can explain hidden exposure without modifying the Opportunit
 claiming unknown dependencies are diversification.
 
 The contract and deterministic reference case are documented in
-[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C1 is the next
-authorized implementation slice; it still requires its own ADR, branch, tests, draft pull request,
-review, and explicit merge authorization.
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C1 is the active
+implementation candidate under proposed ADR 0016; it remains non-canonical until its tests, draft
+pull request, exact-head review, and explicit merge authorization are complete.
 
 ### Chapter 6C — Marginal Portfolio Decision
 
@@ -127,6 +129,9 @@ Portfolio Fit is an immutable interaction view inside this chapter, not a separa
 Marginal Allocation owns the decision.
 
 #### Slice 6C1 — New capital and competing alternatives
+
+**Status:** implementation candidate under proposed ADR 0016; not canonical until exact-head
+verification and explicit merge authorization.
 
 Compare explicit before/after states for:
 
@@ -151,9 +156,21 @@ an existing-position review when no new unit of capital is being allocated; it i
 The core ETF and cash are alternatives, not dedicated engines. The system must preserve the
 components and trade-offs rather than emit an uncalibrated portfolio score.
 
+The candidate, one eligible existing holding, the core ETF, and investment cash must use the same
+explicit amount and native currency. All six unordered pairs retain standalone case,
+permanent-loss class, portfolio effect, and uncertainty. A non-cash alternative receives
+`ALLOCATE` only if it defeats all three competitors. Cash dominance, indeterminacy, or a cycle
+produces `NO_ALLOCATION`; the caller-supplied amount is never automatically resized.
+
 Every derived Exposure, Fit, and Marginal Allocation state declares `as_of`, knowledge mode,
 method version, input fingerprint, missing inputs, conflicts, and assumptions in accordance with
 ADR 0006.
+
+The proposed contract and reference case are documented in
+[`chapter-6c1-marginal-decision.md`](chapter-6c1-marginal-decision.md). The future API/frontend
+boundary is fixed separately in
+[`operator-workspace-contract.md`](operator-workspace-contract.md); neither a server nor a
+functional frontend enters the 6C1 implementation slice.
 
 #### Slice 6C2 — Replacement and capital-flow policies
 

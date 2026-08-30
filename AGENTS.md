@@ -66,6 +66,29 @@ These instructions apply to every automated contributor working in this reposito
 - A hypothetical exposure amount is an explicit external input, not a sizing result or allocation
   instruction. It must reference a canonical policy-eligible instrument and leave Portfolio State
   unchanged.
+- Chapter 6C1 must replay Opportunity State, Portfolio State, current Exposure, and each supplied
+  hypothetical Exposure before use. All inputs and outputs share one exact knowledge boundary.
+- Portfolio Fit is descriptive interaction state only. It may expose native-currency before/after
+  value, HHI bounds, and changed exposure components; it must not contain preference, score,
+  sizing, allocation, replacement, timing, or execution authority.
+- Every marginal new-capital decision must compare exactly the candidate equity, one eligible
+  existing listed-equity holding, the policy-selected core ETF, and investment cash using the same
+  explicit positive amount and native currency. Funding cash must be known, investable, and
+  sufficient; emergency reserve is never eligible.
+- The prospective candidate remains outside factual Portfolio State and must bind to the verified
+  Opportunity company, market-observed reference-price fact, price date, native currency, and
+  valuation-scenario anchors. Portfolio may reference but never rewrite its Underwriting risks.
+- All six unordered alternative pairs must preserve standalone case, ordinal permanent loss,
+  portfolio effect, uncertainty, rationale, and missing data. Components are never averaged into a
+  hidden utility score; permanent-loss direction must agree with the disclosed ordinal classes.
+- `ALLOCATE` requires one non-cash alternative to defeat all three competitors. Cash dominance,
+  indeterminacy, ties, or cycles return `NO_ALLOCATION` and preserve the exact unit as investment
+  cash. The use case never derives or changes the supplied amount.
+- `HOLD` is a separate no-new-capital review with no amount, sale, replacement, timing, or order
+  authority. `REPLACE` belongs to 6C2; Execution belongs to Chapter 7.
+- Decision Card and future API/frontend adapters are projections over application results. They
+  must verify canonical references, contain no financial logic, and report Chapter 6C1 Execution
+  as `not_evaluated`.
 
 ## Epistemic and financial safety
 
