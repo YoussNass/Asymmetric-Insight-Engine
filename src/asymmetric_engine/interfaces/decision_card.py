@@ -110,6 +110,16 @@ class ProjectDecisionCard:
     """Copy an already-decided state into a stable UI/API view without financial logic."""
 
     @staticmethod
+    def _card_id(decision_record_id: UUID) -> UUID:
+        return uuid5(
+            NAMESPACE_URL,
+            (
+                "asymmetric-insight-engine:decision-card:"
+                f"{DECISION_CARD_METHOD_VERSION}:{decision_record_id}"
+            ),
+        )
+
+    @staticmethod
     def _verified_fit_maps(
         decision: MarginalDecision,
         fits: tuple[PortfolioFit, ...],
@@ -149,10 +159,7 @@ class ProjectDecisionCard:
             else DecisionCardAction.NO_ALLOCATION
         )
         return DecisionCard(
-            card_id=uuid5(
-                NAMESPACE_URL,
-                f"asymmetric-insight-engine:decision-card:{decision.decision_id}",
-            ),
+            card_id=ProjectDecisionCard._card_id(decision.decision_id),
             decision_record_id=decision.decision_id,
             action=action,
             evaluated_amount=decision.capital_unit.amount,
@@ -194,23 +201,25 @@ class ProjectDecisionCard:
             if policy_decision.outcome is PolicyDecisionOutcome.ALLOCATE
             else DecisionCardAction.NO_ALLOCATION
         )
+        source_best_id = source_decision.best_rejected_alternative_id
+        best_id = (
+            source_best_id
+            if source_best_id is not None
+            and source_best_id in policy_decision.eligible_alternative_ids
+            and source_best_id != policy_decision.selected_alternative_id
+            else None
+        )
+        best = alternatives[best_id] if best_id is not None else None
         return DecisionCard(
-            card_id=uuid5(
-                NAMESPACE_URL,
-                f"asymmetric-insight-engine:decision-card:{policy_decision.policy_decision_id}",
-            ),
+            card_id=ProjectDecisionCard._card_id(policy_decision.policy_decision_id),
             decision_record_id=policy_decision.policy_decision_id,
             action=action,
             evaluated_amount=source_decision.capital_unit.amount,
             selected_alternative_id=selected.alternative_id,
             selected_alternative_label=selected.label,
             why=source_decision.decision_rationale,
-            best_alternative_id=source_decision.best_rejected_alternative_id,
-            best_alternative_label=(
-                alternatives[source_decision.best_rejected_alternative_id].label
-                if source_decision.best_rejected_alternative_id is not None
-                else None
-            ),
+            best_alternative_id=best.alternative_id if best is not None else None,
+            best_alternative_label=best.label if best is not None else None,
             main_risks_and_unknowns=risks,
             confidence=source_decision.confidence,
             what_would_change_the_decision=source_decision.change_conditions,
@@ -228,10 +237,7 @@ class ProjectDecisionCard:
         best_id = decision.source_position_id if replacing else decision.target.target_id
         best_label = decision.source_position_id if replacing else decision.target.label
         return DecisionCard(
-            card_id=uuid5(
-                NAMESPACE_URL,
-                f"asymmetric-insight-engine:decision-card:{decision.replacement_decision_id}",
-            ),
+            card_id=ProjectDecisionCard._card_id(decision.replacement_decision_id),
             decision_record_id=decision.replacement_decision_id,
             action=action,
             evaluated_amount=decision.net_redeployable_amount if replacing else None,
@@ -254,10 +260,7 @@ class ProjectDecisionCard:
     @staticmethod
     def from_position_review(review: PositionReview) -> DecisionCard:
         return DecisionCard(
-            card_id=uuid5(
-                NAMESPACE_URL,
-                f"asymmetric-insight-engine:decision-card:{review.review_id}",
-            ),
+            card_id=ProjectDecisionCard._card_id(review.review_id),
             decision_record_id=review.review_id,
             action=DecisionCardAction.HOLD,
             evaluated_amount=None,
