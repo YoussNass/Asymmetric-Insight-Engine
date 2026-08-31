@@ -112,11 +112,33 @@ These instructions apply to every automated contributor working in this reposito
 - Because Chapter 6B has no canonical hypothetical-sale scenario, any temporary 6C2
   after-replacement constraint observation must remain an explicit fingerprinted input and must
   not be represented as a derived Chapter 6B Exposure state.
+- Chapter 7 Execution is downstream of Portfolio Decision. Its domain must not import Portfolio,
+  Underwriting, or Causal Alpha; only the application layer may canonically replay Chapter 6 inputs
+  and translate an approved instruction into Execution.
+- Execution accepts only a verified Chapter 6 `ALLOCATE` or `REPLACE`. `NO_ALLOCATION` and `HOLD`
+  are not executable instructions, and Execution must never change the approved target, strategic
+  amount, or replacement source-sale amount.
+- Execution owns a separate T1 knowledge boundary with `T1 >= T0` and the same `KnowledgeMode` as
+  the source capital decision. Every quote and invalidation observation must pass the Temporal
+  shared-kernel boundary; future or not-yet-recorded data is rejected.
+- Execution may evaluate only the exact upstream `change_conditions`. A triggered condition yields
+  `INVALIDATED`; a missing or unknown assessment yields `WAIT`; extra invented invalidation
+  conditions are rejected.
+- Chapter 7 uses the conservative priority `INVALIDATED > WAIT > STAGED > NOW`. Missing/stale
+  quotes, excessive bid/ask spread, or liquidity that is unknown or constrained fail safely to
+  `WAIT`; they must not be converted into an inferred timing or liquidity score.
+- `STAGED` may arise only from an explicit owner maximum-single-order notional. Tranches may split
+  an approved trade leg but their sum must reproduce that approved leg exactly; staging is never a
+  strategic resize.
+- Chapter 7 creates immutable Execution Plans only. Broker connection, order submission, venue or
+  order-type selection, dynamic slippage logic, and Market State/regime scoring remain out of
+  scope until separately admitted by an accepted ADR and explicit owner authorization.
 - Decision Card and future API/frontend adapters are projections over application results. They
   must verify canonical references and contain no financial logic. Chapter 6 Decision Cards report
   Execution as `not_evaluated`; Decision Card schema-version changes must not silently reuse an
   older projection identity, and policy-blocked alternatives cannot be presented as eligible best
-  alternatives.
+  alternatives. Chapter 7 adds a separate read-only Execution Card rather than mutating accepted
+  Chapter 6 Decision Card records.
 
 ## Epistemic and financial safety
 
