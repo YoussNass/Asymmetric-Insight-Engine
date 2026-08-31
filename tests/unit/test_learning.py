@@ -217,9 +217,7 @@ def test_learning_rejects_missing_comparison_leg() -> None:
     _, _, _, _, case = make_allocation_learning_case()
     base = make_allocation_evaluation_input(case)
     only_target = tuple(
-        item
-        for item in base.price_observations
-        if item.instrument_id == case.target_instrument_id
+        item for item in base.price_observations if item.instrument_id == case.target_instrument_id
     )
     evaluation_input = base.model_copy(update={"price_observations": only_target})
 
