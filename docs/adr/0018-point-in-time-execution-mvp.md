@@ -1,6 +1,6 @@
 # ADR 0018: Add a point-in-time Execution MVP without market timing
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-31
 
 ## Context
