@@ -422,9 +422,7 @@ class ReplacementTarget(BaseModel):
             if self.position_id is None or self.opportunity_id is not None:
                 raise ValueError("existing replacement target requires position only")
         elif self.position_id is not None or self.opportunity_id is not None:
-            raise ValueError(
-                "core ETF replacement target cannot reference position or Opportunity"
-            )
+            raise ValueError("core ETF replacement target cannot reference position or Opportunity")
         return self
 
 
@@ -510,9 +508,7 @@ class ReplacementDecisionInput(BaseModel):
             self.pre_friction_comparison.second_alternative_id,
         }
         if actual_ids != expected_ids:
-            raise ValueError(
-                "pre-friction comparison must cover the source and replacement target"
-            )
+            raise ValueError("pre-friction comparison must cover the source and replacement target")
         return self
 
 
