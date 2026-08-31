@@ -207,9 +207,7 @@ def _replacement_input(
         pre_friction_comparison=_comparison(target_wins=target_wins),
         friction=_friction(unknown_tax=unknown_tax),
         after_friction_preference=(
-            ReplacementPreference.TARGET
-            if target_wins
-            else ReplacementPreference.SOURCE
+            ReplacementPreference.TARGET if target_wins else ReplacementPreference.SOURCE
         ),
         after_friction_rationale=(
             "The target remains preferable after explicitly disclosed switching friction."
@@ -339,15 +337,9 @@ def test_after_friction_target_can_replace_when_new_cash_is_insufficient() -> No
 
     assert decision.outcome is ReplacementOutcome.REPLACE
     assert decision.decision_basis is ReplacementDecisionBasis.AFTER_FRICTION_TARGET_DOMINANCE
-    assert decision.total_switching_friction == MonetaryAmount(
-        amount=Decimal("13"), currency="USD"
-    )
-    assert decision.net_redeployable_amount == MonetaryAmount(
-        amount=Decimal("487"), currency="USD"
-    )
-    assert decision.available_new_capital == MonetaryAmount(
-        amount=Decimal("200"), currency="USD"
-    )
+    assert decision.total_switching_friction == MonetaryAmount(amount=Decimal("13"), currency="USD")
+    assert decision.net_redeployable_amount == MonetaryAmount(amount=Decimal("487"), currency="USD")
+    assert decision.available_new_capital == MonetaryAmount(amount=Decimal("200"), currency="USD")
     card = ProjectDecisionCard.from_replacement_decision(decision)
     assert card.action is DecisionCardAction.REPLACE
     assert card.evaluated_amount == decision.net_redeployable_amount
@@ -365,9 +357,7 @@ def test_new_capital_first_prevents_unnecessary_sale() -> None:
 
     assert decision.outcome is ReplacementOutcome.HOLD
     assert decision.decision_basis is ReplacementDecisionBasis.NEW_CAPITAL_FIRST
-    assert decision.net_redeployable_amount == MonetaryAmount(
-        amount=Decimal("87"), currency="USD"
-    )
+    assert decision.net_redeployable_amount == MonetaryAmount(amount=Decimal("87"), currency="USD")
 
 
 def test_unknown_friction_fails_safe_to_hold() -> None:
