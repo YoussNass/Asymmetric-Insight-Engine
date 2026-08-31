@@ -58,9 +58,7 @@ def test_policy_card_never_surfaces_a_blocked_best_alternative() -> None:
             rationale=("Block amounts above the explicit owner maximum.",),
         )
     )
-    policy_decision = ApplyPortfolioPolicy(
-        decision_builder=context.decision_builder
-    ).execute(
+    policy_decision = ApplyPortfolioPolicy(decision_builder=context.decision_builder).execute(
         portfolio_state=context.portfolio_state,
         opportunity_state=context.opportunity_state,
         current_exposure=context.current_exposure,
