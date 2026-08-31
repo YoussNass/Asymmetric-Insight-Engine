@@ -221,7 +221,9 @@ def test_chapter_6_application_does_not_depend_on_execution() -> None:
 
     for path in (MARGINAL_DECISION_APPLICATION_FILE, PORTFOLIO_POLICY_APPLICATION_FILE):
         imports = set(imported_modules(path))
-        assert not any(module.startswith("asymmetric_engine.domain.execution") for module in imports)
+        assert not any(
+            module.startswith("asymmetric_engine.domain.execution") for module in imports
+        )
         assert not any(
             module.startswith("asymmetric_engine.application.execution") for module in imports
         )
