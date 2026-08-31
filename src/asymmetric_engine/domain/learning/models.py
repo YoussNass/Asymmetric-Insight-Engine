@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from asymmetric_engine.domain.evidence.models import ContentHash, NonEmptyString
-from asymmetric_engine.domain.financial import MonetaryAmount, canonical_decimal
+from asymmetric_engine.domain.financial import CurrencyCode, MonetaryAmount, canonical_decimal
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 
 LEARNING_CASE_METHOD_VERSION = "decision-learning-case-v1"
@@ -105,7 +105,7 @@ class ScenarioRangeAnchor(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
-    currency: NonEmptyString
+    currency: CurrencyCode
     reference_price: Decimal = Field(gt=0, allow_inf_nan=False)
     horizon_date: date
     bear_return: Decimal = Field(allow_inf_nan=False)
@@ -153,7 +153,13 @@ class DecisionLearningCaseInput(BaseModel):
             raise ValueError(f"method_version must be {LEARNING_CASE_METHOD_VERSION!r}")
         return value
 
-    @field_validator("change_conditions", "rationale", "missing_data", "conflicts", "assumptions")
+    @field_validator(
+        "change_conditions",
+        "rationale",
+        "missing_data",
+        "conflicts",
+        "assumptions",
+    )
     @classmethod
     def reject_duplicate_text(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         return _reject_duplicates(value, "duplicate Learning case disclosures are not allowed")
@@ -162,15 +168,18 @@ class DecisionLearningCaseInput(BaseModel):
     def validate_case(self) -> Self:
         if self.knowledge_boundary != self.source.execution_boundary:
             raise ValueError("Learning case boundary must equal the verified Execution boundary")
-        if self.evaluation_horizon_date < self.source.decision_boundary.as_of.date():
-            raise ValueError("Learning evaluation horizon cannot precede the capital decision")
+        if self.evaluation_horizon_date <= self.source.decision_boundary.as_of.date():
+            raise ValueError("Learning evaluation horizon must follow the capital decision")
         currencies = {
             self.target_reference_price.currency,
             self.benchmark_reference_price.currency,
         }
         if len(currencies) != 1:
             raise ValueError("Learning benchmark comparison requires one native currency")
-        if self.target_reference_price.amount == 0 or self.benchmark_reference_price.amount == 0:
+        if (
+            self.target_reference_price.amount <= 0
+            or self.benchmark_reference_price.amount <= 0
+        ):
             raise ValueError("Learning reference prices must be greater than zero")
 
         replacement_fields = (
@@ -179,14 +188,16 @@ class DecisionLearningCaseInput(BaseModel):
         )
         if self.source.source_kind is LearningSourceKind.REPLACEMENT:
             if any(item is None for item in replacement_fields):
-                raise ValueError("replacement Learning case requires source instrument and T0 price")
+                raise ValueError(
+                    "replacement Learning case requires source instrument and T0 price"
+                )
             assert self.replacement_source_reference_price is not None
             if (
                 self.replacement_source_reference_price.currency
                 != self.target_reference_price.currency
             ):
                 raise ValueError("replacement source and target must use one native currency")
-            if self.replacement_source_reference_price.amount == 0:
+            if self.replacement_source_reference_price.amount <= 0:
                 raise ValueError("replacement source T0 price must be greater than zero")
         elif any(item is not None for item in replacement_fields):
             raise ValueError("new-capital Learning case cannot contain replacement source fields")
@@ -237,7 +248,7 @@ class LearningPriceObservation(BaseModel):
 
     @model_validator(mode="after")
     def validate_observation(self) -> Self:
-        if self.price.amount == 0:
+        if self.price.amount <= 0:
             raise ValueError("Learning price observation must be greater than zero")
         if not self.observed_at <= self.available_at <= self.recorded_at:
             raise ValueError("Learning price requires observed <= available <= recorded")
@@ -267,7 +278,9 @@ class LearningThesisObservation(BaseModel):
     @model_validator(mode="after")
     def validate_observation(self) -> Self:
         if not self.observed_at <= self.available_at <= self.recorded_at:
-            raise ValueError("Learning thesis observation requires observed <= available <= recorded")
+            raise ValueError(
+                "Learning thesis observation requires observed <= available <= recorded"
+            )
         if self.status is ThesisConditionStatus.UNKNOWN and not self.missing_data:
             raise ValueError("unknown thesis condition requires missing_data")
         return self
@@ -295,11 +308,16 @@ class LearningEvaluationInput(BaseModel):
     @field_validator("conflicts", "assumptions")
     @classmethod
     def reject_duplicate_text(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        return _reject_duplicates(value, "duplicate Learning evaluation disclosures are not allowed")
+        return _reject_duplicates(
+            value,
+            "duplicate Learning evaluation disclosures are not allowed",
+        )
 
     @model_validator(mode="after")
     def reject_duplicate_observations(self) -> Self:
-        price_keys = tuple((item.instrument_id, item.observed_at) for item in self.price_observations)
+        price_keys = tuple(
+            (item.instrument_id, item.observed_at) for item in self.price_observations
+        )
         _reject_duplicates(price_keys, "duplicate Learning price observations are not allowed")
         conditions = tuple(item.condition for item in self.thesis_observations)
         _reject_duplicates(conditions, "duplicate Learning thesis observations are not allowed")
@@ -356,7 +374,7 @@ class LearningMetrics(BaseModel):
 
 
 class DecisionLearningEvaluation(LearningEvaluationInput):
-    """Content-addressed T2 outcome record with the observations required for canonical replay."""
+    """Content-addressed T2 outcome record with observations needed for canonical replay."""
 
     evaluation_id: UUID
     input_fingerprint: ContentHash
@@ -379,7 +397,10 @@ class DecisionLearningEvaluation(LearningEvaluationInput):
     def validate_evaluation(self) -> Self:
         if self.knowledge_boundary.as_of < self.case.knowledge_boundary.as_of:
             raise ValueError("Learning evaluation requires T2 >= T1")
-        if self.knowledge_boundary.knowledge_mode is not self.case.knowledge_boundary.knowledge_mode:
+        if (
+            self.knowledge_boundary.knowledge_mode
+            is not self.case.knowledge_boundary.knowledge_mode
+        ):
             raise ValueError("Learning evaluation must preserve one KnowledgeMode")
         if self.end_observation_at > self.knowledge_boundary.as_of:
             raise ValueError("Learning end observation cannot be in the future")
