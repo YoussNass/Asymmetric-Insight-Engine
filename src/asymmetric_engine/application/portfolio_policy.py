@@ -336,7 +336,7 @@ class ApplyPortfolioPolicy:
         *,
         eligible: frozenset[str],
     ) -> str | None:
-        wins = {alternative_id: set() for alternative_id in eligible}
+        wins: dict[str, set[str]] = {alternative_id: set() for alternative_id in eligible}
         for comparison in comparisons:
             pair = {comparison.first_alternative_id, comparison.second_alternative_id}
             if not pair.issubset(eligible):
