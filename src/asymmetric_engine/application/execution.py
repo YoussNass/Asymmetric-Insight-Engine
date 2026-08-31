@@ -287,6 +287,7 @@ class BuildExecutionPlan:
         if extras:
             raise ValueError("Execution cannot add upstream invalidation conditions")
         invalidations = {item.condition: item for item in current_input.invalidation_observations}
+        reasons: tuple[ExecutionReason, ...]
         triggered = [
             item for item in invalidations.values() if item.status is InvalidationStatus.TRIGGERED
         ]
@@ -503,6 +504,7 @@ class BuildExecutionPlan:
     ) -> tuple[ExecutionLeg, ...]:
         legs: list[ExecutionLeg] = []
         for sequence, (side, instrument_id, amount) in enumerate(leg_specs, start=1):
+            tranches: tuple[ExecutionTranche, ...]
             if max_single_order_notional is None:
                 tranches = (ExecutionTranche(tranche_index=1, notional=amount),)
             else:
