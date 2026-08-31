@@ -29,6 +29,10 @@ UnderwritingSourceNotFoundError = SourceDocumentNotFoundError
 UnderwritingSourceIntegrityError = SourceDocumentIntegrityError
 
 
+class OpportunityStateIntegrityError(ValueError):
+    """A serialized Opportunity State no longer matches canonical verified Underwriting."""
+
+
 class BuildOpportunityState:
     """Verify exact source bytes and content-address the standalone assessment."""
 
@@ -87,6 +91,19 @@ class BuildOpportunityState:
                 "source_documents": documents,
             }
         )
+
+    def verify(self, state: OpportunityState) -> OpportunityState:
+        """Rebuild an Opportunity State and reject altered content, identity, or lineage."""
+
+        draft_values = {
+            field_name: getattr(state, field_name) for field_name in UnderwritingDraft.model_fields
+        }
+        rebuilt = self.execute(UnderwritingDraft.model_validate(draft_values))
+        if rebuilt != state:
+            raise OpportunityStateIntegrityError(
+                "Opportunity State identity or content does not match canonical replay"
+            )
+        return state
 
     @staticmethod
     def _canonicalize_draft(draft: UnderwritingDraft) -> UnderwritingDraft:

@@ -12,6 +12,8 @@ APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 PORTFOLIO_ROOT = DOMAIN_ROOT / "portfolio"
 PORTFOLIO_STATE_FILES = (PORTFOLIO_ROOT / "models.py",)
 PORTFOLIO_EXPOSURE_FILES = (PORTFOLIO_ROOT / "exposure.py",)
+PORTFOLIO_DECISION_FILES = (PORTFOLIO_ROOT / "decision.py",)
+MARGINAL_DECISION_APPLICATION_FILE = APPLICATION_ROOT / "marginal_decision.py"
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
 FORBIDDEN_APPLICATION_PREFIXES = (
@@ -116,3 +118,37 @@ def test_chapter_6b_exposure_does_not_import_causal_or_underwriting_contexts() -
                 violations.append(f"{path.relative_to(PORTFOLIO_ROOT)} imports {module}")
 
     assert not violations, "Chapter 6B boundary violations:\n" + "\n".join(violations)
+
+
+def test_chapter_6c1_decision_references_underwriting_without_reversing_dependencies() -> None:
+    """The app joins contexts; Portfolio domain retains only an immutable upstream reference."""
+
+    assert all(path.is_file() for path in PORTFOLIO_DECISION_FILES)
+    decision_imports = {
+        module for path in PORTFOLIO_DECISION_FILES for module in imported_modules(path)
+    }
+    forbidden_prefixes = (
+        "asymmetric_engine.application",
+        "asymmetric_engine.domain.causal",
+        "asymmetric_engine.domain.opportunity",
+        "asymmetric_engine.infrastructure",
+        "asymmetric_engine.interfaces",
+    )
+    violations = [module for module in decision_imports if module.startswith(forbidden_prefixes)]
+    assert not violations, "Chapter 6C1 decision boundary violations:\n" + "\n".join(violations)
+
+    assert MARGINAL_DECISION_APPLICATION_FILE.is_file()
+    application_imports = set(imported_modules(MARGINAL_DECISION_APPLICATION_FILE))
+    assert any(
+        module.startswith("asymmetric_engine.domain.opportunity") for module in application_imports
+    )
+
+    upstream_imports = {
+        module
+        for path in (*PORTFOLIO_STATE_FILES, *PORTFOLIO_EXPOSURE_FILES)
+        for module in imported_modules(path)
+    }
+    assert not any(
+        module.startswith("asymmetric_engine.domain.portfolio.decision")
+        for module in upstream_imports
+    )

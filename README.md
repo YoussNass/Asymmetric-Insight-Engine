@@ -85,10 +85,22 @@ descriptive before/after views for an amount supplied from outside the capabilit
 [`Chapter 6B: Minimal Portfolio Exposure`](docs/chapter-6b-portfolio-exposure.md) and accepted
 [`ADR 0015`](docs/adr/0015-minimal-point-in-time-portfolio-exposure.md).
 
+Chapter 6C1 now has a review candidate under proposed
+[`ADR 0016`](docs/adr/0016-explicit-marginal-capital-decision.md). It verifies the complete
+Underwriting/State/Exposure hand-off, compares the candidate, one eligible incumbent, the core ETF,
+and investment cash using the same explicit capital unit, derives descriptive Portfolio Fits, and
+emits `ALLOCATE` only under complete pairwise dominance. Cash dominance, indeterminacy, or a cycle
+returns `NO_ALLOCATION`; a separate `HOLD` record carries no new capital. The Decision Card is a
+read-only projection and cannot emit Execution state. See
+[`Chapter 6C1: Explicit marginal capital decision`](docs/chapter-6c1-marginal-decision.md) and the
+[`minimum operator workspace contract`](docs/operator-workspace-contract.md). None of this is
+canonical until ADR 0016 and the exact implementation head are explicitly accepted and merged.
+
 Automated extraction and signal discovery, complete filing normalization, calibrated forecast
-distributions, live Portfolio providers and persistence, Market State, Portfolio Fit, capital
-allocation, order execution, filing discovery, and a complete user interface remain
-outside the implemented scope. SQLite remains a local/reference evidence persistence adapter.
+distributions, live Portfolio providers and persistence, Market State, replacement and friction,
+automatic sizing, order execution, filing discovery, and a functional user interface remain
+outside the canonical implemented scope. SQLite remains a local/reference evidence persistence
+adapter.
 
 ## Quick start
 

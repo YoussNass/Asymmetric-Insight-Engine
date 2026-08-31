@@ -218,6 +218,47 @@ outside this slice until Chapter 6C consumes the immutable Underwriting hand-off
 The full contract and limitations are documented in
 [`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md) and accepted ADR 0015.
 
+## Chapter 6C1 Portfolio Fit and Marginal Allocation boundary
+
+The proposed Chapter 6C1 application use case is the first component with capital-decision
+authority. It canonically replays one Opportunity State, one Portfolio State, current Exposure,
+and exact supplied-amount Exposure views for one eligible incumbent and the core ETF. The
+application layer joins these contexts at one knowledge boundary; Portfolio domain records retain
+immutable references and fingerprints rather than importing or copying upstream domain payloads.
+
+One caller-supplied capital unit must be known, positive, sufficiently funded by investable cash,
+and expressed in a single native currency. It is evaluated unchanged across:
+
+- a prospective listed-equity candidate bound to the Opportunity price fact and scenario anchors;
+- one eligible existing listed-equity position;
+- the policy-selected diversified core ETF;
+- investment cash.
+
+Portfolio Fit remains a descriptive content-addressed interaction view. Incumbent and ETF Fits
+consume verified Chapter 6B before/after states. The prospective candidate remains outside factual
+State and adds direct company exposure to the current native-currency book. Missing candidate
+classification produces explicit unknown sector, geography, and driver deltas. The cash Fit
+leaves securities exposure unchanged. No Fit emits preference, score, sizing, or allocation.
+
+Marginal Allocation requires all six unordered pair comparisons. Standalone case, ordinal
+permanent loss, portfolio effect, and uncertainty remain separate components and are never
+averaged. Permanent-loss pair direction must agree with the disclosed per-alternative ordinal
+classes. A non-cash alternative produces `ALLOCATE` only under complete pairwise dominance;
+otherwise the conservative policy produces `NO_ALLOCATION` and preserves the unit as investment
+cash.
+
+`HOLD` is a separate no-new-capital position-review record. It carries no amount, replacement,
+sale, or Execution authority. `REPLACE`, transaction friction, PAC, Legacy, and Runner remain in
+6C2. Timing and staging remain in Chapter 7.
+
+The Decision Card interface is a read-only projection over verified records. It rechecks Fit
+identifiers and fingerprints, contains no financial calculation, and fixes Execution to
+`not_evaluated`. The proposed contract is documented in
+[`chapter-6c1-marginal-decision.md`](chapter-6c1-marginal-decision.md) and
+[`ADR 0016`](adr/0016-explicit-marginal-capital-decision.md). The thin product boundary is
+documented in
+[`operator-workspace-contract.md`](operator-workspace-contract.md).
+
 ## Adjacent applications and experiments
 
 The Market Screener is a separate application that consumes stable engine contracts and must not
