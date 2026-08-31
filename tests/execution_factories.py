@@ -154,9 +154,7 @@ def make_execution_policy(
                 if max_single_order_notional is not None
                 else None
             ),
-            rationale=(
-                "Use explicit operational limits without a market-timing or regime score.",
-            ),
+            rationale=("Use explicit operational limits without a market-timing or regime score.",),
         )
     )
 
