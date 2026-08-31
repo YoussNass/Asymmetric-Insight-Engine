@@ -8,11 +8,12 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 6B are complete in `main`;
-- factual Portfolio State and minimal Portfolio Exposure are canonical;
-- Chapter 6C1 has an implementation candidate under proposed ADR 0016; no Portfolio Fit,
-  Marginal Allocation, Market State, Execution, or Learning implementation is canonical until its
-  own ADR and merge are explicitly accepted;
+- Chapters 2 through 6C1 are complete in `main`;
+- factual Portfolio State, minimal Portfolio Exposure, Portfolio Fit, and explicit Marginal
+  Allocation are canonical;
+- Chapter 6C2 has an implementation candidate under proposed ADR 0017; no replacement/capital-flow
+  policy is canonical until its ADR and merge are explicitly accepted;
+- Market State, Execution, and Learning remain unimplemented in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -119,9 +120,8 @@ Exit criterion: AIE can explain hidden exposure without modifying the Opportunit
 claiming unknown dependencies are diversification.
 
 The contract and deterministic reference case are documented in
-[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C1 is the active
-implementation candidate under proposed ADR 0016; it remains non-canonical until its tests, draft
-pull request, exact-head review, and explicit merge authorization are complete.
+[`chapter-6b-portfolio-exposure.md`](chapter-6b-portfolio-exposure.md). Chapter 6C1 consumes the
+verified current and supplied-hypothetical Exposure records without mutating Portfolio State.
 
 ### Chapter 6C — Marginal Portfolio Decision
 
@@ -130,8 +130,8 @@ Marginal Allocation owns the decision.
 
 #### Slice 6C1 — New capital and competing alternatives
 
-**Status:** implementation candidate under proposed ADR 0016; not canonical until exact-head
-verification and explicit merge authorization.
+**Status:** complete; ADR 0016 accepted and implementation merged after exact-head verification and
+explicit owner authorization.
 
 Compare explicit before/after states for:
 
@@ -166,26 +166,44 @@ Every derived Exposure, Fit, and Marginal Allocation state declares `as_of`, kno
 method version, input fingerprint, missing inputs, conflicts, and assumptions in accordance with
 ADR 0006.
 
-The proposed contract and reference case are documented in
+The accepted contract and reference case are documented in
 [`chapter-6c1-marginal-decision.md`](chapter-6c1-marginal-decision.md). The future API/frontend
 boundary is fixed separately in
 [`operator-workspace-contract.md`](operator-workspace-contract.md); neither a server nor a
-functional frontend enters the 6C1 implementation slice.
+functional frontend enters Chapter 6.
 
 #### Slice 6C2 — Replacement and capital-flow policies
 
-Add only after 6C1 is prospectively usable:
+**Status:** implementation candidate under proposed ADR 0017; not canonical until exact-head
+verification, ADR acceptance, and explicit merge authorization.
 
-- `REPLACE` comparison;
+The implementation candidate adds:
+
+- `REPLACE` comparison as one explicit source-to-target proposal rather than a sell optimizer;
 - basic tax, spread, fee, liquidity, and switching friction;
 - new-capital/PAC-first funding policy;
 - `LEGACY_HOLD_ZERO_NEW_CAPITAL`;
 - `RUNNER` state without treating recovered cost as free capital;
-- owner-defined risk-budget and concentration constraints.
+- owner-defined risk-budget and concentration constraints as hard gates;
+- policy-constrained replay of accepted 6C1 decisions without rewriting their fingerprints;
+- a Decision Card v2 projection that adds `REPLACE` while keeping Execution `not_evaluated`.
 
-Exit criterion: AIE can explain the best evaluated use of the next unit of capital and can return
-no allocation. It compares discrete, explicit amounts; it does not derive an automatic Kelly-like
-size.
+The owner supplies discrete capital and sale amounts. Constraint violations block the proposal;
+they never trigger automatic resizing. Unknown friction or liquidity fails safely to `HOLD`.
+Runner recovered proceeds remain historical context and never reduce the current market-value
+opportunity cost of the retained position.
+
+The proposed contract is documented in
+[`chapter-6c2-replacement-policies.md`](chapter-6c2-replacement-policies.md) and
+[`ADR 0017`](adr/0017-replacement-and-capital-flow-policies.md).
+
+Exit criterion: AIE can explain the best evaluated use of the next unit of capital, can return no
+allocation, and can decide whether one explicit existing position should be replaced after visible
+friction and owner policy. It compares discrete, explicit amounts; it does not derive an automatic
+Kelly-like size.
+
+After 6C2 is accepted and merged, Chapter 6 is complete and Chapter 7 becomes the next active
+minimum-complete slice.
 
 ### Chapter 7 — Execution MVP
 

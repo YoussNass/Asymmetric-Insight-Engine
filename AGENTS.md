@@ -86,9 +86,37 @@ These instructions apply to every automated contributor working in this reposito
   cash. The use case never derives or changes the supplied amount.
 - `HOLD` is a separate no-new-capital review with no amount, sale, replacement, timing, or order
   authority. `REPLACE` belongs to 6C2; Execution belongs to Chapter 7.
+- Chapter 6C2 must consume canonical 6C1 records additively. Owner policy may block an otherwise
+  preferred alternative but must never rewrite the 6C1 decision, Fits, comparisons, or fingerprint.
+- Owner maximum-capital and concentration/risk constraints are hard gates only. They must not be
+  interpreted as target weights and must never automatically resize a caller-supplied capital or
+  replacement amount until an explicitly calibrated sizing method is separately admitted.
+- `LEGACY_HOLD_ZERO_NEW_CAPITAL` permits an existing factual holding to remain while blocking
+  incremental capital; it does not imply a sale, replacement, or failed thesis.
+- `RUNNER` may retain recovered proceeds as historical context, but current market value remains
+  the opportunity cost of the remaining position. Recovered historical proceeds must never be
+  subtracted from current capital-at-risk or replacement arithmetic as “house money.”
+- Policy-constrained new-capital decisions must keep investment cash eligible and reuse the
+  accepted 6C1 pairwise evidence among remaining alternatives. Policy filtering must not introduce
+  rescoring, hidden thresholds, or a second utility model.
+- A Chapter 6C2 replacement evaluates one explicit existing source, one explicit target, and one
+  caller-supplied positive sale amount. It must not search the portfolio for an optimal sale,
+  derive position size, or perform implicit FX.
+- Replacement friction keeps tax, fee, and spread as separate explicit T0 estimates and liquidity
+  as a separate state. Unknown monetary friction or unknown liquidity must fail safely to `HOLD`;
+  aggregate cost basis alone does not justify tax-lot optimization.
+- `NEW_CAPITAL_FIRST` must prevent an unnecessary replacement sale when current investable cash in
+  the same currency can fund the net target amount. Emergency reserve remains excluded.
+- `REPLACE` requires the explicit target to outclass the source before and after visible friction
+  and to pass every owner-policy gate. Failure returns `HOLD` with an inspectable decision basis.
+- Because Chapter 6B has no canonical hypothetical-sale scenario, any temporary 6C2
+  after-replacement constraint observation must remain an explicit fingerprinted input and must
+  not be represented as a derived Chapter 6B Exposure state.
 - Decision Card and future API/frontend adapters are projections over application results. They
-  must verify canonical references, contain no financial logic, and report Chapter 6C1 Execution
-  as `not_evaluated`.
+  must verify canonical references and contain no financial logic. Chapter 6 Decision Cards report
+  Execution as `not_evaluated`; Decision Card schema-version changes must not silently reuse an
+  older projection identity, and policy-blocked alternatives cannot be presented as eligible best
+  alternatives.
 
 ## Epistemic and financial safety
 
