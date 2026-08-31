@@ -21,7 +21,7 @@ timing score. It also must not submit live brokerage orders in this slice.
 | Gate | Chapter 7 evidence |
 | --- | --- |
 | Decision value | Changes only the `WHEN/HOW TO IMPLEMENT` decision after capital allocation is already fixed. |
-| Validatability | Deterministic tests cover source replay, temporal filtering, quote freshness, spread/liquidity gates, invalidation, staging arithmetic, tampering, and architecture boundaries. |
+| Validatability | Deterministic tests cover source replay, temporal filtering, quote freshness, spread/liquidity gates, invalidation, conflict blocking, staging arithmetic, tampering, and architecture boundaries. |
 | Architectural necessity | Execution has distinct language, lifecycle, and ownership from Portfolio Decision, so it is a separate bounded context under ADR 0006. |
 | Data sufficiency | Uses explicit point-in-time bid/ask observations, liquidity state, owner execution policy, and upstream invalidation conditions. No regime model is required. |
 | Explainability | Output exposes source decision, exact amount, quote state, spread, reasons, tranches, missing data, T0/T1 boundaries, and fingerprint. |
@@ -63,6 +63,13 @@ Every market or invalidation observation used by Execution must be included by t
 knowledge boundary under the shared Temporal kernel. Future or not-yet-recorded data is rejected;
 it is never downgraded to a warning.
 
+### Fail closed on unresolved execution-input conflicts
+
+Execution input may retain explicit `conflicts` for audit, but a contradictory input cannot produce
+an Execution Plan. Any unresolved conflict is a blocking validation failure before the categorical
+execution policy runs. The operator must resolve the contradiction and submit a new immutable
+input; Execution must never turn contradictory evidence into `NOW` or `STAGED`.
+
 ### Admit four execution outcomes only
 
 The Chapter 7 MVP vocabulary is exactly:
@@ -74,7 +81,7 @@ The Chapter 7 MVP vocabulary is exactly:
   outside explicit execution limits;
 - `INVALIDATED`: an upstream decision change condition is explicitly observed as triggered.
 
-Priority is conservative:
+Priority is conservative after integrity and temporal validation:
 
 ```text
 INVALIDATED > WAIT > STAGED > NOW
@@ -119,6 +126,13 @@ Execution may not invent thesis conditions. It receives observations only for th
 
 Extra unrecognized invalidation conditions are rejected.
 
+The MVP deliberately does not assign one universal age threshold to every invalidation
+observation. Different fundamental, regulatory, catalyst, and market conditions can have different
+review cadences, and inventing one global TTL would create a new unsupported execution heuristic.
+Observation time remains explicit in the immutable input. A condition-specific expiry or freshness
+policy may be admitted later only after prospective use demonstrates a measured failure of this
+simpler contract.
+
 ### Stage only through an explicit maximum order notional
 
 When all other gates pass and `max_single_order_notional` is present, any required trade leg whose
@@ -151,6 +165,7 @@ Live order submission requires a separate accepted ADR and explicit owner author
 - AIE can distinguish strategic allocation from operational implementation.
 - `WAIT` is a valid conservative state rather than an implicit market-timing forecast.
 - Upstream thesis invalidation remains canonical instead of being re-authored in Execution.
+- Contradictory execution input cannot silently become an executable plan.
 - Staging preserves total approved capital exactly and is auditable.
 - Point-in-time execution decisions can be replayed later by Learning.
 
@@ -160,6 +175,8 @@ Live order submission requires a separate accepted ADR and explicit owner author
 - The MVP has no broker or fill lifecycle.
 - Owner execution thresholds are policy inputs, not empirically calibrated defaults.
 - Replacement sequencing is deterministic and simple rather than optimized for market impact.
+- Invalidation observation freshness has no universal TTL; timestamps remain visible until a
+  measured failure justifies a condition-specific expiry policy.
 
 ## Rejected alternatives
 
@@ -178,6 +195,11 @@ resize it.
 Rejected because that would introduce an unvalidated liquidity heuristic. The MVP fails safely to
 `WAIT`.
 
+### Use one default invalidation expiry for every condition
+
+Rejected because heterogeneous thesis conditions do not share one defensible universal review
+cadence. Timestamp visibility is retained and a condition-specific policy requires measured need.
+
 ### Submit live broker orders
 
 Rejected because Chapter 7 first needs a stable, replayable planning contract and explicit owner
@@ -192,14 +214,15 @@ ADR 0018 may move to `Accepted` only when:
 3. execution never changes the approved target amount or replacement sale amount;
 4. execution time cannot precede the source decision and shared `KnowledgeMode` is preserved;
 5. every consumed observation passes the Temporal shared-kernel boundary;
-6. upstream invalidation conditions are matched exactly and triggered conditions produce
+6. unresolved execution-input conflicts block plan construction;
+7. upstream invalidation conditions are matched exactly and triggered conditions produce
    `INVALIDATED`;
-7. missing/unknown invalidation, missing/stale quote, excessive spread, and non-adequate liquidity
+8. missing/unknown invalidation, missing/stale quote, excessive spread, and non-adequate liquidity
    fail safely to `WAIT`;
-8. `STAGED` is driven only by explicit maximum-order notional and tranche sums reproduce the exact
+9. `STAGED` is driven only by explicit maximum-order notional and tranche sums reproduce the exact
    approved leg totals;
-9. `NOW` requires all operational gates to pass without staging;
-10. no market-timing score, order submission, venue selection, or strategic resizing is added;
-11. architecture, unit, integration, replay, tamper, formatting, typing, package, Python 3.12/3.13,
+10. `NOW` requires all operational gates to pass without staging;
+11. no market-timing score, order submission, venue selection, or strategic resizing is added;
+12. architecture, unit, integration, replay, tamper, formatting, typing, package, Python 3.12/3.13,
     and container CI checks pass on the exact PR head;
-12. the owner explicitly accepts ADR 0018 and authorizes the Chapter 7 merge.
+13. the owner explicitly accepts ADR 0018 and authorizes the Chapter 7 merge.
