@@ -21,8 +21,8 @@ Evidence -> Insight -> Causal Alpha -> Underwriting -> Opportunity State
          -> Portfolio Decision -> Execution Plan -> Monitoring -> Learning
 ```
 
-Market and regime state informs opportunity assessment, portfolio construction, and execution
-without replacing the causal thesis.
+Market and regime state may later inform opportunity assessment and execution without replacing
+the causal thesis or the accepted Portfolio Decision ownership boundaries.
 
 For product communication and incremental delivery, the same mission is summarized as:
 
@@ -40,7 +40,9 @@ contexts. See the [`AIE delivery roadmap`](docs/roadmap.md).
 - Observation, statistical result, inference, hypothesis, and qualitative judgement stay distinct.
 - Missing or conflicting evidence remains visible.
 - Eligibility gates precede ranking; there is no universal magic score.
-- Company quality, thesis quality, investment quality, and portfolio fit are separate concepts.
+- Company quality, thesis quality, investment quality, portfolio fit, allocation, and execution
+  remain separate concepts.
+- Explicit owner constraints are gates, not automatic sizing formulas.
 - AI-assisted extraction may propose claims, but calculations and validations remain deterministic.
 - No live order submission is included in version 1.
 
@@ -57,12 +59,11 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 6B are complete. Chapter 5 adds the first standalone Investment Underwriting
-slice: normalized reported, market-observed, and analyst-adjusted facts with native currency and
-fiscal-period scope; versioned deterministic
-formulas; eight independent analytical dimensions; categorical eligibility gates; dated
-bear/base/bull valuation bridges; probability-free payoff arithmetic; and a deterministic
-`ready_for_portfolio_review` hand-off.
+Chapters 2 through 6C1 are complete in `main`. Chapter 5 provides standalone Investment
+Underwriting: normalized reported, market-observed, and analyst-adjusted facts with native
+currency and fiscal-period scope; versioned deterministic formulas; eight independent analytical
+dimensions; categorical eligibility gates; dated bear/base/bull valuation bridges;
+probability-free payoff arithmetic; and a deterministic `ready_for_portfolio_review` hand-off.
 
 The reference case continues the Chapter 4 Micron hypothesis and uses selected reported values
 from Micron's fiscal 2025 Form 10-K. It keeps diluted weighted-average shares used for EPS distinct
@@ -72,35 +73,44 @@ The case proves the contract; it is not an investment recommendation, a complete
 or evidence that the security is attractive. See
 [`Chapter 5: Standalone investment underwriting`](docs/chapter-5-investment-underwriting.md).
 
-Chapter 6A adds a factual, immutable Portfolio State:
-canonical accounts and instruments, long-only positions, native-currency prices and cash roles,
-basic account tax and aggregate cost-basis metadata, the versioned ETF allow-list and benchmark,
-and a deterministic T0 fingerprint and audit envelope. It deliberately exposes only
-currency-grouped subtotals and contains no exposure, fit, score, sizing, allocation, timing, or
+Chapter 6A adds factual, immutable Portfolio State: canonical accounts and instruments, long-only
+positions, native-currency prices and cash roles, basic account tax and aggregate cost-basis
+metadata, the versioned ETF allow-list and benchmark, and a deterministic T0 fingerprint and audit
+envelope. It deliberately contains no exposure, fit, score, sizing, allocation, timing, or
 execution logic. See [`Chapter 6A: Factual Portfolio State`](docs/chapter-6a-portfolio-state.md)
-and accepted [`ADR 0014`](docs/adr/0014-factual-portfolio-state-and-t0-snapshot.md). Chapter 6B
-derives one-level direct and ETF look-through exposure,
-keeps EUR and USD books separate, exposes unresolved weight and HHI bounds, and produces only
-descriptive before/after views for an amount supplied from outside the capability. See
+and accepted [`ADR 0014`](docs/adr/0014-factual-portfolio-state-and-t0-snapshot.md).
+
+Chapter 6B derives one-level direct and ETF look-through exposure, keeps currency books separate,
+exposes unresolved weight and HHI bounds, and produces descriptive before/after views only for an
+amount supplied from outside the capability. See
 [`Chapter 6B: Minimal Portfolio Exposure`](docs/chapter-6b-portfolio-exposure.md) and accepted
 [`ADR 0015`](docs/adr/0015-minimal-point-in-time-portfolio-exposure.md).
 
-Chapter 6C1 now has a review candidate under proposed
+Chapter 6C1 is canonical under accepted
 [`ADR 0016`](docs/adr/0016-explicit-marginal-capital-decision.md). It verifies the complete
 Underwriting/State/Exposure hand-off, compares the candidate, one eligible incumbent, the core ETF,
 and investment cash using the same explicit capital unit, derives descriptive Portfolio Fits, and
-emits `ALLOCATE` only under complete pairwise dominance. Cash dominance, indeterminacy, or a cycle
-returns `NO_ALLOCATION`; a separate `HOLD` record carries no new capital. The Decision Card is a
-read-only projection and cannot emit Execution state. See
-[`Chapter 6C1: Explicit marginal capital decision`](docs/chapter-6c1-marginal-decision.md) and the
-[`minimum operator workspace contract`](docs/operator-workspace-contract.md). None of this is
-canonical until ADR 0016 and the exact implementation head are explicitly accepted and merged.
+emits `ALLOCATE` only under complete pairwise dominance. Cash dominance, indeterminacy, ties, or a
+cycle return `NO_ALLOCATION`; a separate `HOLD` record carries no new capital. The Decision Card is
+a read-only projection and cannot emit Execution state. See
+[`Chapter 6C1: Explicit marginal capital decision`](docs/chapter-6c1-marginal-decision.md).
 
-Automated extraction and signal discovery, complete filing normalization, calibrated forecast
-distributions, live Portfolio providers and persistence, Market State, replacement and friction,
-automatic sizing, order execution, filing discovery, and a functional user interface remain
-outside the canonical implemented scope. SQLite remains a local/reference evidence persistence
-adapter.
+Chapter 6C2 is the final Chapter 6 implementation candidate under proposed
+[`ADR 0017`](docs/adr/0017-replacement-and-capital-flow-policies.md). It adds explicit owner
+capital/concentration gates, `LEGACY_HOLD_ZERO_NEW_CAPITAL`, `RUNNER` without house-money
+accounting, policy-constrained replay of accepted 6C1 decisions, `NEW_CAPITAL_FIRST`, and one
+explicit source-to-target `REPLACE` decision after visible tax, fee, spread, and liquidity
+friction. Constraint breaches never resize an amount automatically; missing friction or liquidity
+fails safely to `HOLD`; recovered Runner proceeds never reduce the current market-value opportunity
+cost. See [`Chapter 6C2: Replacement and capital-flow policies`](docs/chapter-6c2-replacement-policies.md)
+and the [`minimum operator workspace contract`](docs/operator-workspace-contract.md).
+
+Chapter 6C2 remains non-canonical until ADR 0017, the exact implementation head, and the merge are
+explicitly accepted. Execution timing/staging, live brokerage actions, calibrated automatic
+sizing, advanced tax-lot optimization, covariance optimization, Market State, Learning, live
+Portfolio providers/persistence, automated extraction/discovery, complete filing normalization,
+and a functional user interface remain outside the canonical implemented scope. SQLite remains a
+local/reference evidence persistence adapter.
 
 ## Quick start
 
@@ -168,10 +178,11 @@ docker run --rm asymmetric-insight-engine:local
 ## Repository map
 
 - `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity, and
-  Portfolio State contracts.
+  Portfolio Decision contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
-- `src/asymmetric_engine/interfaces`: CLI, API, and future user interfaces.
+- `src/asymmetric_engine/interfaces`: CLI, read-only Decision Card projection, API, and future user
+  interfaces.
 - `docs`: system constitution, architecture, and Architecture Decision Records.
 - `docs/roadmap.md`: canonical delivery order and deferred capability register.
 - `docs/complexity-budget.md`: admission and graduation rules for new sophistication.
