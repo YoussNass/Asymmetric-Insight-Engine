@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from enum import StrEnum
 from typing import Self
@@ -181,7 +181,10 @@ class DecisionLearningCaseInput(BaseModel):
             if any(item is None for item in replacement_fields):
                 raise ValueError("replacement Learning case requires source instrument and T0 price")
             assert self.replacement_source_reference_price is not None
-            if self.replacement_source_reference_price.currency != self.target_reference_price.currency:
+            if (
+                self.replacement_source_reference_price.currency
+                != self.target_reference_price.currency
+            ):
                 raise ValueError("replacement source and target must use one native currency")
             if self.replacement_source_reference_price.amount == 0:
                 raise ValueError("replacement source T0 price must be greater than zero")
@@ -352,37 +355,25 @@ class LearningMetrics(BaseModel):
         return self
 
 
-class DecisionLearningEvaluation(BaseModel):
-    """Content-addressed T2 outcome record with no authority to change capital decisions."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
+class DecisionLearningEvaluation(LearningEvaluationInput):
+    """Content-addressed T2 outcome record with the observations required for canonical replay."""
 
     evaluation_id: UUID
     input_fingerprint: ContentHash
     case: DecisionLearningCaseReference
-    knowledge_boundary: KnowledgeBoundary
-    method_version: NonEmptyString = LEARNING_EVALUATION_METHOD_VERSION
     return_basis: LearningReturnBasis = LearningReturnBasis.PRICE_ONLY_FROM_DECISION_REFERENCE
     account_pnl_status: AccountPnlStatus = AccountPnlStatus.NOT_MEASURED_NO_FILL_DATA
     metrics: LearningMetrics
     thesis_outcome: ThesisOutcome
     horizon_reached: bool
     scenario_realization: ScenarioRealizationBand
-    end_observation_at: datetime
+    end_observation_at: AwareDatetime
     missing_data: tuple[NonEmptyString, ...] = ()
-    assumptions: tuple[NonEmptyString, ...] = ()
 
-    @field_validator("method_version")
+    @field_validator("missing_data")
     @classmethod
-    def require_method(cls, value: str) -> str:
-        if value != LEARNING_EVALUATION_METHOD_VERSION:
-            raise ValueError(f"method_version must be {LEARNING_EVALUATION_METHOD_VERSION!r}")
-        return value
-
-    @field_validator("missing_data", "assumptions")
-    @classmethod
-    def reject_duplicate_text(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        return _reject_duplicates(value, "duplicate Learning evaluation output disclosures")
+    def reject_duplicate_output_missing(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return _reject_duplicates(value, "duplicate Learning evaluation missing_data")
 
     @model_validator(mode="after")
     def validate_evaluation(self) -> Self:
