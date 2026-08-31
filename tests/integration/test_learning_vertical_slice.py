@@ -13,19 +13,32 @@ from tests.learning_factories import (
 
 
 def test_verified_capital_decisions_flow_through_execution_into_learning() -> None:
-    allocation_context, _, allocation_plan, _, allocation_case = make_allocation_learning_case()
+    allocation_context, _, allocation_plan, _, allocation_case = (
+        make_allocation_learning_case()
+    )
     evaluator = learning_evaluator()
     allocation_evaluation = evaluator.execute(
         case=allocation_case,
         evaluation_input=make_allocation_evaluation_input(allocation_case),
     )
 
-    assert allocation_case.source.decision_id == allocation_context.policy_decision.policy_decision_id
+    assert allocation_case.source.decision_id == (
+        allocation_context.policy_decision.policy_decision_id
+    )
     assert allocation_case.source.execution_plan_id == allocation_plan.plan_id
-    assert allocation_case.source.decision_boundary.as_of <= allocation_case.knowledge_boundary.as_of
-    assert allocation_case.knowledge_boundary.as_of <= allocation_evaluation.knowledge_boundary.as_of
+    assert (
+        allocation_case.source.decision_boundary.as_of
+        <= allocation_case.knowledge_boundary.as_of
+    )
+    assert (
+        allocation_case.knowledge_boundary.as_of
+        <= allocation_evaluation.knowledge_boundary.as_of
+    )
     assert allocation_evaluation.thesis_outcome is ThesisOutcome.INTACT
-    assert allocation_evaluation.account_pnl_status is AccountPnlStatus.NOT_MEASURED_NO_FILL_DATA
+    assert (
+        allocation_evaluation.account_pnl_status
+        is AccountPnlStatus.NOT_MEASURED_NO_FILL_DATA
+    )
     assert evaluator.verify(case=allocation_case, evaluation=allocation_evaluation) == (
         allocation_evaluation
     )
