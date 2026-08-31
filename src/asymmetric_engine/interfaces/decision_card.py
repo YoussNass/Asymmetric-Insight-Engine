@@ -186,9 +186,7 @@ class ProjectDecisionCard:
         )
         selected = alternatives[policy_decision.selected_alternative_id]
         blocked = tuple(
-            reason
-            for item in policy_decision.blocked_alternatives
-            for reason in item.reasons
+            reason for item in policy_decision.blocked_alternatives for reason in item.reasons
         )
         risks = tuple(dict.fromkeys((*source_decision.main_risks_and_unknowns, *blocked)))
         action = (
