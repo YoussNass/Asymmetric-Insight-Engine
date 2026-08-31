@@ -26,8 +26,9 @@ UNDERSTAND -> UNDERWRITE -> ALLOCATE -> EXECUTE -> LEARN
 
 This is a conceptual view, not a deployment topology or a requirement for exactly five bounded
 contexts. Evidence and the Temporal shared kernel support every stage. Understand includes
-evidence-backed discovery and Causal Alpha; Allocate includes Portfolio State, Exposure, Fit, and
-Marginal Allocation without collapsing their ownership contracts.
+evidence-backed discovery and Causal Alpha; Allocate includes Portfolio State, Exposure, Fit,
+Marginal Allocation, and its explicit capital-flow policies without collapsing their ownership
+contracts.
 
 The detailed delivery sequence is maintained in [`roadmap.md`](roadmap.md).
 
@@ -139,9 +140,9 @@ Structural correlation, factors, effective independent bets, advanced tax optimi
 sizing, and portfolio optimization remain deferred until measured failure and data sufficiency
 justify them.
 
-Every derived Exposure, Fit, and Marginal Allocation state retains `as_of`, knowledge mode,
-method version, input fingerprint, missing inputs, conflicts, and assumptions as required by ADR
-0006.
+Every derived Exposure, Fit, Marginal Allocation, owner-policy, and replacement state retains
+`as_of`, knowledge mode, method version, input fingerprint, missing inputs, conflicts, and
+assumptions where applicable, as required by ADR 0006.
 
 Marginal Allocation owns the target capital amount. Execution may stage that amount into tranches
 but cannot change standalone quality or silently choose a different strategic allocation.
@@ -220,7 +221,7 @@ The full contract and limitations are documented in
 
 ## Chapter 6C1 Portfolio Fit and Marginal Allocation boundary
 
-The proposed Chapter 6C1 application use case is the first component with capital-decision
+The accepted Chapter 6C1 application use case is the first component with capital-decision
 authority. It canonically replays one Opportunity State, one Portfolio State, current Exposure,
 and exact supplied-amount Exposure views for one eligible incumbent and the core ETF. The
 application layer joins these contexts at one knowledge boundary; Portfolio domain records retain
@@ -248,16 +249,69 @@ otherwise the conservative policy produces `NO_ALLOCATION` and preserves the uni
 cash.
 
 `HOLD` is a separate no-new-capital position-review record. It carries no amount, replacement,
-sale, or Execution authority. `REPLACE`, transaction friction, PAC, Legacy, and Runner remain in
-6C2. Timing and staging remain in Chapter 7.
+sale, or Execution authority. Timing and staging remain in Chapter 7.
 
 The Decision Card interface is a read-only projection over verified records. It rechecks Fit
 identifiers and fingerprints, contains no financial calculation, and fixes Execution to
-`not_evaluated`. The proposed contract is documented in
-[`chapter-6c1-marginal-decision.md`](chapter-6c1-marginal-decision.md) and
+`not_evaluated`. The accepted contract is documented in
+[`chapter-6c1-marginal-decision.md`](chapter-6c1-marginal-decision.md) and accepted
 [`ADR 0016`](adr/0016-explicit-marginal-capital-decision.md). The thin product boundary is
-documented in
-[`operator-workspace-contract.md`](operator-workspace-contract.md).
+documented in [`operator-workspace-contract.md`](operator-workspace-contract.md).
+
+## Chapter 6C2 replacement and capital-flow policy boundary
+
+The proposed Chapter 6C2 slice extends the same Portfolio Decision bounded context. It does not
+create a replacement engine, sizing engine, or tax optimizer and does not modify accepted 6C1
+records.
+
+An immutable `OwnerPortfolioPolicy` may declare one explicit maximum capital unit, owner-selected
+maximum company weight, company-HHI upper bound, and economic-driver weight, plus lifecycle policy
+for existing positions. These values are hard eligibility gates. They are not target weights and
+are never used to derive a smaller position automatically.
+
+`LEGACY_HOLD_ZERO_NEW_CAPITAL` allows an existing factual position to remain held while preventing
+incremental capital. `RUNNER` may retain historical recovered proceeds for explanation, but the
+remaining position always has current market value as its opportunity cost. Recovered historical
+cost never enters allocation or replacement arithmetic.
+
+Policy-constrained new-capital allocation canonically replays the accepted 6C1 package and removes
+policy-ineligible non-cash alternatives with explicit reasons. Investment cash remains eligible.
+The remaining alternatives reuse the existing pairwise comparisons; no rescoring occurs. A
+non-cash allocation still requires complete dominance among all remaining eligible alternatives,
+otherwise the exact unit stays as cash.
+
+Replacement evaluates one explicit source position, one explicit target, and one positive
+caller-supplied gross sale amount. The target may be the core ETF, another policy-eligible listed
+holding, or a prospective candidate whose standalone Opportunity State is independently replayed.
+The source and target must use one native currency; no implicit FX is performed.
+
+Switching friction exposes tax, fee, and spread separately as `known`, `not_applicable`, or
+`unknown`, while liquidity is an independent ordinal assessment. Unknown monetary friction or
+unknown liquidity fails safely to `HOLD`. When monetary friction is complete:
+
+```text
+total_switching_friction = tax + fee + spread
+net_redeployable_amount = gross_sale_amount - total_switching_friction
+```
+
+`NEW_CAPITAL_FIRST` prevents a sale when already-investable cash in the same currency can fund the
+net target amount. Otherwise `REPLACE` requires the target to be explicitly preferred before and
+after friction and to pass owner policy. Failure produces `HOLD` with a named basis; no hidden
+switching score is admitted.
+
+Because Chapter 6B has no canonical hypothetical-sale scenario, a replacement that uses owner
+ratio constraints consumes explicit after-replacement observations carrying a source reference
+and fingerprint. They are fingerprinted inputs, not a substitute for a new Exposure owner. A
+future sell/rebalance Exposure scenario requires its own measured need and architecture decision.
+
+Decision Card v2 adds `REPLACE` and replacement fields while retaining read-only projection
+semantics. Its UUID namespace includes the projection method version so a v2 projection cannot
+silently reuse a v1 card identity. Policy-blocked alternatives cannot be surfaced as the card's
+best eligible alternative. Execution remains `not_evaluated`.
+
+The proposed contract is documented in
+[`chapter-6c2-replacement-policies.md`](chapter-6c2-replacement-policies.md) and proposed
+[`ADR 0017`](adr/0017-replacement-and-capital-flow-policies.md).
 
 ## Adjacent applications and experiments
 
