@@ -445,12 +445,12 @@ class BuildReplacementDecision:
         if total_friction is None or net_amount is None:
             outcome = ReplacementOutcome.HOLD
             basis = ReplacementDecisionBasis.FRICTION_UNKNOWN
-        elif available_new_capital.amount >= net_amount.amount:
-            outcome = ReplacementOutcome.HOLD
-            basis = ReplacementDecisionBasis.NEW_CAPITAL_FIRST
         elif policy_block:
             outcome = ReplacementOutcome.HOLD
             basis = ReplacementDecisionBasis.POLICY_BLOCK
+        elif available_new_capital.amount >= net_amount.amount:
+            outcome = ReplacementOutcome.HOLD
+            basis = ReplacementDecisionBasis.NEW_CAPITAL_FIRST
         elif canonical_input.friction.liquidity.status is LiquidityStatus.UNKNOWN:
             outcome = ReplacementOutcome.HOLD
             basis = ReplacementDecisionBasis.LIQUIDITY_UNRESOLVED
@@ -784,8 +784,11 @@ class BuildReplacementDecision:
             ),
             None,
         )
-        if source_policy is not None and source_policy.recovered_proceeds is not None:
+        if (
+            source_policy is not None
+            and source_policy.recovered_proceeds is not None
+            and source_policy.recovered_proceeds.currency != source.current_value.currency
+        ):
             # Runner history is intentionally not used in any replacement arithmetic.
-            if source_policy.recovered_proceeds.currency != source.current_value.currency:
-                raise ValueError("Runner recovered proceeds must use source position currency")
+            raise ValueError("Runner recovered proceeds must use source position currency")
         return False
