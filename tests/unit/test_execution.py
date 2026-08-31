@@ -15,7 +15,9 @@ from asymmetric_engine.application.execution import (
 )
 from asymmetric_engine.application.portfolio_policy import BuildOwnerPortfolioPolicy
 from asymmetric_engine.domain.execution import (
+    ApprovedCapitalInstruction,
     ExecutionAction,
+    ExecutionLeg,
     ExecutionLiquidityStatus,
     ExecutionPlan,
     ExecutionPlanInput,
@@ -23,7 +25,10 @@ from asymmetric_engine.domain.execution import (
     ExecutionPolicyInput,
     ExecutionReasonCode,
     ExecutionSide,
+    ExecutionSourceKind,
+    ExecutionTranche,
     InvalidationStatus,
+    MarketExecutionObservation,
 )
 from asymmetric_engine.domain.financial import MonetaryAmount
 from asymmetric_engine.domain.portfolio import OwnerPortfolioPolicyInput
@@ -330,3 +335,196 @@ def test_execution_policy_rejects_zero_order_limit() -> None:
             max_single_order_notional=MonetaryAmount(amount=Decimal("0"), currency="USD"),
             rationale=("Zero cannot be a valid staging limit.",),
         )
+
+
+def test_market_observation_rejects_crossed_market_and_unknown_without_disclosure() -> None:
+    context = make_execution_context()
+    observation = make_allocation_execution_input(context).market_observations[0]
+    values = observation.model_dump(mode="python")
+    values["ask"] = MonetaryAmount(amount=Decimal("99"), currency="USD")
+    values["bid"] = MonetaryAmount(amount=Decimal("100"), currency="USD")
+
+    with pytest.raises(ValueError, match="below bid"):
+        MarketExecutionObservation.model_validate(values)
+
+    values = observation.model_dump(mode="python")
+    values["liquidity"] = ExecutionLiquidityStatus.UNKNOWN
+    values["missing_data"] = ()
+    with pytest.raises(ValueError, match="requires missing_data"):
+        MarketExecutionObservation.model_validate(values)
+
+
+def test_plan_input_rejects_duplicate_market_observations() -> None:
+    context = make_execution_context()
+    base_input = make_allocation_execution_input(context)
+    observation = base_input.market_observations[0]
+
+    with pytest.raises(ValueError, match="duplicate market observations"):
+        ExecutionPlanInput(
+            knowledge_boundary=context.execution_boundary,
+            market_observations=(observation, observation),
+            invalidation_observations=base_input.invalidation_observations,
+        )
+
+
+def test_execution_tranche_and_leg_require_exact_positive_notional() -> None:
+    with pytest.raises(ValueError, match="greater than zero"):
+        ExecutionTranche(
+            tranche_index=1,
+            notional=MonetaryAmount(amount=Decimal("0"), currency="USD"),
+        )
+
+    with pytest.raises(ValueError, match="sum must equal"):
+        ExecutionLeg(
+            sequence=1,
+            side=ExecutionSide.BUY,
+            instrument_id="instrument:test",
+            total_notional=MonetaryAmount(amount=Decimal("100"), currency="USD"),
+            tranches=(
+                ExecutionTranche(
+                    tranche_index=1,
+                    notional=MonetaryAmount(amount=Decimal("90"), currency="USD"),
+                ),
+            ),
+        )
+
+
+def test_missing_quote_returns_wait_instead_of_inventing_market_data() -> None:
+    context = make_execution_context()
+    policy = make_execution_policy(context)
+    base_input = make_allocation_execution_input(context)
+    execution_input = ExecutionPlanInput(
+        knowledge_boundary=context.execution_boundary,
+        market_observations=(),
+        invalidation_observations=base_input.invalidation_observations,
+    )
+
+    plan = context.execution_builder.from_policy_allocation(
+        portfolio_state=context.decision_context.portfolio_state,
+        opportunity_state=context.decision_context.opportunity_state,
+        current_exposure=context.decision_context.current_exposure,
+        alternative_exposures=context.decision_context.alternative_exposures,
+        marginal_result=context.marginal_result,
+        owner_policy=context.owner_policy,
+        policy_decision=context.policy_decision,
+        execution_policy=policy,
+        execution_input=execution_input,
+    )
+
+    assert plan.action is ExecutionAction.WAIT
+    assert ExecutionReasonCode.QUOTE_MISSING in {item.code for item in plan.reasons}
+    assert plan.legs == ()
+
+
+def test_extra_market_or_invalidation_inputs_are_rejected() -> None:
+    context = make_execution_context()
+    policy = make_execution_policy(context)
+    base_input = make_allocation_execution_input(context)
+    observation = base_input.market_observations[0]
+    extra_market = observation.model_copy(update={"instrument_id": "instrument:unrelated"})
+    market_input = ExecutionPlanInput(
+        knowledge_boundary=context.execution_boundary,
+        market_observations=(observation, extra_market),
+        invalidation_observations=base_input.invalidation_observations,
+    )
+
+    with pytest.raises(ValueError, match="will not trade"):
+        context.execution_builder.from_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=policy,
+            execution_input=market_input,
+        )
+
+    invalidation = base_input.invalidation_observations[0]
+    extra_invalidation = invalidation.model_copy(update={"condition": "Unowned condition"})
+    invalidation_input = ExecutionPlanInput(
+        knowledge_boundary=context.execution_boundary,
+        market_observations=base_input.market_observations,
+        invalidation_observations=(*base_input.invalidation_observations, extra_invalidation),
+    )
+    with pytest.raises(ValueError, match="upstream invalidation"):
+        context.execution_builder.from_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=policy,
+            execution_input=invalidation_input,
+        )
+
+
+def test_execution_rejects_wrong_currency_and_policy_boundary() -> None:
+    context = make_execution_context()
+    policy = make_execution_policy(context)
+    base_input = make_allocation_execution_input(context)
+    observation = base_input.market_observations[0]
+    wrong_currency = observation.model_copy(
+        update={
+            "native_currency": "EUR",
+            "bid": MonetaryAmount(amount=observation.bid.amount, currency="EUR"),
+            "ask": MonetaryAmount(amount=observation.ask.amount, currency="EUR"),
+        }
+    )
+    wrong_currency_input = ExecutionPlanInput(
+        knowledge_boundary=context.execution_boundary,
+        market_observations=(wrong_currency,),
+        invalidation_observations=base_input.invalidation_observations,
+    )
+    with pytest.raises(ValueError, match="approved leg currency"):
+        context.execution_builder.from_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=policy,
+            execution_input=wrong_currency_input,
+        )
+
+    later_boundary = context.execution_boundary.model_copy(
+        update={"as_of": context.execution_boundary.as_of + timedelta(seconds=1)}
+    )
+    mismatched_policy = BuildExecutionPolicy.execute(
+        ExecutionPolicyInput(
+            knowledge_boundary=later_boundary,
+            max_quote_age_seconds=60,
+            max_spread_bps=Decimal("50"),
+            rationale=("Deliberately mismatched test boundary.",),
+        )
+    )
+    with pytest.raises(ValueError, match="share one boundary"):
+        context.execution_builder.from_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=mismatched_policy,
+            execution_input=base_input,
+        )
+
+
+def test_execution_plan_and_source_models_reject_noncanonical_shapes() -> None:
+    _, _, plan = _allocation_plan()
+    plan_values = plan.model_dump(mode="python")
+    plan_values["action"] = ExecutionAction.WAIT
+    with pytest.raises(ValueError, match="cannot contain executable legs"):
+        ExecutionPlan.model_validate(plan_values)
+
+    source_values = plan.source.model_dump(mode="python")
+    source_values["source_kind"] = ExecutionSourceKind.REPLACEMENT
+    with pytest.raises(ValueError, match="source fields are required"):
+        ApprovedCapitalInstruction.model_validate(source_values)
