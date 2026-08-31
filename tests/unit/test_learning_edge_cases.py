@@ -269,9 +269,7 @@ def test_learning_rejects_later_price_currency_drift() -> None:
     base = make_allocation_evaluation_input(case)
     observation = base.price_observations[0]
     altered = observation.model_copy(
-        update={
-            "price": MonetaryAmount(amount=observation.price.amount, currency="EUR")
-        }
+        update={"price": MonetaryAmount(amount=observation.price.amount, currency="EUR")}
     )
 
     with pytest.raises(ValueError, match="preserve each T0 anchor currency"):
