@@ -116,9 +116,7 @@ def test_chapter_6c2_preserves_lineage_through_policy_and_replacement_cards() ->
             rationale=("Use explicit owner gates without automatic sizing.",),
         )
     )
-    policy_decision = ApplyPortfolioPolicy(
-        decision_builder=context.decision_builder
-    ).execute(
+    policy_decision = ApplyPortfolioPolicy(decision_builder=context.decision_builder).execute(
         portfolio_state=context.portfolio_state,
         opportunity_state=context.opportunity_state,
         current_exposure=context.current_exposure,
