@@ -11,9 +11,12 @@ At the time of this roadmap:
 - Chapters 2 through 6 are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
   replacement, and capital-flow policy are canonical;
-- Chapter 7 has an implementation candidate under proposed ADR 0018; no Execution Plan is
-  canonical until its ADR and merge are explicitly accepted;
-- Market State and Learning remain unimplemented in the canonical engine;
+- Chapter 7 is approved under accepted ADR 0018, exact-head CI is green, and merge is explicitly
+  authorized, but PR #24 is still mechanically blocked by GitHub's Draft flag and therefore is not
+  yet canonical in `main`;
+- Chapter 8 is the active stacked implementation candidate under proposed ADR 0019 and PR #25,
+  based on the exact approved Chapter 7 head so its delta can be validated independently;
+- Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -36,7 +39,7 @@ Temporal shared kernel support every stage.
 | Underwrite | Immutable standalone company and opportunity state at the current price |
 | Allocate | Portfolio state, exposure, interaction, competing alternatives, and marginal capital decision |
 | Execute | Implement an approved amount through explicit staging without rewriting the thesis |
-| Learn | Compare the T0 record with realized outcomes and the declared benchmark |
+| Learn | Compare the immutable T0/T1 record with later point-in-time decision outcomes without hindsight |
 
 ## Mandatory sequencing gate
 
@@ -48,7 +51,10 @@ The prerequisites for Chapter 6 were satisfied on 2026-08-27:
 4. the owner authorized the compressed roadmap and Chapter 6A as the next slice.
 
 Chapter 6 was completed on 2026-08-31 after ADR 0014 through ADR 0017 were accepted and their
-implementations merged. Chapter 7 is therefore the active minimum-complete slice.
+implementations merged. Chapter 7 then passed its technical and governance gates under accepted ADR
+0018, but its PR remains Draft because the GitHub connector cannot perform the ready-for-review
+transition. Chapter 8 may be developed as a stacked branch over that exact approved head, but it
+cannot become canonical before Chapter 7 enters `main` through the normal pull-request path.
 
 Each later slice still requires its own narrow branch, tests, draft pull request, and explicit
 merge authorization. Approval of this roadmap does not authorize merging an unreviewed future
@@ -205,14 +211,15 @@ allocation, and can decide whether one explicit existing position should be repl
 friction and owner policy. It compares discrete, explicit amounts; it does not derive an automatic
 Kelly-like size.
 
-Chapter 6 is complete. Chapter 7 is the active minimum-complete slice.
+Chapter 6 is complete.
 
 ### Chapter 7 — Execution MVP
 
 **Purpose:** implement, but never recreate, an approved allocation decision.
 
-**Status:** implementation candidate under proposed ADR 0018; not canonical until exact-head
-verification, ADR acceptance, and explicit merge authorization.
+**Status:** technically complete and approved under accepted ADR 0018. Exact-head CI is green and
+the owner explicitly authorized merge of PR #24. It remains non-canonical only because PR #24 is
+still marked Draft by GitHub and the connected ready-for-review mutation is mechanically broken.
 
 Minimum outputs:
 
@@ -226,17 +233,16 @@ tranche staging. Market observations, liquidity, spreads, and exact upstream inv
 conditions may change implementation, not company quality, standalone value, target, or strategic
 amount.
 
-The Chapter 7 candidate deliberately uses no Market State or timing score. An owner-defined
-execution policy supplies quote-age, maximum-spread, and optional maximum-order-notional limits.
-`STAGED` can only split the already-approved amount; tranche sums must reproduce that amount
-exactly. Missing/stale quotes, excessive spread, unresolved or constrained liquidity, and unknown
-invalidation evidence fail safely to `WAIT`. A triggered upstream change condition produces
-`INVALIDATED`.
+Chapter 7 deliberately uses no Market State or timing score. An owner-defined execution policy
+supplies quote-age, maximum-spread, and optional maximum-order-notional limits. `STAGED` can only
+split the already-approved amount; tranche sums must reproduce that amount exactly. Missing/stale
+quotes, excessive spread, unresolved or constrained liquidity, and unknown invalidation evidence
+fail safely to `WAIT`. A triggered upstream change condition produces `INVALIDATED`.
 
-The candidate produces an immutable Execution Plan and read-only Execution Card. It does not
+The implementation produces an immutable Execution Plan and read-only Execution Card. It does not
 connect to a broker or submit orders.
 
-The proposed contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
+The accepted contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
 and [`ADR 0018`](adr/0018-point-in-time-execution-mvp.md).
 
 Out of scope initially:
@@ -252,25 +258,54 @@ Exit criterion: one canonically replayed `ALLOCATE` or `REPLACE` decision can pr
 time, content-addressed `NOW`, `STAGED`, `WAIT`, or `INVALIDATED` Execution Plan without changing
 any upstream capital decision.
 
-### Chapter 8 — Learning MVP
+### Chapter 8 — Decision-level Learning MVP
 
-**Purpose:** determine whether active AIE decisions deserve additional capital.
+**Purpose:** create trustworthy ex-post evidence about an AIE decision before claiming that the
+system has learned an investment edge.
 
-Record from the first decision:
+**Status:** active stacked implementation candidate under proposed ADR 0019 and PR #25. The branch
+is based on the exact approved Chapter 7 head. It cannot become canonical until Chapter 7 first
+enters `main`, PR #25 is retargeted to `main`, exact-head verification is repeated, ADR 0019 is
+accepted, and merge is explicitly authorized.
 
-- decision timestamp and knowledge boundary;
-- benchmark and price at T0;
-- expected scenario range and horizon;
-- selected alternative and reason;
-- realized return and benchmark return;
-- excess return and maximum drawdown;
-- thesis and invalidation outcomes;
-- expected versus realized payoff;
-- forecast-calibration observations.
+The first slice opens Learning only from canonically replayed Chapter 7 `NOW` or `STAGED` plans and
+preserves three ordered boundaries:
 
-CAGR, volatility, Sharpe, Sortino, and Information Ratio may be shown only when sample size and
-horizon make them meaningful. Factor-adjusted alpha remains deferred until the data supports a
-defensible model.
+```text
+T0 = capital decision
+T1 = Execution Plan
+T2 = Learning evaluation
+T2 >= T1 >= T0
+```
+
+Because Chapter 7 has no broker-fill lifecycle, Learning explicitly distinguishes decision-level
+observed price return from realized account P&L. It records
+`account_pnl_status = not_measured_no_fill_data` and does not call a quote or plan a fill.
+
+Minimum decision-level outputs:
+
+- target price return from the exact T0 reference price;
+- same-currency benchmark price return;
+- transparent target-minus-benchmark excess return;
+- maximum drawdown over the explicitly supplied target-price path, without forward filling;
+- for `REPLACE`, source-position price return and target-minus-source counterfactual;
+- thesis outcome `intact`, `invalidated`, or `unresolved` using only exact upstream change
+  conditions;
+- categorical scenario realization against the preserved T0 bear/base/bull range when such a
+  range belongs to the selected candidate;
+- T0/T1/T2 references, source fingerprints, assumptions, conflicts, and missing data.
+
+The first slice deliberately does **not** claim realized brokerage P&L, total shareholder return,
+Sharpe, Sortino, Information Ratio, factor alpha, win rate, or model skill. It also has no automatic
+feedback authority: a Learning result cannot resize capital, rewrite owner policy, change
+Underwriting gates, alter Execution thresholds, retrain a model, or promote a deferred capability.
+
+The proposed contract is documented in [`chapter-8-learning-mvp.md`](chapter-8-learning-mvp.md)
+and [`ADR 0019`](adr/0019-decision-level-learning-mvp.md).
+
+Exit criterion: an executable point-in-time decision can be replayed into a content-addressed T2
+Learning record that measures transparent decision-level outcomes without hindsight, implicit FX,
+fake fill assumptions, aggregate skill claims, or automatic upstream feedback.
 
 ## Portfolio concepts that remain policies or state
 
@@ -309,6 +344,8 @@ Deferred capabilities remain visible and may graduate only after the listed trig
 | Advanced tax-lot optimization | `DEFER` | Complete tax lots and verified adapter | Basic tax friction causes material avoidable loss | Marginal Allocation policy |
 | Market State engine | `DEFER` | Prospective signals and execution baseline | A simple execution policy shows persistent timing failure | Execution input |
 | Factor-adjusted alpha | `DEFER` | Adequate decision sample and factor histories | Basic benchmark attribution is statistically insufficient | Learning |
+| Aggregate risk-adjusted Learning metrics | `DEFER` | Prospective decision sample and documented minimum-sample policy | Decision-level outcomes are insufficient for model-skill evaluation | Learning |
+| Automatic Learning feedback | `REJECT` as V1 default | Prospective calibration, governance, rollback, and causally defensible update rules | Manual review of accumulated Learning records shows a reproducible benefit from a bounded update rule | Learning/application policy |
 | Monte Carlo/Bayesian optimizer | `REJECT` as V1 default | Calibrated distributions, covariance, and benchmark | Simpler marginal comparison has a measured, reproducible failure | Experimental allocation adapter |
 
 No deferred capability may become an active default solely because synthetic tests pass.
@@ -345,4 +382,5 @@ AS OF AND INPUT FINGERPRINT
 
 Chapter 6 Decision Cards remain immutable and show Execution as `not_evaluated`. Chapter 7 adds a
 separate read-only Execution Card over a verified Execution Plan rather than mutating the accepted
-Chapter 6 projection. Neither card may hide uncertainty behind a synthetic score.
+Chapter 6 projection. Chapter 8 Learning records remain a separate downstream audit/evaluation
+surface; none of these projections may hide uncertainty behind a synthetic score.
