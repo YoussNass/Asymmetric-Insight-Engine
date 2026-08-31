@@ -3,6 +3,7 @@
 from decimal import Decimal
 from uuid import NAMESPACE_URL, uuid5
 
+from asymmetric_engine.application.marginal_decision import MarginalDecisionResult
 from asymmetric_engine.application.portfolio_policy import (
     ApplyPortfolioPolicy,
     BuildOwnerPortfolioPolicy,
@@ -13,10 +14,10 @@ from asymmetric_engine.interfaces.decision_card import (
     DECISION_CARD_METHOD_VERSION,
     ProjectDecisionCard,
 )
-from tests.decision_factories import make_decision_context
+from tests.decision_factories import DecisionContext, make_decision_context
 
 
-def _marginal_result():
+def _marginal_result() -> tuple[DecisionContext, MarginalDecisionResult]:
     context = make_decision_context()
     result = context.decision_builder.execute(
         portfolio_state=context.portfolio_state,
