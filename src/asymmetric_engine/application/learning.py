@@ -22,6 +22,7 @@ from asymmetric_engine.domain.learning import (
     LearningEvaluationInput,
     LearningExecutionAction,
     LearningMetrics,
+    LearningPriceObservation,
     LearningSourceKind,
     LearningSourceReference,
     ScenarioRangeAnchor,
@@ -212,7 +213,8 @@ class OpenDecisionLearningCase:
             replacement_source_reference_price=replacement_source_reference_price,
             change_conditions=change_conditions,
             rationale=(
-                "Preserve verified capital and Execution anchors for later decision-level learning.",
+                "Preserve verified capital and Execution anchors for later "
+                "decision-level learning.",
             ),
             assumptions=(
                 "Observed price return is not realized account P&L without broker fill data.",
@@ -236,9 +238,16 @@ class OpenDecisionLearningCase:
         )
 
     @staticmethod
-    def _canonicalize_case_input(case_input: DecisionLearningCaseInput) -> DecisionLearningCaseInput:
+    def _canonicalize_case_input(
+        case_input: DecisionLearningCaseInput,
+    ) -> DecisionLearningCaseInput:
         values: dict[str, Any] = case_input.model_dump(mode="python")
-        for field_name in ("change_conditions", "missing_data", "conflicts", "assumptions"):
+        for field_name in (
+            "change_conditions",
+            "missing_data",
+            "conflicts",
+            "assumptions",
+        ):
             values[field_name] = tuple(sorted(getattr(case_input, field_name)))
         return DecisionLearningCaseInput.model_validate(values)
 
@@ -284,7 +293,9 @@ class OpenDecisionLearningCase:
                 if item.instrument_id == instrument_id
             )
         except StopIteration as error:
-            raise ValueError("Learning requires the instrument T0 price in Portfolio State") from error
+            raise ValueError(
+                "Learning requires the instrument T0 price in Portfolio State"
+            ) from error
 
     @staticmethod
     def _opportunity_reference_price(opportunity_state: OpportunityState) -> MonetaryAmount:
@@ -349,7 +360,9 @@ class BuildDecisionLearningEvaluation:
         current_case = OpenDecisionLearningCase.verify(case)
         current_input = self._canonicalize_input(evaluation_input)
         if current_input.conflicts:
-            raise ValueError("Learning evaluation conflicts must be resolved before scoring outcomes")
+            raise ValueError(
+                "Learning evaluation conflicts must be resolved before evaluating outcomes"
+            )
         self._validate_boundary(current_case, current_input)
         self._validate_temporal_inputs(current_case, current_input)
 
@@ -367,7 +380,7 @@ class BuildDecisionLearningEvaluation:
         if missing:
             raise ValueError("Learning requires at least one later price for every comparison leg")
 
-        grouped = {
+        grouped: dict[str, tuple[LearningPriceObservation, ...]] = {
             instrument_id: tuple(
                 sorted(
                     (
@@ -392,7 +405,10 @@ class BuildDecisionLearningEvaluation:
                 current_case.replacement_source_reference_price
             )
         for instrument_id, observations in grouped.items():
-            if any(item.price.currency != anchors[instrument_id].currency for item in observations):
+            if any(
+                item.price.currency != anchors[instrument_id].currency
+                for item in observations
+            ):
                 raise ValueError("Learning later prices must preserve each T0 anchor currency")
 
         end_dates = {observations[-1].observed_at.date() for observations in grouped.values()}
@@ -432,7 +448,9 @@ class BuildDecisionLearningEvaluation:
             replacement_excess_vs_source=replacement_excess,
         )
         thesis_outcome, missing_data = self._thesis_outcome(current_case, current_input)
-        end_observation_at = max(observations[-1].observed_at for observations in grouped.values())
+        end_observation_at = max(
+            observations[-1].observed_at for observations in grouped.values()
+        )
         horizon_reached = end_observation_at.date() >= current_case.evaluation_horizon_date
         scenario_realization = self._scenario_realization(
             current_case,
@@ -493,7 +511,9 @@ class BuildDecisionLearningEvaluation:
         return evaluation
 
     @staticmethod
-    def _canonicalize_input(evaluation_input: LearningEvaluationInput) -> LearningEvaluationInput:
+    def _canonicalize_input(
+        evaluation_input: LearningEvaluationInput,
+    ) -> LearningEvaluationInput:
         values: dict[str, Any] = evaluation_input.model_dump(mode="python")
         values["price_observations"] = tuple(
             sorted(
@@ -548,7 +568,7 @@ class BuildDecisionLearningEvaluation:
     @staticmethod
     def _max_drawdown(
         start: MonetaryAmount,
-        observations: tuple[Any, ...],
+        observations: tuple[LearningPriceObservation, ...],
     ) -> Decimal:
         peak = start.amount
         max_drawdown = Decimal(0)
