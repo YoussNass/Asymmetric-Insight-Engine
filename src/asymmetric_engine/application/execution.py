@@ -283,7 +283,7 @@ class BuildExecutionPlan:
         actual_conditions = {item.condition for item in current_input.invalidation_observations}
         extras = actual_conditions - expected_conditions
         if extras:
-            raise ValueError("Execution cannot introduce invalidation conditions not owned upstream")
+            raise ValueError("Execution cannot add upstream invalidation conditions")
         invalidations = {item.condition: item for item in current_input.invalidation_observations}
         triggered = [
             item for item in invalidations.values() if item.status is InvalidationStatus.TRIGGERED
@@ -335,7 +335,7 @@ class BuildExecutionPlan:
         missing_instruments = required_instruments - set(observations)
         if missing_instruments:
             wait_details.setdefault(ExecutionReasonCode.QUOTE_MISSING, []).append(
-                "A current market observation is missing for at least one required trade instrument."
+                "A current quote is missing for a required trade instrument."
             )
             missing_data.update(
                 f"Missing execution quote: {instrument_id}"
@@ -365,7 +365,7 @@ class BuildExecutionPlan:
                 missing_data.update(observation.missing_data)
             elif observation.liquidity is ExecutionLiquidityStatus.CONSTRAINED:
                 wait_details.setdefault(ExecutionReasonCode.LIQUIDITY_CONSTRAINED, []).append(
-                    f"Liquidity for {instrument_id} is constrained; the MVP does not infer a schedule."
+                    f"Liquidity for {instrument_id} is constrained; no schedule is inferred."
                 )
 
         if wait_details:
@@ -434,7 +434,7 @@ class BuildExecutionPlan:
         execution_input: ExecutionPlanInput,
     ) -> None:
         if policy.knowledge_boundary != execution_input.knowledge_boundary:
-            raise ValueError("Execution Policy and Plan must share one execution knowledge boundary")
+            raise ValueError("Execution Policy and Plan must share one boundary")
         if (
             source.decision_boundary.knowledge_mode
             is not execution_input.knowledge_boundary.knowledge_mode
