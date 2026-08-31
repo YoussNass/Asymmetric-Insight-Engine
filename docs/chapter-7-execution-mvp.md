@@ -61,6 +61,19 @@ ask, timestamps, liquidity state, source reference, source fingerprint, and miss
 Execution evaluates only exact upstream `change_conditions`. Each condition is `triggered`,
 `not_triggered`, or `unknown` and carries point-in-time source lineage.
 
+The MVP does not impose one arbitrary time-to-live on every invalidation condition. Fundamental,
+regulatory, catalyst, and market conditions can have different valid review cadences. Their
+observation time remains explicit and auditable; a condition-specific expiry/freshness policy may
+be admitted later only if prospective use demonstrates that this simpler boundary is unsafe or
+insufficient.
+
+### Conflicts
+
+`ExecutionPlanInput.conflicts` is not informational decoration. Any declared unresolved conflict is
+a blocking input-integrity condition: the application refuses to construct `NOW`, `STAGED`,
+`WAIT`, or `INVALIDATED` until the contradiction is resolved into a new immutable input. This
+prevents contradictory evidence from silently reaching an executable plan.
+
 ## Temporal semantics
 
 The allocation/replacement decision keeps its original T0 boundary. Execution receives its own T1
@@ -76,7 +89,8 @@ kernel. Future or not-yet-recorded records are rejected.
 
 ## Decision order
 
-Execution applies a conservative priority order:
+After input integrity and temporal validation pass, Execution applies a conservative priority
+order:
 
 ```text
 1. upstream invalidation triggered -> INVALIDATED
@@ -103,7 +117,8 @@ time.
 ## Fail-safe behavior
 
 - unknown is never converted to a favorable assumption;
-- invalidation has priority over implementation convenience;
+- unresolved input conflicts block plan construction;
+- invalidation has priority over implementation convenience after input integrity passes;
 - `WAIT` carries no executable legs;
 - `INVALIDATED` carries no executable legs;
 - source identifiers/fingerprints are replayed rather than trusted;
@@ -119,7 +134,8 @@ time.
 - dynamic slippage estimation;
 - market-regime or technical timing score;
 - strategic allocation changes;
-- Market State engine.
+- Market State engine;
+- one universal invalidation-observation expiry rule without measured need.
 
 ## Validation target
 
@@ -135,5 +151,5 @@ verified Chapter 6 decision
 ```
 
 Tests must cover both new-capital allocation and replacement, exact tranche preservation,
-conservative unknown handling, future-data rejection, source tampering, and architectural
-separation from Underwriting/Portfolio logic.
+conservative unknown handling, future-data rejection, blocking conflicts, source tampering, and
+architectural separation from Underwriting/Portfolio logic.
