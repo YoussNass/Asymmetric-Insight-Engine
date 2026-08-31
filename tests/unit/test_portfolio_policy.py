@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from asymmetric_engine.application.marginal_decision import MarginalDecisionResult
 from asymmetric_engine.application.portfolio_policy import (
     ApplyPortfolioPolicy,
     BuildOwnerPortfolioPolicy,
@@ -31,6 +32,7 @@ from asymmetric_engine.domain.portfolio import (
     OwnerPortfolioPolicyInput,
     PairwiseCapitalComparison,
     PairwiseConclusion,
+    PolicyConstrainedMarginalDecision,
     PolicyDecisionOutcome,
     PositionCapitalPolicy,
     PositionCapitalStatus,
@@ -63,7 +65,7 @@ CORE_INSTRUMENT_ID = "instrument:core-equity-etf"
 REPLACEMENT_TARGET_ID = "replacement:core-etf"
 
 
-def _marginal_result(context: DecisionContext):
+def _marginal_result(context: DecisionContext) -> MarginalDecisionResult:
     return context.decision_builder.execute(
         portfolio_state=context.portfolio_state,
         opportunity_state=context.opportunity_state,
@@ -98,7 +100,10 @@ def _policy(
     )
 
 
-def _apply_policy(context: DecisionContext, policy: OwnerPortfolioPolicy):
+def _apply_policy(
+    context: DecisionContext,
+    policy: OwnerPortfolioPolicy,
+) -> tuple[MarginalDecisionResult, PolicyConstrainedMarginalDecision]:
     result = _marginal_result(context)
     builder = ApplyPortfolioPolicy(decision_builder=context.decision_builder)
     return result, builder.execute(
