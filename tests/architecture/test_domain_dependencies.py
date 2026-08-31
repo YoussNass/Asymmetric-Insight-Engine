@@ -12,8 +12,12 @@ APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 PORTFOLIO_ROOT = DOMAIN_ROOT / "portfolio"
 PORTFOLIO_STATE_FILES = (PORTFOLIO_ROOT / "models.py",)
 PORTFOLIO_EXPOSURE_FILES = (PORTFOLIO_ROOT / "exposure.py",)
-PORTFOLIO_DECISION_FILES = (PORTFOLIO_ROOT / "decision.py",)
+PORTFOLIO_DECISION_FILES = (
+    PORTFOLIO_ROOT / "decision.py",
+    PORTFOLIO_ROOT / "policy.py",
+)
 MARGINAL_DECISION_APPLICATION_FILE = APPLICATION_ROOT / "marginal_decision.py"
+PORTFOLIO_POLICY_APPLICATION_FILE = APPLICATION_ROOT / "portfolio_policy.py"
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
 FORBIDDEN_APPLICATION_PREFIXES = (
@@ -120,8 +124,8 @@ def test_chapter_6b_exposure_does_not_import_causal_or_underwriting_contexts() -
     assert not violations, "Chapter 6B boundary violations:\n" + "\n".join(violations)
 
 
-def test_chapter_6c1_decision_references_underwriting_without_reversing_dependencies() -> None:
-    """The app joins contexts; Portfolio domain retains only an immutable upstream reference."""
+def test_chapter_6c_portfolio_domain_references_underwriting_without_importing_it() -> None:
+    """Portfolio Decision stores immutable refs; the application layer joins contexts."""
 
     assert all(path.is_file() for path in PORTFOLIO_DECISION_FILES)
     decision_imports = {
@@ -135,13 +139,18 @@ def test_chapter_6c1_decision_references_underwriting_without_reversing_dependen
         "asymmetric_engine.interfaces",
     )
     violations = [module for module in decision_imports if module.startswith(forbidden_prefixes)]
-    assert not violations, "Chapter 6C1 decision boundary violations:\n" + "\n".join(violations)
+    assert not violations, "Chapter 6C decision boundary violations:\n" + "\n".join(violations)
 
-    assert MARGINAL_DECISION_APPLICATION_FILE.is_file()
-    application_imports = set(imported_modules(MARGINAL_DECISION_APPLICATION_FILE))
-    assert any(
-        module.startswith("asymmetric_engine.domain.opportunity") for module in application_imports
-    )
+    for application_file in (
+        MARGINAL_DECISION_APPLICATION_FILE,
+        PORTFOLIO_POLICY_APPLICATION_FILE,
+    ):
+        assert application_file.is_file()
+        application_imports = set(imported_modules(application_file))
+        assert any(
+            module.startswith("asymmetric_engine.domain.opportunity")
+            for module in application_imports
+        )
 
     upstream_imports = {
         module
@@ -150,5 +159,19 @@ def test_chapter_6c1_decision_references_underwriting_without_reversing_dependen
     }
     assert not any(
         module.startswith("asymmetric_engine.domain.portfolio.decision")
+        or module.startswith("asymmetric_engine.domain.portfolio.policy")
         for module in upstream_imports
     )
+
+
+def test_chapter_6c2_does_not_import_execution_or_outer_adapters() -> None:
+    """Replacement decides target allocation before Chapter 7 timing and staging."""
+
+    imports = set(imported_modules(PORTFOLIO_POLICY_APPLICATION_FILE))
+    forbidden = (
+        "asymmetric_engine.interfaces",
+        "asymmetric_engine.infrastructure",
+        "asymmetric_engine.application.execution",
+        "asymmetric_engine.domain.execution",
+    )
+    assert not any(module.startswith(forbidden) for module in imports)
