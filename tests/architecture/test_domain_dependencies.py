@@ -185,9 +185,7 @@ def test_chapter_7_execution_domain_does_not_recreate_upstream_contexts() -> Non
 
     assert EXECUTION_ROOT.is_dir(), f"Execution root does not exist: {EXECUTION_ROOT}"
     assert all(path.is_file() for path in EXECUTION_DOMAIN_FILES)
-    imports = {
-        module for path in EXECUTION_DOMAIN_FILES for module in imported_modules(path)
-    }
+    imports = {module for path in EXECUTION_DOMAIN_FILES for module in imported_modules(path)}
     forbidden = (
         "asymmetric_engine.application",
         "asymmetric_engine.domain.causal",
