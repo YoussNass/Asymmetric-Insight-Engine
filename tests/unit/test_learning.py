@@ -12,6 +12,7 @@ from asymmetric_engine.application.learning import (
     LearningEvaluationIntegrityError,
 )
 from asymmetric_engine.domain.execution import ExecutionAction
+from asymmetric_engine.domain.financial import canonical_decimal
 from asymmetric_engine.domain.learning import (
     AccountPnlStatus,
     LearningEvaluationInput,
@@ -62,12 +63,16 @@ def test_allocation_learning_evaluation_is_replayable_and_not_account_pnl() -> N
     assert evaluation.thesis_outcome is ThesisOutcome.INTACT
     assert evaluation.horizon_reached is True
     assert evaluation.scenario_realization is ScenarioRealizationBand.BASE_TO_BULL
+    assert case.scenario_range is not None
     assert evaluation.metrics.observed_target_return == case.scenario_range.base_return
     assert evaluation.metrics.observed_benchmark_return == Decimal("0.1")
-    assert evaluation.metrics.observed_excess_return == (
+    assert evaluation.metrics.observed_excess_return == canonical_decimal(
         evaluation.metrics.observed_target_return - Decimal("0.1")
     )
-    assert evaluation.metrics.target_max_drawdown == Decimal("-0.2")
+    expected_drawdown = canonical_decimal(
+        min(Decimal("-0.2"), case.scenario_range.base_return, Decimal(0))
+    )
+    assert evaluation.metrics.target_max_drawdown == expected_drawdown
 
 
 def test_pre_horizon_evaluation_records_observation_without_claiming_scenario_maturity() -> None:
@@ -95,7 +100,7 @@ def test_unknown_thesis_condition_remains_unresolved() -> None:
     assert evaluation.missing_data
 
 
-def test_triggered_thesis_condition_invalidates_learning_outcome_without_rewriting_decision() -> None:
+def test_triggered_thesis_condition_invalidates_without_rewriting_decision() -> None:
     _, _, _, _, case = make_allocation_learning_case()
     evaluation = learning_evaluator().execute(
         case=case,
@@ -110,7 +115,7 @@ def test_triggered_thesis_condition_invalidates_learning_outcome_without_rewriti
     assert evaluation.case.input_fingerprint == case.input_fingerprint
 
 
-def test_replacement_learning_compares_target_with_benchmark_and_source_counterfactual() -> None:
+def test_replacement_learning_compares_target_benchmark_and_source_counterfactual() -> None:
     _, _, _, _, case = make_replacement_learning_case()
     evaluation = learning_evaluator().execute(
         case=case,
@@ -122,7 +127,7 @@ def test_replacement_learning_compares_target_with_benchmark_and_source_counterf
     assert evaluation.scenario_realization is ScenarioRealizationBand.NOT_AVAILABLE
     assert evaluation.metrics.observed_target_return == Decimal("0.1")
     assert evaluation.metrics.observed_benchmark_return == Decimal("0.1")
-    assert evaluation.metrics.observed_excess_return == Decimal("0")
+    assert evaluation.metrics.observed_excess_return == Decimal(0)
     assert evaluation.metrics.replacement_source_return == Decimal("-0.1")
     assert evaluation.metrics.replacement_excess_vs_source == Decimal("0.2")
 
@@ -212,7 +217,9 @@ def test_learning_rejects_missing_comparison_leg() -> None:
     _, _, _, _, case = make_allocation_learning_case()
     base = make_allocation_evaluation_input(case)
     only_target = tuple(
-        item for item in base.price_observations if item.instrument_id == case.target_instrument_id
+        item
+        for item in base.price_observations
+        if item.instrument_id == case.target_instrument_id
     )
     evaluation_input = base.model_copy(update={"price_observations": only_target})
 
@@ -238,7 +245,9 @@ def test_learning_requires_same_end_observation_date() -> None:
     _, _, _, _, case = make_allocation_learning_case()
     base = make_allocation_evaluation_input(case)
     benchmark = next(
-        item for item in base.price_observations if item.instrument_id == case.benchmark_instrument_id
+        item
+        for item in base.price_observations
+        if item.instrument_id == case.benchmark_instrument_id
     )
     shifted = benchmark.model_copy(
         update={
@@ -248,7 +257,8 @@ def test_learning_requires_same_end_observation_date() -> None:
         }
     )
     observations = tuple(
-        shifted if item is benchmark else item for item in base.price_observations
+        shifted if item.instrument_id == case.benchmark_instrument_id else item
+        for item in base.price_observations
     )
 
     with pytest.raises(ValueError, match="same observation date"):
