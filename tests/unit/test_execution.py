@@ -77,17 +77,20 @@ def test_ready_allocation_executes_now_without_resizing() -> None:
     assert len(leg.tranches) == 1
     assert leg.tranches[0].notional == leg.total_notional
     assert {item.code for item in plan.reasons} == {ExecutionReasonCode.READY_NOW}
-    assert context.execution_builder.verify_policy_allocation(
-        portfolio_state=context.decision_context.portfolio_state,
-        opportunity_state=context.decision_context.opportunity_state,
-        current_exposure=context.decision_context.current_exposure,
-        alternative_exposures=context.decision_context.alternative_exposures,
-        marginal_result=context.marginal_result,
-        owner_policy=context.owner_policy,
-        policy_decision=context.policy_decision,
-        execution_policy=policy,
-        plan=plan,
-    ) == plan
+    assert (
+        context.execution_builder.verify_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=policy,
+            plan=plan,
+        )
+        == plan
+    )
 
 
 def test_explicit_order_limit_stages_exact_approved_amount() -> None:
@@ -103,9 +106,7 @@ def test_explicit_order_limit_stages_exact_approved_amount() -> None:
     assert sum(item.notional.amount for item in plan.legs[0].tranches) == (
         context.marginal_result.decision.capital_unit.amount.amount
     )
-    assert {item.code for item in plan.reasons} == {
-        ExecutionReasonCode.EXPLICIT_STAGING_LIMIT
-    }
+    assert {item.code for item in plan.reasons} == {ExecutionReasonCode.EXPLICIT_STAGING_LIMIT}
 
 
 @pytest.mark.parametrize(
@@ -153,6 +154,27 @@ def test_operational_uncertainty_fails_safely_to_wait(
     assert expected_reason in {item.code for item in plan.reasons}
 
 
+def test_execution_input_conflicts_block_planning() -> None:
+    context = make_execution_context()
+    policy = make_execution_policy(context)
+    execution_input = make_allocation_execution_input(context).model_copy(
+        update={"conflicts": ("Current execution evidence contains an unresolved conflict.",)}
+    )
+
+    with pytest.raises(ValueError, match="conflicts"):
+        context.execution_builder.from_policy_allocation(
+            portfolio_state=context.decision_context.portfolio_state,
+            opportunity_state=context.decision_context.opportunity_state,
+            current_exposure=context.decision_context.current_exposure,
+            alternative_exposures=context.decision_context.alternative_exposures,
+            marginal_result=context.marginal_result,
+            owner_policy=context.owner_policy,
+            policy_decision=context.policy_decision,
+            execution_policy=policy,
+            execution_input=execution_input,
+        )
+
+
 def test_triggered_upstream_change_condition_invalidates_before_market_staging() -> None:
     context = make_execution_context()
     policy = make_execution_policy(context, max_single_order_notional="30")
@@ -175,9 +197,7 @@ def test_triggered_upstream_change_condition_invalidates_before_market_staging()
 
     assert plan.action is ExecutionAction.INVALIDATED
     assert plan.legs == ()
-    assert {item.code for item in plan.reasons} == {
-        ExecutionReasonCode.INVALIDATION_TRIGGERED
-    }
+    assert {item.code for item in plan.reasons} == {ExecutionReasonCode.INVALIDATION_TRIGGERED}
 
 
 def test_future_market_observation_is_rejected_by_execution_boundary() -> None:
@@ -269,14 +289,17 @@ def test_replacement_staging_preserves_sell_and_buy_amounts_separately() -> None
         Decimal("200"),
         Decimal("87"),
     ]
-    assert context.execution_builder.verify_replacement(
-        portfolio_state=context.decision_context.portfolio_state,
-        current_exposure=context.decision_context.current_exposure,
-        owner_policy=context.owner_policy,
-        replacement_decision=context.replacement_decision,
-        execution_policy=policy,
-        plan=plan,
-    ) == plan
+    assert (
+        context.execution_builder.verify_replacement(
+            portfolio_state=context.decision_context.portfolio_state,
+            current_exposure=context.decision_context.current_exposure,
+            owner_policy=context.owner_policy,
+            replacement_decision=context.replacement_decision,
+            execution_policy=policy,
+            plan=plan,
+        )
+        == plan
+    )
 
 
 def test_execution_plan_replay_detects_tampering() -> None:
