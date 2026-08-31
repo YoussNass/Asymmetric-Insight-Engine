@@ -405,10 +405,7 @@ class BuildDecisionLearningEvaluation:
                 current_case.replacement_source_reference_price
             )
         for instrument_id, observations in grouped.items():
-            if any(
-                item.price.currency != anchors[instrument_id].currency
-                for item in observations
-            ):
+            if any(item.price.currency != anchors[instrument_id].currency for item in observations):
                 raise ValueError("Learning later prices must preserve each T0 anchor currency")
 
         end_dates = {observations[-1].observed_at.date() for observations in grouped.values()}
@@ -448,9 +445,7 @@ class BuildDecisionLearningEvaluation:
             replacement_excess_vs_source=replacement_excess,
         )
         thesis_outcome, missing_data = self._thesis_outcome(current_case, current_input)
-        end_observation_at = max(
-            observations[-1].observed_at for observations in grouped.values()
-        )
+        end_observation_at = max(observations[-1].observed_at for observations in grouped.values())
         horizon_reached = end_observation_at.date() >= current_case.evaluation_horizon_date
         scenario_realization = self._scenario_realization(
             current_case,
@@ -593,9 +588,7 @@ class BuildDecisionLearningEvaluation:
         missing_data = {
             f"Missing Learning thesis assessment: {condition}" for condition in missing_conditions
         }
-        if any(
-            item.status is ThesisConditionStatus.TRIGGERED for item in by_condition.values()
-        ):
+        if any(item.status is ThesisConditionStatus.TRIGGERED for item in by_condition.values()):
             return ThesisOutcome.INVALIDATED, tuple(sorted(missing_data))
         unknown = [
             item for item in by_condition.values() if item.status is ThesisConditionStatus.UNKNOWN
