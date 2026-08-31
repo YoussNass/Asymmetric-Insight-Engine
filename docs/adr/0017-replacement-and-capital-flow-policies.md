@@ -1,6 +1,6 @@
 # ADR 0017: Add replacement and capital-flow policy without an optimizer
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-31
 
 ## Context
