@@ -25,6 +25,7 @@ from asymmetric_engine.domain.learning import (
     LearningPriceObservation,
     LearningSourceKind,
     LearningSourceReference,
+    LearningThesisObservation,
     ScenarioRangeAnchor,
     ScenarioRealizationBand,
     ThesisConditionStatus,
@@ -539,7 +540,7 @@ class BuildDecisionLearningEvaluation:
         evaluation_input: LearningEvaluationInput,
     ) -> None:
         boundary = evaluation_input.knowledge_boundary
-        observations = (
+        observations: tuple[LearningPriceObservation | LearningThesisObservation, ...] = (
             *evaluation_input.price_observations,
             *evaluation_input.thesis_observations,
         )
