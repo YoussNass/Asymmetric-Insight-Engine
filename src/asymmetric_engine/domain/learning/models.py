@@ -176,10 +176,7 @@ class DecisionLearningCaseInput(BaseModel):
         }
         if len(currencies) != 1:
             raise ValueError("Learning benchmark comparison requires one native currency")
-        if (
-            self.target_reference_price.amount <= 0
-            or self.benchmark_reference_price.amount <= 0
-        ):
+        if self.target_reference_price.amount <= 0 or self.benchmark_reference_price.amount <= 0:
             raise ValueError("Learning reference prices must be greater than zero")
 
         replacement_fields = (
