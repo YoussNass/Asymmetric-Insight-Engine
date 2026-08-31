@@ -91,9 +91,7 @@ def make_replacement_learning_case() -> tuple[
         replacement_decision=context.replacement_decision,
         execution_policy=policy,
         execution_plan=plan,
-        evaluation_horizon_date=(
-            context.execution_boundary.as_of.date() + timedelta(days=365)
-        ),
+        evaluation_horizon_date=(context.execution_boundary.as_of.date() + timedelta(days=365)),
     )
     return context, policy, plan, opener, case
 
@@ -230,12 +228,8 @@ def make_replacement_evaluation_input(case: DecisionLearningCase) -> LearningEva
     assert case.replacement_source_instrument_id is not None
     assert case.replacement_source_reference_price is not None
     target_end = canonical_decimal(case.target_reference_price.amount * Decimal("1.10"))
-    benchmark_end = canonical_decimal(
-        case.benchmark_reference_price.amount * Decimal("1.10")
-    )
-    source_end = canonical_decimal(
-        case.replacement_source_reference_price.amount * Decimal("0.90")
-    )
+    benchmark_end = canonical_decimal(case.benchmark_reference_price.amount * Decimal("1.10"))
+    source_end = canonical_decimal(case.replacement_source_reference_price.amount * Decimal("0.90"))
     observations = [
         make_price_observation(
             instrument_id=case.target_instrument_id,
