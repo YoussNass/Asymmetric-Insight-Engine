@@ -32,8 +32,14 @@ def test_chapter_7_preserves_allocation_and_replacement_lineage_without_resizing
 
     assert allocation_plan.action is ExecutionAction.STAGED
     assert allocation_plan.source.decision_id == context.policy_decision.policy_decision_id
-    assert allocation_plan.source.decision_fingerprint == context.policy_decision.input_fingerprint
-    assert allocation_plan.source.target_amount == context.marginal_result.decision.capital_unit.amount
+    assert (
+        allocation_plan.source.decision_fingerprint
+        == context.policy_decision.input_fingerprint
+    )
+    assert (
+        allocation_plan.source.target_amount
+        == context.marginal_result.decision.capital_unit.amount
+    )
     assert allocation_plan.knowledge_boundary.as_of > (
         allocation_plan.source.decision_boundary.as_of
     )
@@ -55,14 +61,29 @@ def test_chapter_7_preserves_allocation_and_replacement_lineage_without_resizing
     replacement_card = ProjectExecutionCard.from_execution_plan(replacement_plan)
 
     assert replacement_plan.action is ExecutionAction.NOW
-    assert replacement_plan.source.decision_id == context.replacement_decision.replacement_decision_id
-    assert replacement_plan.source.target_amount == context.replacement_decision.net_redeployable_amount
-    assert replacement_plan.source.source_sale_amount == context.replacement_decision.gross_sale_amount
+    assert (
+        replacement_plan.source.decision_id
+        == context.replacement_decision.replacement_decision_id
+    )
+    assert (
+        replacement_plan.source.target_amount
+        == context.replacement_decision.net_redeployable_amount
+    )
+    assert (
+        replacement_plan.source.source_sale_amount
+        == context.replacement_decision.gross_sale_amount
+    )
     assert [item.side for item in replacement_plan.legs] == [
         ExecutionSide.SELL,
         ExecutionSide.BUY,
     ]
-    assert replacement_plan.legs[0].total_notional == context.replacement_decision.gross_sale_amount
-    assert replacement_plan.legs[1].total_notional == context.replacement_decision.net_redeployable_amount
+    assert (
+        replacement_plan.legs[0].total_notional
+        == context.replacement_decision.gross_sale_amount
+    )
+    assert (
+        replacement_plan.legs[1].total_notional
+        == context.replacement_decision.net_redeployable_amount
+    )
     assert replacement_card.execution_plan_id == replacement_plan.plan_id
     assert replacement_card.input_fingerprint == replacement_plan.input_fingerprint
