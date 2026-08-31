@@ -113,10 +113,10 @@ class ApprovedCapitalInstruction(BaseModel):
                 raise ValueError("new-capital execution cannot contain replacement source fields")
         else:
             if any(item is None for item in replacement_fields):
-                raise ValueError("replacement execution requires source position, instrument, and amount")
+                raise ValueError("replacement execution source fields are required")
             assert self.source_sale_amount is not None
             if self.source_sale_amount.amount == 0:
-                raise ValueError("replacement execution source sale amount must be greater than zero")
+                raise ValueError("replacement execution source sale amount must be positive")
             if self.source_sale_amount.currency != self.target_amount.currency:
                 raise ValueError("replacement execution legs must use one native currency")
         return self
@@ -358,7 +358,10 @@ class ExecutionPlan(ExecutionPlanInput):
 
     @model_validator(mode="after")
     def validate_plan(self) -> Self:
-        if self.source.decision_boundary.knowledge_mode is not self.knowledge_boundary.knowledge_mode:
+        if (
+            self.source.decision_boundary.knowledge_mode
+            is not self.knowledge_boundary.knowledge_mode
+        ):
             raise ValueError("Execution must preserve the source decision KnowledgeMode")
         if self.knowledge_boundary.as_of < self.source.decision_boundary.as_of:
             raise ValueError("Execution cannot precede the approved capital decision")
