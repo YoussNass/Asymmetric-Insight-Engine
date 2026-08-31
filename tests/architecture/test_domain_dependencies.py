@@ -10,14 +10,17 @@ from pathlib import Path
 DOMAIN_ROOT = Path(__file__).parents[2] / "src" / "asymmetric_engine" / "domain"
 APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 PORTFOLIO_ROOT = DOMAIN_ROOT / "portfolio"
+EXECUTION_ROOT = DOMAIN_ROOT / "execution"
 PORTFOLIO_STATE_FILES = (PORTFOLIO_ROOT / "models.py",)
 PORTFOLIO_EXPOSURE_FILES = (PORTFOLIO_ROOT / "exposure.py",)
 PORTFOLIO_DECISION_FILES = (
     PORTFOLIO_ROOT / "decision.py",
     PORTFOLIO_ROOT / "policy.py",
 )
+EXECUTION_DOMAIN_FILES = (EXECUTION_ROOT / "models.py",)
 MARGINAL_DECISION_APPLICATION_FILE = APPLICATION_ROOT / "marginal_decision.py"
 PORTFOLIO_POLICY_APPLICATION_FILE = APPLICATION_ROOT / "portfolio_policy.py"
+EXECUTION_APPLICATION_FILE = APPLICATION_ROOT / "execution.py"
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
 FORBIDDEN_APPLICATION_PREFIXES = (
@@ -175,3 +178,50 @@ def test_chapter_6c2_does_not_import_execution_or_outer_adapters() -> None:
         "asymmetric_engine.domain.execution",
     )
     assert not any(module.startswith(forbidden) for module in imports)
+
+
+def test_chapter_7_execution_domain_does_not_recreate_upstream_contexts() -> None:
+    """Execution stores an approved instruction and cannot import investment contexts."""
+
+    assert EXECUTION_ROOT.is_dir(), f"Execution root does not exist: {EXECUTION_ROOT}"
+    assert all(path.is_file() for path in EXECUTION_DOMAIN_FILES)
+    imports = {
+        module for path in EXECUTION_DOMAIN_FILES for module in imported_modules(path)
+    }
+    forbidden = (
+        "asymmetric_engine.application",
+        "asymmetric_engine.domain.causal",
+        "asymmetric_engine.domain.opportunity",
+        "asymmetric_engine.domain.portfolio",
+        "asymmetric_engine.infrastructure",
+        "asymmetric_engine.interfaces",
+    )
+    violations = [module for module in imports if module.startswith(forbidden)]
+    assert not violations, "Chapter 7 Execution boundary violations:\n" + "\n".join(violations)
+
+
+def test_chapter_7_application_joins_upstream_without_outer_adapter_dependencies() -> None:
+    """Only the application layer may replay Portfolio decisions into Execution."""
+
+    assert EXECUTION_APPLICATION_FILE.is_file()
+    imports = set(imported_modules(EXECUTION_APPLICATION_FILE))
+    assert any(module.startswith("asymmetric_engine.domain.execution") for module in imports)
+    assert any(module.startswith("asymmetric_engine.domain.portfolio") for module in imports)
+    assert any(
+        module.startswith("asymmetric_engine.application.portfolio_policy") for module in imports
+    )
+    assert not any(
+        module.startswith(("asymmetric_engine.infrastructure", "asymmetric_engine.interfaces"))
+        for module in imports
+    )
+
+
+def test_chapter_6_application_does_not_depend_on_execution() -> None:
+    """Execution is downstream and cannot become an input to capital allocation."""
+
+    for path in (MARGINAL_DECISION_APPLICATION_FILE, PORTFOLIO_POLICY_APPLICATION_FILE):
+        imports = set(imported_modules(path))
+        assert not any(module.startswith("asymmetric_engine.domain.execution") for module in imports)
+        assert not any(
+            module.startswith("asymmetric_engine.application.execution") for module in imports
+        )
