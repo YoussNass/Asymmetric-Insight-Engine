@@ -301,9 +301,7 @@ class ApplyPortfolioPolicy:
                 None,
             )
             if position_policy is not None and not position_policy.allows_new_capital:
-                reasons.add(
-                    "Existing position is explicitly classified as zero-new-capital state."
-                )
+                reasons.add("Existing position is explicitly classified as zero-new-capital state.")
 
         for constraint in policy.ratio_constraints:
             observed = ApplyPortfolioPolicy._fit_observation(fit, constraint.kind)
@@ -328,9 +326,7 @@ class ApplyPortfolioPolicy:
             else FitExposureDimension.ECONOMIC_DRIVER
         )
         weights = [
-            item.after_weight
-            for item in fit.effect.weight_deltas
-            if item.dimension is dimension
+            item.after_weight for item in fit.effect.weight_deltas if item.dimension is dimension
         ]
         return max(weights) if weights else None
 
@@ -398,14 +394,17 @@ class BuildReplacementDecision:
         owner_policy = self._policy_builder.verify(policy)
         if exposure.hypothetical_position is not None or exposure.after is not None:
             raise ValueError("replacement requires the current Portfolio Exposure only")
-        if len(
-            {
-                state.knowledge_boundary,
-                exposure.knowledge_boundary,
-                owner_policy.knowledge_boundary,
-                decision_input.knowledge_boundary,
-            }
-        ) != 1:
+        if (
+            len(
+                {
+                    state.knowledge_boundary,
+                    exposure.knowledge_boundary,
+                    owner_policy.knowledge_boundary,
+                    decision_input.knowledge_boundary,
+                }
+            )
+            != 1
+        ):
             raise ValueError("Chapter 6C2 replacement requires one knowledge boundary")
         if owner_policy.funding_priority is not FundingPriority.NEW_CAPITAL_FIRST:
             raise ValueError("Chapter 6C2 admits new-capital-first funding only")
