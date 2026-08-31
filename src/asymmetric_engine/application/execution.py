@@ -278,6 +278,8 @@ class BuildExecutionPlan:
         self._validate_boundaries(source=source, policy=policy, execution_input=current_input)
         self._validate_policy_currency(policy=policy, leg_specs=leg_specs)
         self._validate_temporal_inputs(current_input)
+        if current_input.conflicts:
+            raise ValueError("Execution input conflicts must be resolved before planning")
 
         expected_conditions = set(source.change_conditions)
         actual_conditions = {item.condition for item in current_input.invalidation_observations}
@@ -338,8 +340,7 @@ class BuildExecutionPlan:
                 "A current quote is missing for a required trade instrument."
             )
             missing_data.update(
-                f"Missing execution quote: {instrument_id}"
-                for instrument_id in missing_instruments
+                f"Missing execution quote: {instrument_id}" for instrument_id in missing_instruments
             )
 
         amount_by_instrument = {instrument_id: amount for _, instrument_id, amount in leg_specs}
@@ -383,12 +384,8 @@ class BuildExecutionPlan:
                 missing_data=tuple(sorted(missing_data)),
             )
 
-        requires_staging = (
-            policy.max_single_order_notional is not None
-            and any(
-                amount.amount > policy.max_single_order_notional.amount
-                for _, _, amount in leg_specs
-            )
+        requires_staging = policy.max_single_order_notional is not None and any(
+            amount.amount > policy.max_single_order_notional.amount for _, _, amount in leg_specs
         )
         if requires_staging:
             assert policy.max_single_order_notional is not None
@@ -587,7 +584,6 @@ class BuildExecutionPlan:
     @staticmethod
     def _input_from_plan(plan: ExecutionPlan) -> ExecutionPlanInput:
         values = {
-            field_name: getattr(plan, field_name)
-            for field_name in ExecutionPlanInput.model_fields
+            field_name: getattr(plan, field_name) for field_name in ExecutionPlanInput.model_fields
         }
         return ExecutionPlanInput.model_validate(values)
