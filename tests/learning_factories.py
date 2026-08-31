@@ -91,12 +91,18 @@ def make_replacement_learning_case() -> tuple[
         replacement_decision=context.replacement_decision,
         execution_policy=policy,
         execution_plan=plan,
-        evaluation_horizon_date=context.execution_boundary.as_of.date() + timedelta(days=365),
+        evaluation_horizon_date=(
+            context.execution_boundary.as_of.date() + timedelta(days=365)
+        ),
     )
     return context, policy, plan, opener, case
 
 
-def evaluation_boundary(case: DecisionLearningCase, *, after_horizon: bool = True) -> KnowledgeBoundary:
+def evaluation_boundary(
+    case: DecisionLearningCase,
+    *,
+    after_horizon: bool = True,
+) -> KnowledgeBoundary:
     source = case.knowledge_boundary.as_of
     if after_horizon:
         horizon = datetime.combine(
@@ -114,11 +120,10 @@ def evaluation_boundary(case: DecisionLearningCase, *, after_horizon: bool = Tru
         as_of = min(source + timedelta(days=2), horizon - timedelta(days=1))
         if as_of <= source:
             as_of = source + timedelta(hours=1)
-    return KnowledgeBoundary(as_of=as_of, knowledge_mode=source_boundary_mode(case))
-
-
-def source_boundary_mode(case: DecisionLearningCase):
-    return case.knowledge_boundary.knowledge_mode
+    return KnowledgeBoundary(
+        as_of=as_of,
+        knowledge_mode=case.knowledge_boundary.knowledge_mode,
+    )
 
 
 def make_price_observation(
@@ -225,8 +230,12 @@ def make_replacement_evaluation_input(case: DecisionLearningCase) -> LearningEva
     assert case.replacement_source_instrument_id is not None
     assert case.replacement_source_reference_price is not None
     target_end = canonical_decimal(case.target_reference_price.amount * Decimal("1.10"))
-    benchmark_end = canonical_decimal(case.benchmark_reference_price.amount * Decimal("1.10"))
-    source_end = canonical_decimal(case.replacement_source_reference_price.amount * Decimal("0.90"))
+    benchmark_end = canonical_decimal(
+        case.benchmark_reference_price.amount * Decimal("1.10")
+    )
+    source_end = canonical_decimal(
+        case.replacement_source_reference_price.amount * Decimal("0.90")
+    )
     observations = [
         make_price_observation(
             instrument_id=case.target_instrument_id,
