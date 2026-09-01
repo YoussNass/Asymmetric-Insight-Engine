@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import pytest
 
@@ -45,7 +46,12 @@ def _workspace_with_state(tmp_path: Path) -> tuple[OperatorWorkspace, str]:
     return workspace, str(result.envelope.record_id)
 
 
-def _call(app: WorkspaceWsgiApp, method: str, path: str, body: bytes = b"") -> tuple[str, str]:
+def _call(
+    app: WorkspaceWsgiApp,
+    method: str,
+    path: str,
+    body: bytes = b"",
+) -> tuple[str, str]:
     environ: dict[str, Any] = {
         "REQUEST_METHOD": method,
         "PATH_INFO": path,
@@ -82,13 +88,17 @@ def test_browser_lists_and_renders_persisted_record(tmp_path: Path) -> None:
 
 def test_record_renderer_handles_non_card_record(tmp_path: Path) -> None:
     workspace, record_id = _workspace_with_state(tmp_path)
-    detail = render_record_detail(workspace.load_record(__import__("uuid").UUID(record_id)))
-    assert "Portfolio State" not in detail or "Canonical record" in detail
+    detail = render_record_detail(workspace.load_record(UUID(record_id)))
+    assert "Canonical record" in detail
 
 
 def test_browser_invalid_record_id_is_blocking_conflict(tmp_path: Path) -> None:
     workspace, _ = _workspace_with_state(tmp_path)
-    status, response = _call(WorkspaceWsgiApp(workspace), "GET", "/records/not-a-uuid")
+    status, response = _call(
+        WorkspaceWsgiApp(workspace),
+        "GET",
+        "/records/not-a-uuid",
+    )
     assert status == "409 Conflict"
     assert '"blocking": true' in response
 
@@ -127,8 +137,16 @@ def test_request_body_size_and_length_are_fail_closed(tmp_path: Path) -> None:
 
 
 def test_submission_result_renders_exact_response() -> None:
-    rendered = render_submission_result(
-        '{"persisted":[{"kind":"portfolio_state","record_id":"00000000-0000-0000-0000-000000000001","status":"appended"}],"response":{"contract_version":"aie-api-v1"}}'
-    )
+    submission = {
+        "persisted": [
+            {
+                "kind": "portfolio_state",
+                "record_id": "00000000-0000-0000-0000-000000000001",
+                "status": "appended",
+            }
+        ],
+        "response": {"contract_version": "aie-api-v1"},
+    }
+    rendered = render_submission_result(json.dumps(submission))
     assert "portfolio_state" in rendered
     assert "aie-api-v1" in rendered
