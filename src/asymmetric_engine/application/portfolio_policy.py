@@ -411,6 +411,8 @@ class BuildReplacementDecision:
         ApplyPortfolioPolicy._validate_position_policies(state, owner_policy)
         canonical_input = self._canonicalize_input(decision_input)
         source = self._source_position(state, canonical_input)
+        if canonical_input.target.instrument_id == source.instrument_id:
+            raise ValueError("replacement target instrument must differ from source instrument")
         currency = source.current_value.currency
         if canonical_input.gross_sale_amount.currency != currency:
             raise ValueError("replacement sale amount must use the source position currency")
