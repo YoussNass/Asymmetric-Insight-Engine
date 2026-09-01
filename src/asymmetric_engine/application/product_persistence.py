@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
 from typing import Protocol
@@ -110,7 +110,7 @@ class ProductRecordEnvelope(BaseModel):
     def require_timezone_aware_storage_time(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("stored_at must be timezone-aware")
-        return value
+        return value.astimezone(UTC)
 
 
 class ProductAppendStatus(StrEnum):
