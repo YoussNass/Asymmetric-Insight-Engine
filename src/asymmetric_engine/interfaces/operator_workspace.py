@@ -147,8 +147,6 @@ class OperatorWorkspace:
         if request_type is None:
             raise UnknownWorkspaceOperation(operation)
         request = request_type.model_validate_json(payload_json)
-        if request.operation != operation:
-            raise ValueError("workspace route operation does not match request operation")
         return self.submit(request)
 
     def submit(self, request: WorkspaceApiRequest) -> WorkspaceSubmission:
