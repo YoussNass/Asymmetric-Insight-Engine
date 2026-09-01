@@ -64,6 +64,26 @@ rejected.
 Outcome observations from before T0 are rejected so the evaluation path cannot accidentally
 include pre-decision information.
 
+## Evaluation horizon and prospective use
+
+For a selected candidate with verified Underwriting scenarios, the evaluation horizon is inherited
+unchanged from that T0 scenario record. A caller cannot substitute a different horizon.
+
+For a target without a standalone Underwriting horizon, the caller supplies one explicit future
+`evaluation_horizon_date` when the Learning case is opened. The horizon is content-addressed with
+the rest of the case, so later evaluations cannot silently rewrite it.
+
+That integrity guarantee is not the same as prospective-time proof. Until AIE has an accepted
+production persistence contract that records case creation at or near T1, replay alone cannot prove
+that a non-candidate case was not newly constructed after outcomes were visible with a favorable
+horizon. Prospective operation must therefore persist the case before outcome-dependent analysis.
+Aggregate or horizon-dependent skill claims remain disabled until that provenance exists.
+
+The MVP also does not invent a trading-calendar or nearest-horizon price-selection rule. It uses
+explicit admitted observations and treats scenario maturity categorically at or after the declared
+calendar horizon. A richer observation-selection policy requires measured need and separate
+validation.
+
 ## Decision return versus account P&L
 
 The MVP uses the exact T0 decision reference price and later explicit market-price observations.
@@ -176,16 +196,18 @@ Canonical replay can therefore detect modification of:
 - return or drawdown arithmetic;
 - thesis or scenario classification.
 
-## Stacked-delivery status
+For non-candidate horizons, replay detects alteration after case construction but cannot by itself
+attest the real-world creation time of the original case. That requires the future persistence
+boundary described above.
 
-Chapter 8 is developed on `agent/chapter-8-learning-mvp`, stacked on the exact approved Chapter 7
-head because PR #24 remains mechanically blocked by GitHub's Draft flag. PR #25 targets the Chapter
-7 branch so its diff and CI isolate only Chapter 8 changes.
+## Delivery status
+
+Chapter 7 is canonical in `main` under accepted ADR 0018 and merged PR #24. Chapter 8 is developed
+on `agent/chapter-8-learning-mvp`; PR #25 now targets `main` directly and contains only the Chapter
+8 delta plus its governance/documentation changes.
 
 Before Chapter 8 can become canonical:
 
-1. PR #24 must enter `main` through its normal pull-request path;
-2. PR #25 must then be retargeted to `main`;
-3. exact-head CI and red-team review must pass;
-4. ADR 0019 must be explicitly accepted;
-5. PR #25 requires explicit merge authorization.
+1. exact-head CI and red-team review must pass;
+2. ADR 0019 must be explicitly accepted;
+3. PR #25 requires explicit merge authorization.
