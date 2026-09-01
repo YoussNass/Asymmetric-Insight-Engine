@@ -121,9 +121,7 @@ def test_request_body_size_and_length_are_fail_closed(tmp_path: Path) -> None:
     workspace, _ = _workspace_with_state(tmp_path)
     app = WorkspaceWsgiApp(workspace)
     with pytest.raises(ValueError, match="exceeds admitted size"):
-        app._read_body(
-            {"CONTENT_LENGTH": str(MAX_REQUEST_BYTES + 1), "wsgi.input": BytesIO()}
-        )
+        app._read_body({"CONTENT_LENGTH": str(MAX_REQUEST_BYTES + 1), "wsgi.input": BytesIO()})
     with pytest.raises(ValueError, match="invalid Content-Length"):
         app._read_body({"CONTENT_LENGTH": "bad", "wsgi.input": BytesIO()})
 
