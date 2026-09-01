@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from pydantic import ValidationError
@@ -20,6 +19,7 @@ from asymmetric_engine.application.product_persistence import (
     StoreProductRecord,
     verify_product_record_envelope,
 )
+from asymmetric_engine.domain.learning import DecisionLearningCase
 from tests.learning_factories import make_allocation_learning_case
 
 
@@ -35,7 +35,7 @@ class FixedClock:
 
 class MemoryRepository(ProductRecordRepository):
     def __init__(self) -> None:
-        self.envelopes: dict[object, ProductRecordEnvelope] = {}
+        self.envelopes: dict[UUID, ProductRecordEnvelope] = {}
 
     def append(self, envelope: ProductRecordEnvelope) -> ProductAppendResult:
         existing = self.envelopes.get(envelope.record_id)
@@ -44,7 +44,7 @@ class MemoryRepository(ProductRecordRepository):
         self.envelopes[envelope.record_id] = envelope
         return ProductAppendResult(ProductAppendStatus.INSERTED, envelope)
 
-    def get(self, record_id: object) -> ProductRecordEnvelope:
+    def get(self, record_id: UUID) -> ProductRecordEnvelope:
         try:
             return self.envelopes[record_id]
         except KeyError as exc:
@@ -54,7 +54,7 @@ class MemoryRepository(ProductRecordRepository):
         return tuple(item for item in self.envelopes.values() if item.kind is kind)
 
 
-def _learning_case():
+def _learning_case() -> DecisionLearningCase:
     return make_allocation_learning_case()[-1]
 
 
