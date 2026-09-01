@@ -223,9 +223,7 @@ def test_every_public_request_and_response_round_trips_through_json_mode() -> No
         evaluation_input=make_allocation_evaluation_input(allocation_case_response.result),
     )
     _assert_round_trip(allocation_evaluation_request)
-    allocation_evaluation_response = api.build_learning_evaluation(
-        allocation_evaluation_request
-    )
+    allocation_evaluation_response = api.build_learning_evaluation(allocation_evaluation_request)
     _assert_round_trip(
         allocation_evaluation_response,
         ApiResponse[DecisionLearningEvaluation],
@@ -236,9 +234,7 @@ def test_every_public_request_and_response_round_trips_through_json_mode() -> No
         evaluation_input=make_replacement_evaluation_input(replacement_case_response.result),
     )
     _assert_round_trip(replacement_evaluation_request)
-    replacement_evaluation_response = api.build_learning_evaluation(
-        replacement_evaluation_request
-    )
+    replacement_evaluation_response = api.build_learning_evaluation(replacement_evaluation_request)
     _assert_round_trip(
         replacement_evaluation_response,
         ApiResponse[DecisionLearningEvaluation],
