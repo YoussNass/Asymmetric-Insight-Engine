@@ -54,7 +54,10 @@ class ProductRecordKind(StrEnum):
 _PRODUCT_RECORD_SPECS: dict[ProductRecordKind, tuple[type[BaseModel], str]] = {
     ProductRecordKind.CAUSAL_ANALYSIS: (CausalAnalysis, "causal-analysis-json-v1"),
     ProductRecordKind.OPPORTUNITY_STATE: (OpportunityState, "opportunity-state-json-v1"),
-    ProductRecordKind.PORTFOLIO_STATE_DRAFT: (PortfolioStateDraft, "portfolio-state-draft-json-v1"),
+    ProductRecordKind.PORTFOLIO_STATE_DRAFT: (
+        PortfolioStateDraft,
+        "portfolio-state-draft-json-v1",
+    ),
     ProductRecordKind.PORTFOLIO_STATE: (PortfolioState, "portfolio-state-json-v1"),
     ProductRecordKind.PORTFOLIO_EXPOSURE: (PortfolioExposure, "portfolio-exposure-json-v1"),
     ProductRecordKind.PORTFOLIO_FIT: (PortfolioFit, "portfolio-fit-json-v1"),
@@ -68,7 +71,10 @@ _PRODUCT_RECORD_SPECS: dict[ProductRecordKind, tuple[type[BaseModel], str]] = {
         PolicyConstrainedMarginalDecision,
         "policy-constrained-decision-json-v1",
     ),
-    ProductRecordKind.REPLACEMENT_DECISION: (ReplacementDecision, "replacement-decision-json-v1"),
+    ProductRecordKind.REPLACEMENT_DECISION: (
+        ReplacementDecision,
+        "replacement-decision-json-v1",
+    ),
     ProductRecordKind.EXECUTION_POLICY: (ExecutionPolicy, "execution-policy-json-v1"),
     ProductRecordKind.EXECUTION_PLAN: (ExecutionPlan, "execution-plan-json-v1"),
     ProductRecordKind.LEARNING_CASE: (DecisionLearningCase, "learning-case-json-v1"),
@@ -169,7 +175,8 @@ def product_record_kind_for(record: BaseModel) -> ProductRecordKind:
     for kind, (model_type, _) in _PRODUCT_RECORD_SPECS.items():
         if record_type is model_type:
             return kind
-    raise TypeError(f"unsupported product record type: {record_type.__module__}.{record_type.__name__}")
+    qualified_type = f"{record_type.__module__}.{record_type.__name__}"
+    raise TypeError(f"unsupported product record type: {qualified_type}")
 
 
 def product_record_schema_version(kind: ProductRecordKind) -> str:
@@ -208,14 +215,18 @@ def verify_product_record_envelope(envelope: ProductRecordEnvelope) -> LoadedPro
     payload_bytes = envelope.payload_json.encode("utf-8")
     actual_sha256 = sha256(payload_bytes).hexdigest()
     if actual_sha256 != envelope.payload_sha256:
-        raise ProductRecordIntegrityError("stored product payload hash does not match payload bytes")
+        raise ProductRecordIntegrityError(
+            "stored product payload hash does not match payload bytes"
+        )
     expected_record_id = _record_id(
         kind=envelope.kind,
         schema_version=envelope.schema_version,
         payload_sha256=envelope.payload_sha256,
     )
     if expected_record_id != envelope.record_id:
-        raise ProductRecordIntegrityError("stored product record_id is not content-addressed correctly")
+        raise ProductRecordIntegrityError(
+            "stored product record_id is not content-addressed correctly"
+        )
 
     try:
         record = model_type.model_validate_json(envelope.payload_json)
@@ -229,7 +240,12 @@ def verify_product_record_envelope(envelope: ProductRecordEnvelope) -> LoadedPro
 class StoreProductRecord:
     """Serialize one admitted immutable product record and preserve its first storage time."""
 
-    def __init__(self, *, repository: ProductRecordRepository, clock: ProductPersistenceClock) -> None:
+    def __init__(
+        self,
+        *,
+        repository: ProductRecordRepository,
+        clock: ProductPersistenceClock,
+    ) -> None:
         self._repository = repository
         self._clock = clock
 
@@ -271,8 +287,10 @@ class LoadProductRecord:
 
         envelope = self._repository.get(record_id)
         if expected_kind is not None and envelope.kind is not expected_kind:
+            actual = envelope.kind.value
+            expected = expected_kind.value
             raise ProductRecordIntegrityError(
-                f"record kind {envelope.kind.value!r} does not match expected {expected_kind.value!r}"
+                f"record kind {actual!r} does not match expected {expected!r}"
             )
         return verify_product_record_envelope(envelope)
 
