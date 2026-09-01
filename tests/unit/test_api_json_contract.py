@@ -148,7 +148,9 @@ def test_every_public_request_and_response_round_trips_through_json_mode() -> No
             knowledge_boundary=context.execution_boundary,
             max_quote_age_seconds=60,
             max_spread_bps=Decimal("50"),
-            rationale=("Use explicit operational limits without a timing score.",),
+            rationale=(
+                "Use explicit operational limits without a market-timing or regime score.",
+            ),
         )
     )
     _assert_round_trip(execution_policy_request)
