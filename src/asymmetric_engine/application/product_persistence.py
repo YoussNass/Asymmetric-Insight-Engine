@@ -197,8 +197,7 @@ def _canonical_json(record: BaseModel) -> str:
 def _record_id(*, kind: ProductRecordKind, schema_version: str, payload_sha256: str) -> UUID:
     return uuid5(
         NAMESPACE_URL,
-        "asymmetric-insight-engine:product-record:"
-        f"{kind.value}:{schema_version}:{payload_sha256}",
+        f"asymmetric-insight-engine:product-record:{kind.value}:{schema_version}:{payload_sha256}",
     )
 
 
