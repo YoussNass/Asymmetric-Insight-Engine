@@ -8,14 +8,11 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 6 are complete in `main`;
+- Chapters 2 through 7 are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
-  replacement, and capital-flow policy are canonical;
-- Chapter 7 is approved under accepted ADR 0018, exact-head CI is green, and merge is explicitly
-  authorized, but PR #24 is still mechanically blocked by GitHub's Draft flag and therefore is not
-  yet canonical in `main`;
-- Chapter 8 is the active stacked implementation candidate under proposed ADR 0019 and PR #25,
-  based on the exact approved Chapter 7 head so its delta can be validated independently;
+  replacement, capital-flow policy, and point-in-time Execution are canonical;
+- Chapter 8 is the active implementation candidate under proposed ADR 0019 and PR #25, now
+  retargeted directly to `main` after the Chapter 7 merge;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -52,9 +49,8 @@ The prerequisites for Chapter 6 were satisfied on 2026-08-27:
 
 Chapter 6 was completed on 2026-08-31 after ADR 0014 through ADR 0017 were accepted and their
 implementations merged. Chapter 7 then passed its technical and governance gates under accepted ADR
-0018, but its PR remains Draft because the GitHub connector cannot perform the ready-for-review
-transition. Chapter 8 may be developed as a stacked branch over that exact approved head, but it
-cannot become canonical before Chapter 7 enters `main` through the normal pull-request path.
+0018 and PR #24 was merged into `main` on 2026-09-01. Chapter 8 is therefore the active
+minimum-complete slice and PR #25 now targets `main` directly.
 
 Each later slice still requires its own narrow branch, tests, draft pull request, and explicit
 merge authorization. Approval of this roadmap does not authorize merging an unreviewed future
@@ -217,9 +213,8 @@ Chapter 6 is complete.
 
 **Purpose:** implement, but never recreate, an approved allocation decision.
 
-**Status:** technically complete and approved under accepted ADR 0018. Exact-head CI is green and
-the owner explicitly authorized merge of PR #24. It remains non-canonical only because PR #24 is
-still marked Draft by GitHub and the connected ready-for-review mutation is mechanically broken.
+**Status:** complete and canonical in `main`; ADR 0018 accepted and PR #24 merged after exact-head
+verification and explicit owner authorization.
 
 Minimum outputs:
 
@@ -263,10 +258,11 @@ any upstream capital decision.
 **Purpose:** create trustworthy ex-post evidence about an AIE decision before claiming that the
 system has learned an investment edge.
 
-**Status:** active stacked implementation candidate under proposed ADR 0019 and PR #25. The branch
-is based on the exact approved Chapter 7 head. It cannot become canonical until Chapter 7 first
-enters `main`, PR #25 is retargeted to `main`, exact-head verification is repeated, ADR 0019 is
-accepted, and merge is explicitly authorized.
+**Status:** active implementation candidate under proposed ADR 0019 and PR #25, targeting `main`.
+The pre-documentation implementation head passed Python 3.12/3.13, mypy, pytest, package, doctor,
+and container checks with 344 tests and 90.23% repository coverage. Final exact-head verification
+is still required after governance/documentation alignment, followed by explicit ADR acceptance and
+merge authorization.
 
 The first slice opens Learning only from canonically replayed Chapter 7 `NOW` or `STAGED` plans and
 preserves three ordered boundaries:
