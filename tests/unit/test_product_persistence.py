@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
@@ -31,6 +31,11 @@ class NaiveClock:
 class FixedClock:
     def now(self) -> datetime:
         return datetime(2026, 9, 1, 11, 0, tzinfo=UTC)
+
+
+class OffsetClock:
+    def now(self) -> datetime:
+        return datetime(2026, 9, 1, 13, 0, tzinfo=timezone(timedelta(hours=2)))
 
 
 class MemoryRepository(ProductRecordRepository):
@@ -63,6 +68,15 @@ def test_store_rejects_naive_storage_clock() -> None:
     with pytest.raises(ValidationError, match="stored_at must be timezone-aware"):
         StoreProductRecord(repository=repository, clock=NaiveClock()).execute(_learning_case())
     assert repository.envelopes == {}
+
+
+def test_store_normalizes_aware_storage_clock_to_utc() -> None:
+    repository = MemoryRepository()
+
+    result = StoreProductRecord(repository=repository, clock=OffsetClock()).execute(_learning_case())
+
+    assert result.envelope.stored_at == datetime(2026, 9, 1, 11, 0, tzinfo=UTC)
+    assert result.envelope.stored_at.tzinfo is UTC
 
 
 def test_load_rejects_expected_kind_mismatch() -> None:
