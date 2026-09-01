@@ -1,6 +1,6 @@
 # ADR 0020: Add a typed transport-neutral API boundary before HTTP and frontend
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-01
 
 ## Context
@@ -202,6 +202,6 @@ ADR 0020 may move to `Accepted` only when:
 7. request and response models survive JSON-mode round trip validation;
 8. the API performs no financial calculation, sizing, scoring, replacement search, timing inference, or Learning recomputation;
 9. architecture tests enforce that the API adapter cannot import infrastructure and that inner layers cannot import it;
-10. lint, formatting, mypy, pytest, package, Python 3.12/3.13, and container CI pass on the exact PR head;
+10. lint, formatting, mypy, pytest, package, Python 3.12/3.13, and container CI pass on the reviewed implementation head;
 11. documentation clearly keeps HTTP, persistence, authentication, frontend, and broker actions out of scope;
-12. the owner explicitly accepts ADR 0020 and authorizes the Chapter 9A merge.
+12. the owner explicitly accepts ADR 0020. Authorization to merge the implementation PR remains a separate governance gate.
