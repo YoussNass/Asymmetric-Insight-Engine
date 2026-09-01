@@ -98,7 +98,9 @@ def test_portfolio_state_and_exposure_api_match_direct_application_and_round_tri
     assert response.result == direct_state
     assert response.operation == "build_portfolio_state"
 
-    response_round_trip = ApiResponse[PortfolioState].model_validate(response.model_dump(mode="json"))
+    response_round_trip = ApiResponse[PortfolioState].model_validate(
+        response.model_dump(mode="json")
+    )
     assert response_round_trip == response
 
     exposure_input = make_exposure_input()
