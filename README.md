@@ -59,7 +59,7 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 7 are complete in `main`. Chapter 5 provides standalone Investment
+Chapters 2 through 8 are complete in `main`. Chapter 5 provides standalone Investment
 Underwriting: normalized reported, market-observed, and analyst-adjusted facts with native
 currency and fiscal-period scope; versioned deterministic formulas; eight independent analytical
 dimensions; categorical eligibility gates; dated bear/base/bull valuation bridges;
@@ -117,7 +117,7 @@ the strategic allocation. The slice creates immutable plans and a read-only Exec
 it does not submit broker orders or introduce a market-timing or regime score. See
 [`Chapter 7: Point-in-time Execution MVP`](docs/chapter-7-execution-mvp.md).
 
-Chapter 8 is the active implementation candidate under proposed
+Chapter 8 is canonical under accepted
 [`ADR 0019`](docs/adr/0019-decision-level-learning-mvp.md). It adds a separate downstream Learning
 bounded context that opens only from canonically replayed `NOW` or `STAGED` Execution Plans,
 preserves ordered T0/T1/T2 knowledge boundaries, and compares explicit later price and thesis
@@ -127,11 +127,19 @@ exact upstream thesis-condition outcomes, and categorical scenario realization w
 broker P&L, total shareholder return, calibrated probabilities, or investment skill. See
 [`Chapter 8: Decision-level Learning MVP`](docs/chapter-8-learning-mvp.md).
 
+Chapter 9A is the active productization candidate under proposed
+[`ADR 0020`](docs/adr/0020-typed-transport-neutral-api-boundary.md). It introduces `aie-api-v1`, a
+strict transport-neutral interface over the accepted Chapter 6 through Chapter 8 application use
+cases. The interface composes canonical records, dependency-injects their application owners, and
+must return exactly the same canonical outputs as direct Python invocation. It adds no HTTP server,
+authentication, persistence, frontend, new financial calculation, scoring, sizing, timing logic, or
+broker action. See [`Chapter 9A: Typed product API boundary`](docs/chapter-9a-api-boundary.md).
+
 Live brokerage actions, calibrated automatic sizing, advanced tax-lot optimization, covariance
 optimization, Market State, aggregate Learning skill statistics, factor-adjusted alpha, automatic
-Learning feedback, live Portfolio providers and persistence, automated extraction/discovery,
-complete filing normalization, and a functional user interface remain outside the canonical
-implemented scope. SQLite remains a local/reference evidence persistence adapter.
+Learning feedback, live Portfolio providers and whole-pipeline persistence, automated
+extraction/discovery, complete filing normalization, and a functional user interface remain outside
+the canonical implemented scope. SQLite remains a local/reference evidence persistence adapter.
 
 ## Quick start
 
@@ -202,8 +210,8 @@ docker run --rm asymmetric-insight-engine:local
   Portfolio Decision, Execution, and Learning contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
-- `src/asymmetric_engine/interfaces`: CLI, read-only Decision/Execution Card projections, API, and
-  future user interfaces.
+- `src/asymmetric_engine/interfaces`: CLI, read-only Decision/Execution Card projections, the typed
+  product API boundary, and future transport/user-interface adapters.
 - `docs`: system constitution, architecture, and Architecture Decision Records.
 - `docs/roadmap.md`: canonical delivery order and deferred capability register.
 - `docs/complexity-budget.md`: admission and graduation rules for new sophistication.
