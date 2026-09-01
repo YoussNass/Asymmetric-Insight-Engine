@@ -7,7 +7,7 @@ import json
 import secrets
 from collections.abc import Iterable
 from io import BytesIO
-from typing import Any, Protocol
+from typing import Any, cast
 from urllib.parse import parse_qs
 from uuid import UUID
 from wsgiref.simple_server import make_server
@@ -33,18 +33,9 @@ LOCAL_WORKSPACE_HOST = "127.0.0.1"
 DEFAULT_WORKSPACE_PORT = 8765
 WRITE_TOKEN_HEADER = "HTTP_X_AIE_WORKSPACE_TOKEN"
 
-
-class StartResponse(Protocol):
-    def __call__(
-        self,
-        status: str,
-        headers: list[tuple[str, str]],
-        exc_info: object | None = None,
-    ) -> object: ...
-
-
-WsgiEnviron = dict[str, Any]
-WsgiBody = Iterable[bytes]
+type StartResponse = Any
+type WsgiEnviron = dict[str, Any]
+type WsgiBody = Iterable[bytes]
 
 
 class WorkspaceWriteTokenError(PermissionError):
@@ -319,9 +310,7 @@ class WorkspaceWsgiApp:
             raise ValueError("invalid Content-Length") from exc
         if length < 0 or length > MAX_REQUEST_BYTES:
             raise ValueError("workspace request body exceeds admitted size")
-        stream = environ.get("wsgi.input")
-        if not hasattr(stream, "read"):
-            stream = BytesIO()
+        stream = cast(Any, environ.get("wsgi.input", BytesIO()))
         body = stream.read(length)
         if not isinstance(body, bytes):
             raise ValueError("workspace request body must be bytes")
