@@ -136,7 +136,8 @@ def test_sqlite_product_store_round_trips_every_admitted_record_kind(tmp_path: P
 def test_sqlite_product_store_is_physically_append_only(tmp_path: Path) -> None:
     database_path = tmp_path / "append-only.sqlite3"
     repository = SQLiteProductRecordRepository(database_path)
-    result = StoreProductRecord(repository=repository, clock=AdvancingClock()).execute(_records()[3])
+    store = StoreProductRecord(repository=repository, clock=AdvancingClock())
+    result = store.execute(_records()[3])
 
     with sqlite3.connect(database_path) as connection:
         with pytest.raises(sqlite3.IntegrityError, match="append-only"):
@@ -151,10 +152,11 @@ def test_sqlite_product_store_is_physically_append_only(tmp_path: Path) -> None:
             )
 
 
-def test_load_detects_storage_corruption_even_if_database_guards_are_bypassed(tmp_path: Path) -> None:
+def test_load_detects_corruption_if_database_guards_are_bypassed(tmp_path: Path) -> None:
     database_path = tmp_path / "corrupt.sqlite3"
     repository = SQLiteProductRecordRepository(database_path)
-    result = StoreProductRecord(repository=repository, clock=AdvancingClock()).execute(_records()[3])
+    store = StoreProductRecord(repository=repository, clock=AdvancingClock())
+    result = store.execute(_records()[3])
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("DROP TRIGGER product_records_no_update")
