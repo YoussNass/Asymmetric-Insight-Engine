@@ -8,11 +8,12 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 7 are complete in `main`;
+- Chapters 2 through 8 are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
-  replacement, capital-flow policy, and point-in-time Execution are canonical;
-- Chapter 8 is the active implementation candidate under proposed ADR 0019 and PR #25, now
-  retargeted directly to `main` after the Chapter 7 merge;
+  replacement, capital-flow policy, point-in-time Execution, and decision-level Learning are
+  canonical;
+- Chapter 9A is the active productization candidate under proposed ADR 0020 and PR #27;
+- whole-pipeline persistence and the operator workspace remain subsequent Chapter 9 slices;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -49,8 +50,11 @@ The prerequisites for Chapter 6 were satisfied on 2026-08-27:
 
 Chapter 6 was completed on 2026-08-31 after ADR 0014 through ADR 0017 were accepted and their
 implementations merged. Chapter 7 then passed its technical and governance gates under accepted ADR
-0018 and PR #24 was merged into `main` on 2026-09-01. Chapter 8 is therefore the active
-minimum-complete slice and PR #25 now targets `main` directly.
+0018 and PR #24 was merged into `main` on 2026-09-01. Chapter 8 was subsequently implemented and
+merged in PR #25; the owner explicitly accepted ADR 0019 on 2026-09-01. PR #26 then added the narrow
+same-instrument replacement invariant discovered during the Chapter 8 red-team. The minimum
+analytical loop is therefore complete, and Chapter 9A begins productization through a stable typed
+interface boundary before persistence or frontend work.
 
 Each later slice still requires its own narrow branch, tests, draft pull request, and explicit
 merge authorization. Approval of this roadmap does not authorize merging an unreviewed future
@@ -258,11 +262,9 @@ any upstream capital decision.
 **Purpose:** create trustworthy ex-post evidence about an AIE decision before claiming that the
 system has learned an investment edge.
 
-**Status:** active implementation candidate under proposed ADR 0019 and PR #25, targeting `main`.
-The pre-documentation implementation head passed Python 3.12/3.13, mypy, pytest, package, doctor,
-and container checks with 344 tests and 90.23% repository coverage. Final exact-head verification
-is still required after governance/documentation alignment, followed by explicit ADR acceptance and
-merge authorization.
+**Status:** complete and canonical in `main`; ADR 0019 accepted and PR #25 merged. The owner
+explicitly confirmed ADR 0019 acceptance on 2026-09-01 after the merge, and the status is normalized
+in the Chapter 9A branch.
 
 The first slice opens Learning only from canonically replayed Chapter 7 `NOW` or `STAGED` plans and
 preserves three ordered boundaries:
@@ -296,12 +298,73 @@ Sharpe, Sortino, Information Ratio, factor alpha, win rate, or model skill. It a
 feedback authority: a Learning result cannot resize capital, rewrite owner policy, change
 Underwriting gates, alter Execution thresholds, retrain a model, or promote a deferred capability.
 
-The proposed contract is documented in [`chapter-8-learning-mvp.md`](chapter-8-learning-mvp.md)
+The accepted contract is documented in [`chapter-8-learning-mvp.md`](chapter-8-learning-mvp.md)
 and [`ADR 0019`](adr/0019-decision-level-learning-mvp.md).
 
 Exit criterion: an executable point-in-time decision can be replayed into a content-addressed T2
 Learning record that measures transparent decision-level outcomes without hindsight, implicit FX,
 fake fill assumptions, aggregate skill claims, or automatic upstream feedback.
+
+### Chapter 9A — Typed product API boundary
+
+**Purpose:** make the accepted analytical pipeline callable by future product adapters without
+moving financial logic into transport or UI code.
+
+**Status:** active implementation candidate under proposed ADR 0020 and Draft PR #27.
+
+The initial contract is `aie-api-v1`. It provides strict typed request/response models and a
+transport-neutral facade in the `interfaces` layer for the accepted Chapter 6 through Chapter 8
+product-critical use cases. Application services remain the canonical owners and are injected into
+the facade.
+
+Required behavior:
+
+- API invocation and direct application invocation produce exactly equal canonical records;
+- immutable upstream records remain subject to their existing canonical replay and tamper checks;
+- requests reject unknown client fields rather than accepting shadow calculations;
+- request/response records survive JSON-mode round trips;
+- interfaces may import application/domain contracts, but application/domain may not import the API;
+- no infrastructure provider is created or imported by the product API.
+
+Out of scope:
+
+- FastAPI, Flask, Starlette, ASGI/HTTP routes, or any network server;
+- authentication, authorization, CORS, sessions, or rate limiting;
+- whole-pipeline persistence and ID-based retrieval;
+- frontend/operator workspace implementation;
+- live provider composition;
+- broker connectivity;
+- any new financial metric, score, allocation, sizing, replacement search, timing rule, or Learning
+  feedback mechanism.
+
+The proposed contract is documented in [`chapter-9a-api-boundary.md`](chapter-9a-api-boundary.md)
+and [`ADR 0020`](adr/0020-typed-transport-neutral-api-boundary.md).
+
+Exit criterion: deterministic Chapter 6/7/8 reference packages can pass through `aie-api-v1` with
+exactly the same canonical outputs and blocking integrity behavior as direct application calls,
+without adding a transport framework or financial logic to the interface layer.
+
+### Chapter 9B — Immutable product persistence
+
+**Purpose:** persist and retrieve immutable product records so prospective use does not depend on
+large stateless payloads and Learning case creation can retain creation evidence.
+
+**Status:** planned after Chapter 9A; no persistence contract is active yet.
+
+The slice must define storage ownership, immutable-ID retrieval, creation metadata, migration and
+integrity rules before selecting or expanding a concrete adapter. Existing SQLite evidence storage
+is not implicitly promoted into whole-product persistence.
+
+### Chapter 9C — Operator workspace MVP
+
+**Purpose:** provide the first functional human-facing workflow over accepted APIs and persisted
+records.
+
+**Status:** planned after Chapter 9B.
+
+The workspace remains an interface only. It may collect explicit inputs and render canonical
+outputs, but it may not recalculate financial logic, manufacture scores, resize capital, or turn
+Learning evidence into automatic capital actions.
 
 ## Portfolio concepts that remain policies or state
 
