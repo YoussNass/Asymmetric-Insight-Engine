@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -75,11 +76,9 @@ def _call(
 def test_browser_lists_and_renders_persisted_record(tmp_path: Path) -> None:
     workspace, record_id = _workspace_with_state(tmp_path)
     app = WorkspaceWsgiApp(workspace)
-
     status, index = _call(app, "GET", "/")
     assert status == "200 OK"
     assert record_id in index
-
     status, detail = _call(app, "GET", f"/records/{record_id}")
     assert status == "200 OK"
     assert "Canonical record" in detail
@@ -94,11 +93,7 @@ def test_record_renderer_handles_non_card_record(tmp_path: Path) -> None:
 
 def test_browser_invalid_record_id_is_blocking_conflict(tmp_path: Path) -> None:
     workspace, _ = _workspace_with_state(tmp_path)
-    status, response = _call(
-        WorkspaceWsgiApp(workspace),
-        "GET",
-        "/records/not-a-uuid",
-    )
+    status, response = _call(WorkspaceWsgiApp(workspace), "GET", "/records/not-a-uuid")
     assert status == "409 Conflict"
     assert '"blocking": true' in response
 
@@ -127,10 +122,7 @@ def test_request_body_size_and_length_are_fail_closed(tmp_path: Path) -> None:
     app = WorkspaceWsgiApp(workspace)
     with pytest.raises(ValueError, match="exceeds admitted size"):
         app._read_body(
-            {
-                "CONTENT_LENGTH": str(MAX_REQUEST_BYTES + 1),
-                "wsgi.input": BytesIO(),
-            }
+            {"CONTENT_LENGTH": str(MAX_REQUEST_BYTES + 1), "wsgi.input": BytesIO()}
         )
     with pytest.raises(ValueError, match="invalid Content-Length"):
         app._read_body({"CONTENT_LENGTH": "bad", "wsgi.input": BytesIO()})
