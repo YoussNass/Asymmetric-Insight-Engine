@@ -107,7 +107,9 @@ class SQLiteProductRecordRepository:
                     ("database_schema_version",),
                 ).fetchone()
             except sqlite3.OperationalError as exc:
-                raise ProductRecordSchemaError("SQLite product store schema is not initialized") from exc
+                raise ProductRecordSchemaError(
+                    "SQLite product store schema is not initialized"
+                ) from exc
         if row is None or row["metadata_value"] != DATABASE_SCHEMA_VERSION:
             found = None if row is None else row["metadata_value"]
             raise ProductRecordSchemaError(
