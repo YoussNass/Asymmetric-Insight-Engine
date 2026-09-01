@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -54,9 +54,7 @@ from asymmetric_engine.domain.portfolio import (
     ReplacementDecisionInput,
 )
 
-API_CONTRACT_VERSION = "aie-api-v1"
-
-T = TypeVar("T")
+API_CONTRACT_VERSION: Literal["aie-api-v1"] = "aie-api-v1"
 
 
 class _ApiModel(BaseModel):
@@ -66,7 +64,7 @@ class _ApiModel(BaseModel):
     contract_version: Literal["aie-api-v1"] = API_CONTRACT_VERSION
 
 
-class ApiResponse(_ApiModel, Generic[T]):
+class ApiResponse[T](_ApiModel):
     """Versioned JSON-safe response carrying one canonical application result."""
 
     operation: str
