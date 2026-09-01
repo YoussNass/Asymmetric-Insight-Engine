@@ -78,6 +78,4 @@ def test_body_reader_rejects_non_bytes_stream() -> None:
             return "not-bytes"
 
     with pytest.raises(ValueError, match="must be bytes"):
-        WorkspaceWsgiApp._read_body(
-            {"CONTENT_LENGTH": "1", "wsgi.input": TextStream()}
-        )
+        WorkspaceWsgiApp._read_body({"CONTENT_LENGTH": "1", "wsgi.input": TextStream()})
