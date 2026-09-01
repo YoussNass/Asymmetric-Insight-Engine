@@ -72,10 +72,7 @@ _REQUEST_TYPES: dict[str, type[WorkspaceApiRequest]] = {
 
 
 class WorkspaceRecordSummary(BaseModel):
-    """Read-only persisted-record index entry with no financial derivation."""
-
     model_config = ConfigDict(extra="forbid", frozen=True)
-
     record_id: UUID
     kind: ProductRecordKind
     schema_version: str
@@ -86,8 +83,6 @@ class WorkspaceRecordSummary(BaseModel):
 
 @dataclass(frozen=True, slots=True)
 class WorkspaceSubmission:
-    """One canonical API response plus the immutable records persisted from that response."""
-
     operation: str
     response: BaseModel
     persisted: tuple[ProductAppendResult, ...]
@@ -104,14 +99,7 @@ class UnknownWorkspaceOperation(ValueError):
 class OperatorWorkspace:
     """Thin interface coordinator; it invokes AIE owners and persists their exact outputs."""
 
-    def __init__(
-        self,
-        *,
-        loader: LoadProductRecord,
-        lister: ListProductRecords,
-        api: AieProductApi | None = None,
-        store: StoreProductRecord | None = None,
-    ) -> None:
+    def __init__(self, *, loader: LoadProductRecord, lister: ListProductRecords, api: AieProductApi | None = None, store: StoreProductRecord | None = None) -> None:
         if (api is None) != (store is None):
             raise ValueError("write-enabled workspace requires both API and product store")
         self._loader = loader
@@ -123,37 +111,17 @@ class OperatorWorkspace:
     def write_enabled(self) -> bool:
         return self._api is not None and self._store is not None
 
-    def list_records(
-        self,
-        kind: ProductRecordKind | None = None,
-    ) -> tuple[WorkspaceRecordSummary, ...]:
-        """List storage-verified records without ranking or financial aggregation."""
-
+    def list_records(self, kind: ProductRecordKind | None = None) -> tuple[WorkspaceRecordSummary, ...]:
         kinds = (kind,) if kind is not None else tuple(ProductRecordKind)
         loaded = tuple(item for item_kind in kinds for item in self._lister.execute(item_kind))
-        ordered = sorted(
-            loaded,
-            key=lambda item: (
-                item.envelope.stored_at,
-                item.envelope.kind.value,
-                str(item.envelope.record_id),
-            ),
-        )
+        ordered = sorted(loaded, key=lambda item: (item.envelope.stored_at, item.envelope.kind.value, str(item.envelope.record_id)))
         return tuple(self._summary(item) for item in ordered)
 
-    def load_record(
-        self,
-        record_id: UUID,
-        *,
-        expected_kind: ProductRecordKind | None = None,
-    ) -> LoadedProductRecord:
-        """Return a storage-verified persisted record for read-only workspace rendering."""
-
+    def load_record(self, record_id: UUID, *, expected_kind: ProductRecordKind | None = None) -> LoadedProductRecord:
         return self._loader.execute(record_id, expected_kind=expected_kind)
 
     def submit_json(self, operation: str, payload_json: str) -> WorkspaceSubmission:
-        """Validate one strict `aie-api-v1` request and execute it through the canonical facade."""
-
+        self._require_write_services()
         request_type = _REQUEST_TYPES.get(operation)
         if request_type is None:
             raise UnknownWorkspaceOperation(operation)
@@ -163,109 +131,51 @@ class OperatorWorkspace:
         return self.submit(request)
 
     def submit(self, request: WorkspaceApiRequest) -> WorkspaceSubmission:
-        """Invoke one accepted API operation and persist only its exact canonical output records."""
-
-        if self._api is None or self._store is None:
-            raise WorkspaceWriteUnavailable(
-                "workspace is read-only because no configured AIE API/store were injected"
-            )
-
-        response = self._dispatch(self._api, request)
+        api, _ = self._require_write_services()
+        response = self._dispatch(api, request)
         persisted = self._persist_response(response)
-        return WorkspaceSubmission(
-            operation=request.operation,
-            response=response,
-            persisted=persisted,
-        )
+        return WorkspaceSubmission(operation=request.operation, response=response, persisted=persisted)
+
+    def _require_write_services(self) -> tuple[AieProductApi, StoreProductRecord]:
+        if self._api is None or self._store is None:
+            raise WorkspaceWriteUnavailable("workspace is read-only because no configured AIE API/store were injected")
+        return self._api, self._store
 
     def _persist_response(self, response: BaseModel) -> tuple[ProductAppendResult, ...]:
-        if self._store is None:  # pragma: no cover - guarded by submit
-            raise WorkspaceWriteUnavailable("workspace product store is unavailable")
+        _, store = self._require_write_services()
         if not isinstance(response, ApiResponse):
             raise TypeError("workspace received a non-API response")
         result = response.result
         if isinstance(result, MarginalDecisionPackage):
-            return tuple(
-                self._store.execute(record)
-                for record in (*result.fits, result.decision)
-            )
+            return tuple(store.execute(record) for record in (*result.fits, result.decision))
         if not isinstance(result, BaseModel):
             raise TypeError("API response result is not a persistable canonical model")
-        return (self._store.execute(result),)
+        return (store.execute(result),)
 
     @staticmethod
     def _dispatch(api: AieProductApi, request: WorkspaceApiRequest) -> BaseModel:
-        if isinstance(request, BuildPortfolioStateRequest):
-            return api.build_portfolio_state(request)
-        if isinstance(request, BuildPortfolioExposureRequest):
-            return api.build_portfolio_exposure(request)
-        if isinstance(request, BuildMarginalDecisionRequest):
-            return api.build_marginal_decision(request)
-        if isinstance(request, RecordPositionHoldRequest):
-            return api.record_position_hold(request)
-        if isinstance(request, BuildOwnerPortfolioPolicyRequest):
-            return api.build_owner_portfolio_policy(request)
-        if isinstance(request, ApplyPortfolioPolicyRequest):
-            return api.apply_portfolio_policy(request)
-        if isinstance(request, BuildReplacementDecisionRequest):
-            return api.build_replacement_decision(request)
-        if isinstance(request, BuildExecutionPolicyRequest):
-            return api.build_execution_policy(request)
-        if isinstance(request, BuildExecutionFromPolicyAllocationRequest):
-            return api.build_execution_from_policy_allocation(request)
-        if isinstance(request, BuildExecutionFromReplacementRequest):
-            return api.build_execution_from_replacement(request)
-        if isinstance(request, OpenLearningCaseFromPolicyAllocationRequest):
-            return api.open_learning_case_from_policy_allocation(request)
-        if isinstance(request, OpenLearningCaseFromReplacementRequest):
-            return api.open_learning_case_from_replacement(request)
-        if isinstance(request, BuildLearningEvaluationRequest):
-            return api.build_learning_evaluation(request)
+        if isinstance(request, BuildPortfolioStateRequest): return api.build_portfolio_state(request)
+        if isinstance(request, BuildPortfolioExposureRequest): return api.build_portfolio_exposure(request)
+        if isinstance(request, BuildMarginalDecisionRequest): return api.build_marginal_decision(request)
+        if isinstance(request, RecordPositionHoldRequest): return api.record_position_hold(request)
+        if isinstance(request, BuildOwnerPortfolioPolicyRequest): return api.build_owner_portfolio_policy(request)
+        if isinstance(request, ApplyPortfolioPolicyRequest): return api.apply_portfolio_policy(request)
+        if isinstance(request, BuildReplacementDecisionRequest): return api.build_replacement_decision(request)
+        if isinstance(request, BuildExecutionPolicyRequest): return api.build_execution_policy(request)
+        if isinstance(request, BuildExecutionFromPolicyAllocationRequest): return api.build_execution_from_policy_allocation(request)
+        if isinstance(request, BuildExecutionFromReplacementRequest): return api.build_execution_from_replacement(request)
+        if isinstance(request, OpenLearningCaseFromPolicyAllocationRequest): return api.open_learning_case_from_policy_allocation(request)
+        if isinstance(request, OpenLearningCaseFromReplacementRequest): return api.open_learning_case_from_replacement(request)
+        if isinstance(request, BuildLearningEvaluationRequest): return api.build_learning_evaluation(request)
         raise TypeError(f"unsupported workspace request type: {type(request).__name__}")
 
     @staticmethod
     def _summary(item: LoadedProductRecord) -> WorkspaceRecordSummary:
-        return WorkspaceRecordSummary(
-            record_id=item.envelope.record_id,
-            kind=item.envelope.kind,
-            schema_version=item.envelope.schema_version,
-            stored_at=item.envelope.stored_at.isoformat(),
-            payload_sha256=item.envelope.payload_sha256,
-            record_type=type(item.record).__name__,
-        )
+        return WorkspaceRecordSummary(record_id=item.envelope.record_id, kind=item.envelope.kind, schema_version=item.envelope.schema_version, stored_at=item.envelope.stored_at.isoformat(), payload_sha256=item.envelope.payload_sha256, record_type=type(item.record).__name__)
 
 
 def workspace_submission_json(submission: WorkspaceSubmission) -> str:
-    """Serialize a successful submission without inventing a transport-specific financial schema."""
-
-    return json.dumps(
-        {
-            "contract_version": WORKSPACE_CONTRACT_VERSION,
-            "operation": submission.operation,
-            "persisted": [
-                {
-                    "kind": item.envelope.kind.value,
-                    "record_id": str(item.envelope.record_id),
-                    "status": item.status.value,
-                    "stored_at": item.envelope.stored_at.isoformat(),
-                }
-                for item in submission.persisted
-            ],
-            "response": submission.response.model_dump(mode="json"),
-        },
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    )
+    return json.dumps({"contract_version": WORKSPACE_CONTRACT_VERSION, "operation": submission.operation, "persisted": [{"kind": item.envelope.kind.value, "record_id": str(item.envelope.record_id), "status": item.status.value, "stored_at": item.envelope.stored_at.isoformat()} for item in submission.persisted], "response": submission.response.model_dump(mode="json")}, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
-__all__ = [
-    "WORKSPACE_CONTRACT_VERSION",
-    "OperatorWorkspace",
-    "UnknownWorkspaceOperation",
-    "WorkspaceApiRequest",
-    "WorkspaceRecordSummary",
-    "WorkspaceSubmission",
-    "WorkspaceWriteUnavailable",
-    "workspace_submission_json",
-]
+__all__ = ["WORKSPACE_CONTRACT_VERSION", "OperatorWorkspace", "UnknownWorkspaceOperation", "WorkspaceApiRequest", "WorkspaceRecordSummary", "WorkspaceSubmission", "WorkspaceWriteUnavailable", "workspace_submission_json"]
