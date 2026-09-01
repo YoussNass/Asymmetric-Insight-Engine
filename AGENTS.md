@@ -36,7 +36,7 @@ These instructions apply to every automated contributor working in this reposito
 - Do not assign scenario probabilities, forecast distributions, or active decision weights unless
   the producing method is explicitly versioned, empirically calibrated, documented, and approved.
 - Keep instrument containment, economic-causal dependency, portfolio fit, marginal allocation,
-  and execution as separate contracts.
+  execution, and ex-post learning as separate contracts.
 - Portfolio State is factual data/state only. It must not import Causal Alpha or Underwriting or
   contain exposure, fit, score, sizing, allocation, market-regime, or execution authority.
 - Portfolio accounts own basic tax metadata; positions and cash reference the canonical account
@@ -133,12 +133,30 @@ These instructions apply to every automated contributor working in this reposito
 - Chapter 7 creates immutable Execution Plans only. Broker connection, order submission, venue or
   order-type selection, dynamic slippage logic, and Market State/regime scoring remain out of
   scope until separately admitted by an accepted ADR and explicit owner authorization.
+- Chapter 8 Learning is downstream of Execution. Its domain must not import Portfolio,
+  Underwriting, Execution, or Causal Alpha; only the application layer may replay upstream records
+  and freeze immutable T0/T1 references into a Learning case.
+- Learning opens active decision-level evaluation only from canonically replayed `NOW` or `STAGED`
+  Execution Plans. A plan is not a fill: observed price return must never be labelled realized
+  account P&L without a separately admitted broker/fill lifecycle.
+- Learning preserves `T2 >= T1 >= T0` with one `KnowledgeMode`. Later price and thesis observations
+  must pass the shared Temporal kernel; future, unavailable, or not-yet-recorded observations are
+  rejected.
+- Learning benchmark and target arithmetic is same-currency only. No implicit FX, total-return
+  assumption, dividend reconstruction, or forward fill is permitted in the MVP.
+- Learning may re-evaluate only exact upstream `change_conditions`; missing/unknown conditions stay
+  unresolved and hindsight-only invalidation rules are rejected.
+- Scenario realization is categorical against the preserved T0 bear/base/bull range. It is not a
+  probability, score, forecast-calibration claim, or evidence of model skill by itself.
+- Learning outputs have no automatic upstream authority: they must not resize capital, rewrite
+  Underwriting gates, owner policy, pairwise logic or Execution thresholds, retrain a model, or
+  promote a deferred capability without a later accepted ADR and prospective validation.
 - Decision Card and future API/frontend adapters are projections over application results. They
   must verify canonical references and contain no financial logic. Chapter 6 Decision Cards report
   Execution as `not_evaluated`; Decision Card schema-version changes must not silently reuse an
   older projection identity, and policy-blocked alternatives cannot be presented as eligible best
   alternatives. Chapter 7 adds a separate read-only Execution Card rather than mutating accepted
-  Chapter 6 Decision Card records.
+  Chapter 6 Decision Card records. Learning remains a separate downstream audit/evaluation record.
 
 ## Epistemic and financial safety
 

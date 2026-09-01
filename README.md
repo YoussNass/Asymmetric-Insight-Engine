@@ -40,8 +40,8 @@ contexts. See the [`AIE delivery roadmap`](docs/roadmap.md).
 - Observation, statistical result, inference, hypothesis, and qualitative judgement stay distinct.
 - Missing or conflicting evidence remains visible.
 - Eligibility gates precede ranking; there is no universal magic score.
-- Company quality, thesis quality, investment quality, portfolio fit, allocation, and execution
-  remain separate concepts.
+- Company quality, thesis quality, investment quality, portfolio fit, allocation, execution, and
+  ex-post learning remain separate concepts.
 - Explicit owner constraints are gates, not automatic sizing formulas.
 - AI-assisted extraction may propose claims, but calculations and validations remain deterministic.
 - No live order submission is included in version 1.
@@ -59,7 +59,7 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 6 are complete in `main`. Chapter 5 provides standalone Investment
+Chapters 2 through 7 are complete in `main`. Chapter 5 provides standalone Investment
 Underwriting: normalized reported, market-observed, and analyst-adjusted facts with native
 currency and fiscal-period scope; versioned deterministic formulas; eight independent analytical
 dimensions; categorical eligibility gates; dated bear/base/bull valuation bridges;
@@ -106,7 +106,7 @@ cost. See
 [`Chapter 6C2: Replacement and capital-flow policies`](docs/chapter-6c2-replacement-policies.md)
 and the [`minimum operator workspace contract`](docs/operator-workspace-contract.md).
 
-Chapter 7 is the active implementation candidate under proposed
+Chapter 7 is canonical under accepted
 [`ADR 0018`](docs/adr/0018-point-in-time-execution-mvp.md). It introduces a separate Execution
 bounded context that consumes only canonically replayed `ALLOCATE` or `REPLACE` decisions,
 preserves target and approved amounts exactly, evaluates a later point-in-time execution boundary,
@@ -117,12 +117,21 @@ the strategic allocation. The slice creates immutable plans and a read-only Exec
 it does not submit broker orders or introduce a market-timing or regime score. See
 [`Chapter 7: Point-in-time Execution MVP`](docs/chapter-7-execution-mvp.md).
 
-Chapter 7 remains non-canonical until ADR 0018, the exact implementation head, and the merge are
-explicitly accepted. Live brokerage actions, calibrated automatic sizing, advanced tax-lot
-optimization, covariance optimization, Market State, Learning, live Portfolio providers and
-persistence, automated extraction/discovery, complete filing normalization, and a functional user
-interface remain outside the canonical implemented scope. SQLite remains a local/reference
-evidence persistence adapter.
+Chapter 8 is the active implementation candidate under proposed
+[`ADR 0019`](docs/adr/0019-decision-level-learning-mvp.md). It adds a separate downstream Learning
+bounded context that opens only from canonically replayed `NOW` or `STAGED` Execution Plans,
+preserves ordered T0/T1/T2 knowledge boundaries, and compares explicit later price and thesis
+observations with the immutable decision record. The MVP reports price-only decision return,
+same-currency benchmark excess return, observed-path drawdown, replacement source counterfactual,
+exact upstream thesis-condition outcomes, and categorical scenario realization without claiming
+broker P&L, total shareholder return, calibrated probabilities, or investment skill. See
+[`Chapter 8: Decision-level Learning MVP`](docs/chapter-8-learning-mvp.md).
+
+Live brokerage actions, calibrated automatic sizing, advanced tax-lot optimization, covariance
+optimization, Market State, aggregate Learning skill statistics, factor-adjusted alpha, automatic
+Learning feedback, live Portfolio providers and persistence, automated extraction/discovery,
+complete filing normalization, and a functional user interface remain outside the canonical
+implemented scope. SQLite remains a local/reference evidence persistence adapter.
 
 ## Quick start
 
@@ -190,7 +199,7 @@ docker run --rm asymmetric-insight-engine:local
 ## Repository map
 
 - `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity,
-  Portfolio Decision, and Execution contracts.
+  Portfolio Decision, Execution, and Learning contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
 - `src/asymmetric_engine/interfaces`: CLI, read-only Decision/Execution Card projections, API, and

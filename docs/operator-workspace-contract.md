@@ -7,7 +7,7 @@ is a contract for future API and frontend work, not an implemented server or UI.
 
 The operator workspace reviews inputs, invokes application use cases, and renders immutable
 outputs. It contains no financial formulas, ranking, sizing, temporal filtering, eligibility,
-replacement, or execution logic of its own.
+replacement, execution, or learning logic of its own.
 
 ## Initial workflow
 
@@ -24,10 +24,11 @@ replacement, or execution logic of its own.
 | Decision Card | Verified Chapter 6 decision package | Projection only | Nothing |
 | Execution | Verified `ALLOCATE`/`REPLACE`, T1 policy and observations | Execution builder | Explicit quote-age/spread/order limits, T1 quote/liquidity and invalidation observations |
 | Execution Card | Verified Execution Plan | Projection only | Nothing |
+| Learning | Verified `NOW`/`STAGED` Execution Plan and later T2 observations | Learning case/evaluation builders | Explicit later price and exact thesis-condition observations |
 
-Learning remains disabled until Chapter 8 defines its contract. Chapter 7 defines the Execution
-workspace boundary but does not implement a server, frontend, broker adapter, or order-submission
-surface.
+Chapter 7 defines the canonical Execution workspace boundary but does not implement a server,
+frontend, broker adapter, or order-submission surface. Chapter 8 adds the proposed Learning
+workspace boundary without adding automatic feedback authority.
 
 ## Minimum application boundary
 
@@ -46,13 +47,16 @@ project_decision_card(verified decision package) -> DecisionCard
 build_execution_policy(input) -> ExecutionPolicy
 build_execution_plan(verified capital decision, policy, observations) -> ExecutionPlan
 project_execution_card(verified execution plan) -> ExecutionCard
+open_decision_learning_case(verified execution lineage) -> DecisionLearningCase
+build_decision_learning_evaluation(case, T2 observations) -> DecisionLearningEvaluation
 ```
 
 These names describe application commands, not required HTTP routes. The transport must
 deserialize strict contracts, call the canonical use case, and serialize the result. It must not
 recalculate HHI, infer preferences, select or resize an amount, calculate tax from incomplete
 metadata, change cash roles, choose which position to sell, invent a timing score, alter upstream
-change conditions, or trust client-supplied canonical identifiers without server-side replay.
+change conditions, trust client-supplied canonical identifiers without server-side replay, or turn
+Learning evidence into an automatic policy update.
 
 ## Marginal Decision screen
 
@@ -126,6 +130,31 @@ A replacement plan may display SELL then BUY sequencing, but it must not present
 submitted broker orders. Venue, order type, limit price, broker, actual submission time, fill
 probability, dynamic slippage, and inferred liquidity schedule remain absent.
 
+## Learning screen
+
+A Chapter 8 Learning screen is a read-only review of what happened after an executable decision.
+It should display:
+
+1. locked T0 capital-decision ID/fingerprint and boundary;
+2. locked T1 Execution Plan ID/fingerprint, action, and boundary;
+3. the T2 Learning boundary with the unchanged KnowledgeMode;
+4. target and benchmark T0 reference prices in one native currency;
+5. explicit later price observations with observed/available/recorded timestamps and provenance;
+6. observed target price return, benchmark return, excess return, and target maximum drawdown;
+7. for `REPLACE`, the source-position counterfactual return and target-minus-source excess;
+8. exact upstream change conditions with later `triggered`/`not_triggered`/`unknown` assessments;
+9. thesis outcome `intact`, `invalidated`, or `unresolved` and all missing evidence;
+10. preserved bear/base/bull scenario range and categorical realization when available;
+11. `account_pnl_status = not_measured_no_fill_data`, assumptions, conflicts, case ID/fingerprint,
+    and evaluation ID/fingerprint.
+
+The screen must not call observed price return realized brokerage P&L, silently add dividends,
+perform FX, forward-fill missing observations, invent hindsight invalidation rules, or turn one or a
+few evaluations into Sharpe, Sortino, factor alpha, win-rate, or model-skill claims.
+
+Learning has no action control that changes capital. Any future policy/sizing/model update requires
+a separately admitted and validated application path.
+
 ## Error and integrity behavior
 
 - Validation errors return field-level explanations without changing the submitted draft.
@@ -141,19 +170,24 @@ probability, dynamic slippage, and inferred liquidity schedule remain absent.
 - `NOW` and `STAGED` remain immutable plan outputs, not proof that an order was submitted or filled.
 - `WAIT` and `INVALIDATED` carry no executable legs.
 - T1 observations outside the shared Temporal boundary are rejected, never shown as warnings.
+- T2 observations outside the shared Temporal boundary are rejected, never shown as warnings.
+- Missing or unknown Learning thesis assessments remain unresolved rather than being inferred
+  `intact`.
+- Learning results remain evidence only and never become automatic upstream mutations.
 
 ## Productization sequence
 
-1. Keep accepted Chapter 6 contracts stable while Chapter 7 is reviewed under ADR 0018.
+1. Keep accepted Chapters 6 and 7 contracts stable while Chapter 8 is reviewed under ADR 0019.
 2. Add a thin application-facing API adapter with strict request/response schemas for accepted
-   Chapter 6 and, after acceptance, Chapter 7 use cases.
-3. Persist immutable drafts, states, Fits, policies, capital decisions, Execution Plans, and source
-   payload references.
+   Chapter 6/7 and, after acceptance, Chapter 8 use cases.
+3. Persist immutable drafts, states, Fits, policies, capital decisions, Execution Plans, Learning
+   cases/evaluations, and source payload references.
 4. Implement the operator workspace against those real schemas.
 5. Start prospective use while retaining manual data entry where providers are absent.
-6. Add the Learning screen only after Chapter 8 defines and accepts its contract.
+6. Accumulate prospective Learning records before admitting aggregate skill statistics or any
+   automatic feedback rule.
 7. Add any live broker adapter only through a separate accepted ADR and explicit owner
    authorization after the replayable planning contract is stable.
 
 This sequence permits early use without designing a terminal, data platform, timing engine,
-optimizer, or automated broker before AIE has demonstrated decision value.
+optimizer, automatic learner, or automated broker before AIE has demonstrated decision value.

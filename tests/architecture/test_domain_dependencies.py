@@ -11,6 +11,7 @@ DOMAIN_ROOT = Path(__file__).parents[2] / "src" / "asymmetric_engine" / "domain"
 APPLICATION_ROOT = DOMAIN_ROOT.parent / "application"
 PORTFOLIO_ROOT = DOMAIN_ROOT / "portfolio"
 EXECUTION_ROOT = DOMAIN_ROOT / "execution"
+LEARNING_ROOT = DOMAIN_ROOT / "learning"
 PORTFOLIO_STATE_FILES = (PORTFOLIO_ROOT / "models.py",)
 PORTFOLIO_EXPOSURE_FILES = (PORTFOLIO_ROOT / "exposure.py",)
 PORTFOLIO_DECISION_FILES = (
@@ -18,9 +19,11 @@ PORTFOLIO_DECISION_FILES = (
     PORTFOLIO_ROOT / "policy.py",
 )
 EXECUTION_DOMAIN_FILES = (EXECUTION_ROOT / "models.py",)
+LEARNING_DOMAIN_FILES = (LEARNING_ROOT / "models.py",)
 MARGINAL_DECISION_APPLICATION_FILE = APPLICATION_ROOT / "marginal_decision.py"
 PORTFOLIO_POLICY_APPLICATION_FILE = APPLICATION_ROOT / "portfolio_policy.py"
 EXECUTION_APPLICATION_FILE = APPLICATION_ROOT / "execution.py"
+LEARNING_APPLICATION_FILE = APPLICATION_ROOT / "learning.py"
 SRC_ROOT = DOMAIN_ROOT.parents[1]
 APPROVED_EXTERNAL_ROOTS = frozenset({"pydantic"})
 FORBIDDEN_APPLICATION_PREFIXES = (
@@ -224,4 +227,53 @@ def test_chapter_6_application_does_not_depend_on_execution() -> None:
         )
         assert not any(
             module.startswith("asymmetric_engine.application.execution") for module in imports
+        )
+
+
+def test_chapter_8_learning_domain_does_not_import_upstream_contexts() -> None:
+    """Learning stores immutable anchors and outcomes without importing their upstream owners."""
+
+    assert LEARNING_ROOT.is_dir(), f"Learning root does not exist: {LEARNING_ROOT}"
+    assert all(path.is_file() for path in LEARNING_DOMAIN_FILES)
+    imports = {module for path in LEARNING_DOMAIN_FILES for module in imported_modules(path)}
+    forbidden = (
+        "asymmetric_engine.application",
+        "asymmetric_engine.domain.causal",
+        "asymmetric_engine.domain.execution",
+        "asymmetric_engine.domain.opportunity",
+        "asymmetric_engine.domain.portfolio",
+        "asymmetric_engine.infrastructure",
+        "asymmetric_engine.interfaces",
+    )
+    violations = [module for module in imports if module.startswith(forbidden)]
+    assert not violations, "Chapter 8 Learning boundary violations:\n" + "\n".join(violations)
+
+
+def test_chapter_8_application_replays_upstream_without_outer_adapter_dependencies() -> None:
+    """Learning application may join canonical owners but cannot depend on adapters or UI."""
+
+    assert LEARNING_APPLICATION_FILE.is_file()
+    imports = set(imported_modules(LEARNING_APPLICATION_FILE))
+    assert any(module.startswith("asymmetric_engine.application.execution") for module in imports)
+    assert any(module.startswith("asymmetric_engine.domain.learning") for module in imports)
+    assert any(module.startswith("asymmetric_engine.domain.portfolio") for module in imports)
+    assert any(module.startswith("asymmetric_engine.domain.opportunity") for module in imports)
+    assert not any(
+        module.startswith(("asymmetric_engine.infrastructure", "asymmetric_engine.interfaces"))
+        for module in imports
+    )
+
+
+def test_upstream_capital_and_execution_application_do_not_depend_on_learning() -> None:
+    """Learning is observational feedback, never an implicit upstream decision input."""
+
+    for path in (
+        MARGINAL_DECISION_APPLICATION_FILE,
+        PORTFOLIO_POLICY_APPLICATION_FILE,
+        EXECUTION_APPLICATION_FILE,
+    ):
+        imports = set(imported_modules(path))
+        assert not any(module.startswith("asymmetric_engine.domain.learning") for module in imports)
+        assert not any(
+            module.startswith("asymmetric_engine.application.learning") for module in imports
         )
