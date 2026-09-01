@@ -84,14 +84,21 @@ This is **storage verification**, not downstream decision verification. A loaded
 Portfolio Decision, Execution Plan, Opportunity State, or Learning record must still pass the
 canonical replay path owned by its application use case before it influences a later decision.
 
-## Prospective evidence
+## Prospective evidence and trust model
 
 The first `stored_at` timestamp is useful because Chapter 8 previously had no durable proof of when
 a Learning case was created. In prospective operation, preserving the case near T1 provides an
 auditable local creation record before later T2 outcomes exist.
 
 The timestamp is deliberately narrow evidence. A historical case first persisted after T2 remains a
-backfilled case; storage does not retroactively make it prospective.
+backfilled case; storage does not retroactively make it prospective. The store rejects a naive
+storage clock and requires an explicit timezone-aware instant.
+
+The append-only SQLite controls and integrity checks protect the normal governed application path
+and detect accidental or incoherent corruption. They are **not cryptographic notarization**. A
+privileged actor who can rewrite the database file, drop triggers and coherently recompute metadata
+is outside the first-slice threat model. Signing, external timestamping or an immutable remote audit
+log would require a separately admitted capability if that stronger evidence becomes necessary.
 
 ## SQLite reference adapter
 
@@ -112,6 +119,7 @@ SQLite is not declared the final production backend.
 - PostgreSQL/ORM/cloud database selection;
 - normalized relational decomposition of financial records;
 - mutable CRUD entity state;
+- cryptographic signing or external timestamp attestation;
 - retention, backup, encryption or multi-user policy;
 - HTTP routes;
 - authentication/authorization;
@@ -126,12 +134,18 @@ Chapter 9B is ready for governance review when:
 
 - every admitted record kind round-trips through the real SQLite adapter;
 - duplicate append preserves the first storage timestamp;
+- a naive storage clock is rejected before persistence;
 - update/delete are physically rejected;
-- corrupted stored JSON is detected on load;
+- corrupted stored JSON and a tampered content-addressed ID are detected on load;
 - mismatched database schemas fail closed;
 - a missing store is not created by read mode;
+- arbitrary shadow Pydantic models are rejected;
 - architecture checks preserve inward dependency direction;
+- the documented trust model does not overclaim protection from privileged coherent DB rewriting;
 - full CI remains green on Python 3.12, Python 3.13 and the container runtime.
+
+The reviewed implementation reached 366 passing tests with 90.38% repository coverage and strict
+mypy across 94 source files before the final documentation-only close-out.
 
 Chapter 9C may then build a human-facing workspace over the accepted API and these persisted
 records without reimplementing the financial engine.
