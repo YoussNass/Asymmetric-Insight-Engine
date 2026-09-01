@@ -17,6 +17,8 @@ The workspace may list and load storage-verified Chapter 9B records, render exac
 
 A successful write invocation persists only the exact canonical output records returned by `aie-api-v1`. The workspace does not repair, infer, resize, rank, score, time, optimize, or reinterpret financial inputs or outputs.
 
+One `MarginalDecisionPackage` contains several canonical records and is therefore appended record-by-record through the Chapter 9B storage-agnostic port. Chapter 9C does not invent a cross-record transaction abstraction that Chapter 9B does not own. An infrastructure failure may therefore leave a prefix of those immutable records stored before the operation reports failure. Append is content-addressed and idempotent, so a retry can converge without overwriting prior records. The MVP must not describe this as an atomic multi-record commit; a future transactional unit-of-work requires a separate persistence decision if prospective operation demonstrates that it is necessary.
+
 The default CLI composition is deliberately read-only. It opens an existing SQLite reference product store with `initialize_schema=False`; browsing cannot create a missing database as a side effect. Production write composition remains deferred until real provider/application dependencies are deliberately configured.
 
 The browser adapter binds only to IPv4 loopback. A write-enabled composition requires a server-generated local write token, checked with constant-time comparison before request dispatch, to reduce cross-origin request-forgery risk against localhost. This token is a local anti-CSRF control, not user authentication or authorization. Remote/multi-user deployment remains out of scope.
@@ -31,6 +33,7 @@ The adapter uses the Python standard-library WSGI server. No FastAPI, Flask, Str
 - Request bodies have an explicit maximum size.
 - Validation and integrity failures remain blocking.
 - Persisted revisions are new immutable records; the workspace exposes no update/delete action.
+- Multi-record API results are idempotently appendable but are not claimed to be transactionally atomic.
 - Learning output has no automatic capital-feedback action.
 - `NOW`/`STAGED` remain plans, not fills or broker submissions.
 
@@ -39,6 +42,8 @@ The adapter uses the Python standard-library WSGI server. No FastAPI, Flask, Str
 AIE gains a minimal usable local workspace and a concrete composition path over real persistence. The surface is intentionally plain: it proves product workflow and auditability before investing in a richer frontend.
 
 It is not a production web application. There is no login, TLS termination, remote binding, multi-user concurrency model, live broker, live market-data composition, or automated feedback loop.
+
+A failure while persisting a multi-record response can require an idempotent retry; Chapter 9C does not guarantee all-or-nothing persistence across those records. This is visible operational behavior rather than hidden transaction semantics.
 
 ## Acceptance criteria
 
@@ -52,6 +57,7 @@ ADR 0022 may move to `Accepted` only when:
 6. read-only mode blocks writes before payload parsing;
 7. browser writes require a server-generated local anti-CSRF token before dispatch;
 8. the server binds only to loopback and request bodies are bounded;
-9. no remote auth, broker, optimizer, timing engine, aggregate Learning statistic, or automatic feedback is introduced;
-10. architecture, unit, integration, Python 3.12/3.13, package and container CI are green on the exact PR head;
-11. the owner explicitly accepts ADR 0022. Merge authorization remains a separate governance gate.
+9. multi-record persistence is documented as idempotent but not atomically committed by this slice;
+10. no remote auth, broker, optimizer, timing engine, aggregate Learning statistic, or automatic feedback is introduced;
+11. architecture, unit, integration, Python 3.12/3.13, package and container CI are green on the exact PR head;
+12. the owner explicitly accepts ADR 0022. Merge authorization remains a separate governance gate.
