@@ -8,12 +8,12 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 6C1 are complete in `main`;
-- factual Portfolio State, minimal Portfolio Exposure, Portfolio Fit, and explicit Marginal
-  Allocation are canonical;
-- Chapter 6C2 has an implementation candidate under proposed ADR 0017; no replacement/capital-flow
-  policy is canonical until its ADR and merge are explicitly accepted;
-- Market State, Execution, and Learning remain unimplemented in the canonical engine;
+- Chapters 2 through 6 are complete in `main`;
+- factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
+  replacement, and capital-flow policy are canonical;
+- Chapter 7 has an implementation candidate under proposed ADR 0018; no Execution Plan is
+  canonical until its ADR and merge are explicitly accepted;
+- Market State and Learning remain unimplemented in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
 Every roadmap change must pass the [`Complexity Budget`](complexity-budget.md). Deferred items are
@@ -46,6 +46,9 @@ The prerequisites for Chapter 6 were satisfied on 2026-08-27:
 2. ADR 0012 and ADR 0013 were explicitly accepted;
 3. the minimal ETF-scope Constitution amendment was approved;
 4. the owner authorized the compressed roadmap and Chapter 6A as the next slice.
+
+Chapter 6 was completed on 2026-08-31 after ADR 0014 through ADR 0017 were accepted and their
+implementations merged. Chapter 7 is therefore the active minimum-complete slice.
 
 Each later slice still requires its own narrow branch, tests, draft pull request, and explicit
 merge authorization. Approval of this roadmap does not authorize merging an unreviewed future
@@ -174,10 +177,10 @@ functional frontend enters Chapter 6.
 
 #### Slice 6C2 — Replacement and capital-flow policies
 
-**Status:** implementation candidate under proposed ADR 0017; not canonical until exact-head
-verification, ADR acceptance, and explicit merge authorization.
+**Status:** complete; ADR 0017 accepted and implementation merged after exact-head verification and
+explicit owner authorization.
 
-The implementation candidate adds:
+The accepted slice adds:
 
 - `REPLACE` comparison as one explicit source-to-target proposal rather than a sell optimizer;
 - basic tax, spread, fee, liquidity, and switching friction;
@@ -193,7 +196,7 @@ they never trigger automatic resizing. Unknown friction or liquidity fails safel
 Runner recovered proceeds remain historical context and never reduce the current market-value
 opportunity cost of the retained position.
 
-The proposed contract is documented in
+The accepted contract is documented in
 [`chapter-6c2-replacement-policies.md`](chapter-6c2-replacement-policies.md) and
 [`ADR 0017`](adr/0017-replacement-and-capital-flow-policies.md).
 
@@ -202,12 +205,14 @@ allocation, and can decide whether one explicit existing position should be repl
 friction and owner policy. It compares discrete, explicit amounts; it does not derive an automatic
 Kelly-like size.
 
-After 6C2 is accepted and merged, Chapter 6 is complete and Chapter 7 becomes the next active
-minimum-complete slice.
+Chapter 6 is complete. Chapter 7 is the active minimum-complete slice.
 
 ### Chapter 7 — Execution MVP
 
 **Purpose:** implement, but never recreate, an approved allocation decision.
+
+**Status:** implementation candidate under proposed ADR 0018; not canonical until exact-head
+verification, ADR acceptance, and explicit merge authorization.
 
 Minimum outputs:
 
@@ -216,16 +221,36 @@ Minimum outputs:
 - `WAIT`;
 - `INVALIDATED`.
 
-Allocation owns the target capital amount. Execution owns tranche and order staging. Market data,
-liquidity, spreads, and upstream invalidation conditions may change implementation, not company
-quality or standalone value.
+Allocation owns the target capital amount. Execution owns operational validation and deterministic
+tranche staging. Market observations, liquidity, spreads, and exact upstream invalidation
+conditions may change implementation, not company quality, standalone value, target, or strategic
+amount.
+
+The Chapter 7 candidate deliberately uses no Market State or timing score. An owner-defined
+execution policy supplies quote-age, maximum-spread, and optional maximum-order-notional limits.
+`STAGED` can only split the already-approved amount; tranche sums must reproduce that amount
+exactly. Missing/stale quotes, excessive spread, unresolved or constrained liquidity, and unknown
+invalidation evidence fail safely to `WAIT`. A triggered upstream change condition produces
+`INVALIDATED`.
+
+The candidate produces an immutable Execution Plan and read-only Execution Card. It does not
+connect to a broker or submit orders.
+
+The proposed contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
+and [`ADR 0018`](adr/0018-point-in-time-execution-mvp.md).
 
 Out of scope initially:
 
 - automated order submission;
-- a market-timing score;
+- a market-timing or regime score;
+- venue and order-type selection;
+- inferred participation-rate or liquidity scheduling;
 - all-in/all-out regime rules;
 - automatic changes to the strategic allocation.
+
+Exit criterion: one canonically replayed `ALLOCATE` or `REPLACE` decision can produce a point-in-
+time, content-addressed `NOW`, `STAGED`, `WAIT`, or `INVALIDATED` Execution Plan without changing
+any upstream capital decision.
 
 ### Chapter 8 — Learning MVP
 
@@ -318,4 +343,6 @@ NOW / STAGED / WAIT / INVALIDATED
 AS OF AND INPUT FINGERPRINT
 ```
 
-The card is a view over inspectable states. It must not hide uncertainty behind a synthetic score.
+Chapter 6 Decision Cards remain immutable and show Execution as `not_evaluated`. Chapter 7 adds a
+separate read-only Execution Card over a verified Execution Plan rather than mutating the accepted
+Chapter 6 projection. Neither card may hide uncertainty behind a synthetic score.

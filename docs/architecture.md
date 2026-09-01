@@ -28,7 +28,7 @@ This is a conceptual view, not a deployment topology or a requirement for exactl
 contexts. Evidence and the Temporal shared kernel support every stage. Understand includes
 evidence-backed discovery and Causal Alpha; Allocate includes Portfolio State, Exposure, Fit,
 Marginal Allocation, and its explicit capital-flow policies without collapsing their ownership
-contracts.
+contracts. Execute consumes a final capital decision and owns only operational implementation.
 
 The detailed delivery sequence is maintained in [`roadmap.md`](roadmap.md).
 
@@ -260,7 +260,7 @@ documented in [`operator-workspace-contract.md`](operator-workspace-contract.md)
 
 ## Chapter 6C2 replacement and capital-flow policy boundary
 
-The proposed Chapter 6C2 slice extends the same Portfolio Decision bounded context. It does not
+The accepted Chapter 6C2 slice extends the same Portfolio Decision bounded context. It does not
 create a replacement engine, sizing engine, or tax optimizer and does not modify accepted 6C1
 records.
 
@@ -309,9 +309,69 @@ semantics. Its UUID namespace includes the projection method version so a v2 pro
 silently reuse a v1 card identity. Policy-blocked alternatives cannot be surfaced as the card's
 best eligible alternative. Execution remains `not_evaluated`.
 
-The proposed contract is documented in
-[`chapter-6c2-replacement-policies.md`](chapter-6c2-replacement-policies.md) and proposed
+The accepted contract is documented in
+[`chapter-6c2-replacement-policies.md`](chapter-6c2-replacement-policies.md) and accepted
 [`ADR 0017`](adr/0017-replacement-and-capital-flow-policies.md).
+
+## Chapter 7 Execution boundary
+
+The proposed Chapter 7 slice introduces Execution as its own bounded context because operational
+implementation has different language, inputs, lifecycle, and failure modes from Portfolio
+Decision. The Execution domain contains no Portfolio, Underwriting, or Causal Alpha imports. The
+application layer alone may replay and join approved Chapter 6 records.
+
+Execution accepts only a canonically replayed final capital decision:
+
+- a policy-constrained new-capital result with outcome `ALLOCATE`; or
+- a replacement result with outcome `REPLACE`.
+
+`NO_ALLOCATION` and `HOLD` carry no Execution authority. The resulting
+`ApprovedCapitalInstruction` retains only the immutable source decision ID/fingerprint, original
+T0 boundary, target instrument, target amount, exact upstream change conditions, and, for a
+replacement, the source position/instrument and gross sale amount. Execution may never change
+those strategic facts.
+
+Execution has a separate T1 knowledge boundary satisfying:
+
+```text
+T1 >= T0
+knowledge_mode(T1) == knowledge_mode(T0)
+```
+
+Bid/ask and invalidation observations carry observed, available, and recorded timestamps and must
+pass the Temporal shared-kernel boundary. A future or not-yet-recorded observation is rejected
+rather than treated as a soft warning.
+
+An immutable content-addressed Execution Policy contains explicit owner limits for quote age,
+bid/ask spread, and optional maximum single-order notional. These are operational gates, not alpha
+signals or market-timing thresholds. No default Market State score exists.
+
+The decision vocabulary is exactly:
+
+- `INVALIDATED`: at least one exact upstream change condition is explicitly triggered;
+- `WAIT`: the capital decision remains valid but invalidation evidence, quote freshness, spread,
+  or liquidity does not pass current operational policy;
+- `STAGED`: every non-staging gate passes but an explicit maximum-order notional requires one or
+  more approved trade legs to be split;
+- `NOW`: every gate passes and no staging limit requires a split.
+
+The conservative priority is `INVALIDATED > WAIT > STAGED > NOW`. Missing or unknown upstream
+invalidation state, missing/stale quotes, excessive spread, and liquidity that is unknown or
+constrained all fail safely to `WAIT`. Constrained liquidity does not create an inferred schedule
+in the MVP.
+
+Staging never changes strategic capital. Each tranche is a deterministic chunk no larger than the
+explicit order limit and tranche sums must exactly reproduce the approved leg. A new-capital
+allocation has one BUY leg. A replacement has one SELL source leg followed by one BUY target leg;
+the gross source-sale and net target amounts remain the exact Chapter 6 amounts.
+
+The bounded context produces immutable, content-addressed Execution Plans only. Broker connection,
+order submission, venue/order-type selection, limit-price logic, fill probability, dynamic
+slippage, and Market State/regime scoring remain out of scope. A separate read-only Execution Card
+projects the verified plan without mutating accepted Chapter 6 Decision Card identities.
+
+The proposed contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
+and proposed [`ADR 0018`](adr/0018-point-in-time-execution-mvp.md).
 
 ## Adjacent applications and experiments
 

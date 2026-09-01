@@ -21,9 +21,13 @@ replacement, or execution logic of its own.
 | Marginal Decision | Four alternatives, loss classes, six pairwise comparisons | Marginal Decision builder | Capital unit and explicit qualitative judgements |
 | Owner Policy | Verified Portfolio Decision state | Owner Policy builder / policy application | Explicit caps, ratio gates, Legacy/Runner lifecycle policy |
 | Replacement | Verified State/Exposure/policy and optional Opportunity | Replacement builder | Source, target, sale amount, friction, liquidity, explicit constraint observations |
-| Decision Card | Verified decision package | Projection only | Nothing |
+| Decision Card | Verified Chapter 6 decision package | Projection only | Nothing |
+| Execution | Verified `ALLOCATE`/`REPLACE`, T1 policy and observations | Execution builder | Explicit quote-age/spread/order limits, T1 quote/liquidity and invalidation observations |
+| Execution Card | Verified Execution Plan | Projection only | Nothing |
 
-Execution and Learning views remain disabled until Chapters 7 and 8 define their contracts.
+Learning remains disabled until Chapter 8 defines its contract. Chapter 7 defines the Execution
+workspace boundary but does not implement a server, frontend, broker adapter, or order-submission
+surface.
 
 ## Minimum application boundary
 
@@ -39,13 +43,16 @@ build_owner_portfolio_policy(input) -> OwnerPortfolioPolicy
 apply_portfolio_policy(verified 6C1 package, policy) -> PolicyConstrainedMarginalDecision
 build_replacement_decision(verified refs, policy, input) -> ReplacementDecision
 project_decision_card(verified decision package) -> DecisionCard
+build_execution_policy(input) -> ExecutionPolicy
+build_execution_plan(verified capital decision, policy, observations) -> ExecutionPlan
+project_execution_card(verified execution plan) -> ExecutionCard
 ```
 
 These names describe application commands, not required HTTP routes. The transport must
 deserialize strict contracts, call the canonical use case, and serialize the result. It must not
 recalculate HHI, infer preferences, select or resize an amount, calculate tax from incomplete
-metadata, change cash roles, choose which position to sell, or trust client-supplied canonical
-identifiers without server-side replay.
+metadata, change cash roles, choose which position to sell, invent a timing score, alter upstream
+change conditions, or trust client-supplied canonical identifiers without server-side replay.
 
 ## Marginal Decision screen
 
@@ -93,6 +100,32 @@ When replacement ratio constraints use explicit after-replacement observations, 
 show their source reference and fingerprint and must not present them as a canonical Chapter 6B
 hypothetical-sale calculation.
 
+## Execution screen
+
+A Chapter 7 Execution screen is a point-in-time implementation review over one already-approved
+capital decision. It should display:
+
+1. immutable source decision ID/fingerprint and original T0 boundary;
+2. locked target instrument and approved target amount;
+3. for replacement, locked source instrument and gross sale amount;
+4. T1 execution boundary and unchanged KnowledgeMode;
+5. explicit owner quote-age, maximum-spread, and optional maximum-order-notional policy;
+6. bid/ask, derived spread, observation/availability/recorded timestamps, source reference and
+   fingerprint for every instrument that would trade;
+7. exact upstream change conditions and their T1 `triggered`/`not_triggered`/`unknown` assessments;
+8. liquidity state and missing data for every required trade instrument;
+9. `NOW`, `STAGED`, `WAIT`, or `INVALIDATED` with inspectable categorical reasons;
+10. for `STAGED`, every trade leg, sequence, tranche notional, and exact tranche-sum reconciliation;
+11. Execution Plan ID/fingerprint and read-only Execution Card preview.
+
+The screen must not offer controls to change target, strategic amount, replacement sale amount,
+company quality, pairwise preference, or upstream invalidation text. `WAIT` and `INVALIDATED` are
+valid non-executable results and therefore show no order legs.
+
+A replacement plan may display SELL then BUY sequencing, but it must not present those legs as
+submitted broker orders. Venue, order type, limit price, broker, actual submission time, fill
+probability, dynamic slippage, and inferred liquidity schedule remain absent.
+
 ## Error and integrity behavior
 
 - Validation errors return field-level explanations without changing the submitted draft.
@@ -105,17 +138,22 @@ hypothetical-sale calculation.
 - A policy-blocked alternative is not presented as an eligible best alternative.
 - `REPLACE` is a capital decision, not an order instruction.
 - All Chapter 6 Decision Cards render Execution as `not_evaluated`.
+- `NOW` and `STAGED` remain immutable plan outputs, not proof that an order was submitted or filled.
+- `WAIT` and `INVALIDATED` carry no executable legs.
+- T1 observations outside the shared Temporal boundary are rejected, never shown as warnings.
 
 ## Productization sequence
 
-1. Keep the accepted 6C1 contracts stable and accept 6C2 only after its exact-head review.
-2. Add a thin application-facing API adapter with strict request/response schemas for the accepted
-   Chapter 6 use cases.
-3. Persist immutable drafts, states, Fits, policies, decisions, and source payload references.
+1. Keep accepted Chapter 6 contracts stable while Chapter 7 is reviewed under ADR 0018.
+2. Add a thin application-facing API adapter with strict request/response schemas for accepted
+   Chapter 6 and, after acceptance, Chapter 7 use cases.
+3. Persist immutable drafts, states, Fits, policies, capital decisions, Execution Plans, and source
+   payload references.
 4. Implement the operator workspace against those real schemas.
 5. Start prospective use while retaining manual data entry where providers are absent.
-6. Add Execution and Learning screens only after Chapters 7 and 8 define and accept their own
-   contracts.
+6. Add the Learning screen only after Chapter 8 defines and accepts its contract.
+7. Add any live broker adapter only through a separate accepted ADR and explicit owner
+   authorization after the replayable planning contract is stable.
 
-This sequence permits early use without designing a terminal, data platform, optimizer, or
-automated broker before AIE has demonstrated decision value.
+This sequence permits early use without designing a terminal, data platform, timing engine,
+optimizer, or automated broker before AIE has demonstrated decision value.

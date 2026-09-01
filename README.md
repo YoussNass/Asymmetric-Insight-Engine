@@ -59,7 +59,7 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 6C1 are complete in `main`. Chapter 5 provides standalone Investment
+Chapters 2 through 6 are complete in `main`. Chapter 5 provides standalone Investment
 Underwriting: normalized reported, market-observed, and analyst-adjusted facts with native
 currency and fiscal-period scope; versioned deterministic formulas; eight independent analytical
 dimensions; categorical eligibility gates; dated bear/base/bull valuation bridges;
@@ -95,22 +95,34 @@ cycle return `NO_ALLOCATION`; a separate `HOLD` record carries no new capital. T
 a read-only projection and cannot emit Execution state. See
 [`Chapter 6C1: Explicit marginal capital decision`](docs/chapter-6c1-marginal-decision.md).
 
-Chapter 6C2 is the final Chapter 6 implementation candidate under proposed
+Chapter 6C2 is canonical under accepted
 [`ADR 0017`](docs/adr/0017-replacement-and-capital-flow-policies.md). It adds explicit owner
 capital/concentration gates, `LEGACY_HOLD_ZERO_NEW_CAPITAL`, `RUNNER` without house-money
 accounting, policy-constrained replay of accepted 6C1 decisions, `NEW_CAPITAL_FIRST`, and one
 explicit source-to-target `REPLACE` decision after visible tax, fee, spread, and liquidity
 friction. Constraint breaches never resize an amount automatically; missing friction or liquidity
 fails safely to `HOLD`; recovered Runner proceeds never reduce the current market-value opportunity
-cost. See [`Chapter 6C2: Replacement and capital-flow policies`](docs/chapter-6c2-replacement-policies.md)
+cost. See
+[`Chapter 6C2: Replacement and capital-flow policies`](docs/chapter-6c2-replacement-policies.md)
 and the [`minimum operator workspace contract`](docs/operator-workspace-contract.md).
 
-Chapter 6C2 remains non-canonical until ADR 0017, the exact implementation head, and the merge are
-explicitly accepted. Execution timing/staging, live brokerage actions, calibrated automatic
-sizing, advanced tax-lot optimization, covariance optimization, Market State, Learning, live
-Portfolio providers/persistence, automated extraction/discovery, complete filing normalization,
-and a functional user interface remain outside the canonical implemented scope. SQLite remains a
-local/reference evidence persistence adapter.
+Chapter 7 is the active implementation candidate under proposed
+[`ADR 0018`](docs/adr/0018-point-in-time-execution-mvp.md). It introduces a separate Execution
+bounded context that consumes only canonically replayed `ALLOCATE` or `REPLACE` decisions,
+preserves target and approved amounts exactly, evaluates a later point-in-time execution boundary,
+and emits only `NOW`, `STAGED`, `WAIT`, or `INVALIDATED`. Bid/ask spread, quote freshness,
+liquidity, upstream invalidation state, and explicit owner staging limits are inspectable inputs;
+conflicting execution input is blocking. Staging may split an approved amount but may never resize
+the strategic allocation. The slice creates immutable plans and a read-only Execution Card only;
+it does not submit broker orders or introduce a market-timing or regime score. See
+[`Chapter 7: Point-in-time Execution MVP`](docs/chapter-7-execution-mvp.md).
+
+Chapter 7 remains non-canonical until ADR 0018, the exact implementation head, and the merge are
+explicitly accepted. Live brokerage actions, calibrated automatic sizing, advanced tax-lot
+optimization, covariance optimization, Market State, Learning, live Portfolio providers and
+persistence, automated extraction/discovery, complete filing normalization, and a functional user
+interface remain outside the canonical implemented scope. SQLite remains a local/reference
+evidence persistence adapter.
 
 ## Quick start
 
@@ -177,12 +189,12 @@ docker run --rm asymmetric-insight-engine:local
 
 ## Repository map
 
-- `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity, and
-  Portfolio Decision contracts.
+- `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity,
+  Portfolio Decision, and Execution contracts.
 - `src/asymmetric_engine/application`: use cases and orchestration.
 - `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
-- `src/asymmetric_engine/interfaces`: CLI, read-only Decision Card projection, API, and future user
-  interfaces.
+- `src/asymmetric_engine/interfaces`: CLI, read-only Decision/Execution Card projections, API, and
+  future user interfaces.
 - `docs`: system constitution, architecture, and Architecture Decision Records.
 - `docs/roadmap.md`: canonical delivery order and deferred capability register.
 - `docs/complexity-budget.md`: admission and graduation rules for new sophistication.
