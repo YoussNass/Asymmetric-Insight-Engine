@@ -14,9 +14,7 @@ from wsgiref.simple_server import make_server
 
 from pydantic import ValidationError
 
-from asymmetric_engine.application.product_persistence import (
-    LoadedProductRecord,
-)
+from asymmetric_engine.application.product_persistence import LoadedProductRecord
 from asymmetric_engine.domain.execution import ExecutionPlan
 from asymmetric_engine.domain.portfolio import PositionReview, ReplacementDecision
 from asymmetric_engine.interfaces.decision_card import ProjectDecisionCard
@@ -50,7 +48,32 @@ WsgiBody = Iterable[bytes]
 
 
 class WorkspaceWriteTokenError(PermissionError):
-    """Raised when a write-enabled local browser request lacks the server-generated token."""
+    """A write-enabled local request lacks the server-generated token."""
+
+
+def _response(
+    start_response: StartResponse,
+    status: str,
+    body: str,
+    *,
+    content_type: str,
+) -> WsgiBody:
+    encoded = body.encode("utf-8")
+    headers = [
+        ("Content-Type", content_type),
+        ("Content-Length", str(len(encoded))),
+        ("Cache-Control", "no-store"),
+        ("X-Content-Type-Options", "nosniff"),
+    ]
+    if content_type.startswith("text/html"):
+        headers.extend(
+            [
+                ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'"),
+                ("X-Frame-Options", "DENY"),
+            ]
+        )
+    start_response(status, headers)
+    return [encoded]
 
 
 def _json_response(
@@ -58,61 +81,37 @@ def _json_response(
     status: str,
     payload: dict[str, Any],
 ) -> WsgiBody:
-    body = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    start_response(
+    return _response(
+        start_response,
         status,
-        [
-            ("Content-Type", "application/json; charset=utf-8"),
-            ("Content-Length", str(len(body))),
-            ("Cache-Control", "no-store"),
-            ("X-Content-Type-Options", "nosniff"),
-        ],
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        content_type="application/json; charset=utf-8",
     )
-    return [body]
 
 
-def _html_response(start_response: StartResponse, status: str, body_html: str) -> WsgiBody:
-    body = body_html.encode("utf-8")
-    start_response(
+def _html_response(start_response: StartResponse, status: str, body: str) -> WsgiBody:
+    return _response(
+        start_response,
         status,
-        [
-            ("Content-Type", "text/html; charset=utf-8"),
-            ("Content-Length", str(len(body))),
-            ("Cache-Control", "no-store"),
-            ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'"),
-            ("X-Content-Type-Options", "nosniff"),
-            ("X-Frame-Options", "DENY"),
-        ],
+        body,
+        content_type="text/html; charset=utf-8",
     )
-    return [body]
 
 
 def _layout(title: str, content: str) -> str:
     return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <style>
-:root {{ font-family: ui-sans-serif, system-ui, sans-serif; color-scheme: light dark; }}
-body {{ max-width: 1180px; margin: 0 auto; padding: 24px; line-height: 1.45; }}
-a {{ color: inherit; }}
+body {{ max-width: 1180px; margin: auto; padding: 24px; font-family: system-ui; }}
 table {{ border-collapse: collapse; width: 100%; }}
-th, td {{ text-align: left; vertical-align: top; border-bottom: 1px solid #8886; padding: 8px; }}
-code, pre, textarea {{ font-family: ui-monospace, SFMono-Regular, monospace; }}
-pre {{ white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid #8886; padding: 12px; }}
-textarea {{ width: 100%; min-height: 260px; }}
-select, button, textarea {{ font: inherit; padding: 8px; }}
+th,td {{ text-align: left; border-bottom: 1px solid #8886; padding: 8px; }}
+pre,textarea {{ white-space: pre-wrap; overflow-wrap: anywhere; width: 100%; }}
 .notice {{ border-left: 4px solid currentColor; padding: 8px 12px; margin: 16px 0; }}
-.meta {{ opacity: .8; }}
-</style>
-</head>
-<body>
-<header><h1>Asymmetric Insight Engine</h1><p class="meta">{WORKSPACE_CONTRACT_VERSION}</p></header>
-{content}
-</body>
-</html>"""
+</style></head><body>
+<h1>Asymmetric Insight Engine</h1><p>{WORKSPACE_CONTRACT_VERSION}</p>{content}
+</body></html>"""
 
 
 def _summary_rows(records: tuple[WorkspaceRecordSummary, ...]) -> str:
@@ -135,18 +134,14 @@ def render_workspace_index(
     *,
     write_token: str | None = None,
 ) -> str:
-    """Render a persisted-record navigator and optional strict API submission surface."""
-
     records = workspace.list_records()
     write_panel = ""
     if workspace.write_enabled:
         if not write_token:
-            raise WorkspaceWriteTokenError(
-                "write-enabled browser workspace requires a non-empty local write token"
-            )
+            raise WorkspaceWriteTokenError("write-enabled browser workspace requires a token")
         options = "".join(
-            f'<option value="{html.escape(value)}">{html.escape(value)}</option>'
-            for value in (
+            f'<option value="{html.escape(operation)}">{html.escape(operation)}</option>'
+            for operation in (
                 "build_portfolio_state",
                 "build_portfolio_exposure",
                 "build_marginal_decision",
@@ -162,54 +157,43 @@ def render_workspace_index(
                 "build_learning_evaluation",
             )
         )
-        escaped_token = html.escape(write_token, quote=True)
-        write_panel = f"""
-<section>
-<h2>Submit strict AIE request</h2>
-<div class="notice">The workspace does not calculate or repair fields. Paste one complete
-<code>aie-api-v1</code> request. Validation and canonical replay failures are blocking.</div>
+        write_panel = f"""<h2>Submit strict AIE request</h2>
 <form method="post" action="/submit">
-<input type="hidden" name="write_token" value="{escaped_token}">
-<label>Operation <select name="operation">{options}</select></label>
-<p><label>Request JSON<textarea name="payload" required></textarea></label></p>
-<button type="submit">Invoke canonical use case and persist output</button>
-</form>
-</section>"""
-
+<input type="hidden" name="write_token" value="{html.escape(write_token, quote=True)}">
+<select name="operation">{options}</select>
+<textarea name="payload" required></textarea>
+<button type="submit">Invoke canonical use case and persist output</button></form>"""
     return _layout(
         "AIE Operator Workspace",
-        f"""
-<section>
-<h2>Persisted canonical records</h2>
-<div class="notice">Storage verification is not financial replay. A loaded decision record must
-still pass its canonical application verification before it can influence another decision.</div>
-<table>
-<thead><tr><th>Kind</th><th>Type</th><th>Storage ID</th><th>First stored</th><th>SHA-256</th></tr></thead>
-<tbody>{_summary_rows(records)}</tbody>
-</table>
-</section>
-{write_panel}
-""",
+        f"""<h2>Persisted canonical records</h2>
+<div class="notice">Storage verification is not financial replay.</div>
+<table><thead><tr><th>Kind</th><th>Type</th><th>Storage ID</th>
+<th>First stored</th><th>SHA-256</th></tr></thead>
+<tbody>{_summary_rows(records)}</tbody></table>{write_panel}""",
     )
 
 
 def _projection(record: LoadedProductRecord) -> tuple[str, dict[str, Any]] | None:
     canonical = record.record
     if isinstance(canonical, ExecutionPlan):
-        card = ProjectExecutionCard.from_execution_plan(canonical)
-        return "Execution Card", card.model_dump(mode="json")
+        return (
+            "Execution Card",
+            ProjectExecutionCard.from_execution_plan(canonical).model_dump(mode="json"),
+        )
     if isinstance(canonical, ReplacementDecision):
-        card = ProjectDecisionCard.from_replacement_decision(canonical)
-        return "Decision Card", card.model_dump(mode="json")
+        return (
+            "Decision Card",
+            ProjectDecisionCard.from_replacement_decision(canonical).model_dump(mode="json"),
+        )
     if isinstance(canonical, PositionReview):
-        card = ProjectDecisionCard.from_position_review(canonical)
-        return "Decision Card", card.model_dump(mode="json")
+        return (
+            "Decision Card",
+            ProjectDecisionCard.from_position_review(canonical).model_dump(mode="json"),
+        )
     return None
 
 
 def render_record_detail(record: LoadedProductRecord) -> str:
-    """Render exact persisted content and existing read-only projections without recalculation."""
-
     canonical_json = json.dumps(
         record.record.model_dump(mode="json"),
         ensure_ascii=False,
@@ -220,27 +204,19 @@ def render_record_detail(record: LoadedProductRecord) -> str:
     projection_html = ""
     if projection is not None:
         label, payload = projection
-        projection_json = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
         projection_html = (
-            f"<section><h2>{html.escape(label)}</h2>"
-            f"<pre>{html.escape(projection_json)}</pre></section>"
+            f"<h2>{html.escape(label)}</h2>"
+            f"<pre>{html.escape(json.dumps(payload, indent=2, sort_keys=True))}</pre>"
         )
+    envelope = record.envelope
     return _layout(
-        f"AIE {record.envelope.kind.value}",
-        f"""
-<p><a href="/">← All records</a></p>
-<h2>{html.escape(record.envelope.kind.value)}</h2>
-<dl>
-<dt>Storage ID</dt><dd><code>{record.envelope.record_id}</code></dd>
-<dt>Schema</dt><dd>{html.escape(record.envelope.schema_version)}</dd>
-<dt>First stored</dt><dd>{html.escape(record.envelope.stored_at.isoformat())}</dd>
-<dt>SHA-256</dt><dd><code>{html.escape(record.envelope.payload_sha256)}</code></dd>
-</dl>
-<div class="notice">This page proves storage verification only. Downstream decision use still
-requires the canonical application replay owned by the relevant AIE capability.</div>
-{projection_html}
-<section><h2>Canonical record</h2><pre>{html.escape(canonical_json)}</pre></section>
-""",
+        f"AIE {envelope.kind.value}",
+        f"""<p><a href="/">← All records</a></p><h2>{html.escape(envelope.kind.value)}</h2>
+<p>Storage ID: <code>{envelope.record_id}</code></p>
+<p>First stored: {html.escape(envelope.stored_at.isoformat())}</p>
+<p>SHA-256: <code>{html.escape(envelope.payload_sha256)}</code></p>
+<div class="notice">Downstream use still requires canonical application replay.</div>
+{projection_html}<h2>Canonical record</h2><pre>{html.escape(canonical_json)}</pre>""",
     )
 
 
@@ -248,25 +224,17 @@ def render_submission_result(submission_json: str) -> str:
     parsed = json.loads(submission_json)
     links = "".join(
         f'<li><a href="/records/{item["record_id"]}">{html.escape(item["kind"])}</a> '
-        f'({html.escape(item["status"])})</li>'
+        f"({html.escape(item['status'])})</li>"
         for item in parsed["persisted"]
     )
-    pretty = json.dumps(parsed["response"], ensure_ascii=False, indent=2, sort_keys=True)
+    response = json.dumps(parsed["response"], ensure_ascii=False, indent=2, sort_keys=True)
     return _layout(
         "AIE workspace submission",
-        f"""
-<p><a href="/">← Workspace</a></p>
-<h2>Canonical operation completed</h2>
-<ul>{links}</ul>
-<h3>Exact API response</h3>
-<pre>{html.escape(pretty)}</pre>
-""",
+        f"<p><a href='/'>← Workspace</a></p><ul>{links}</ul><pre>{html.escape(response)}</pre>",
     )
 
 
 class WorkspaceWsgiApp:
-    """Small local-capable WSGI surface; service composition remains injected."""
-
     def __init__(
         self,
         workspace: OperatorWorkspace,
@@ -274,9 +242,7 @@ class WorkspaceWsgiApp:
         write_token: str | None = None,
     ) -> None:
         if workspace.write_enabled and not write_token:
-            raise WorkspaceWriteTokenError(
-                "write-enabled WSGI workspace requires a non-empty local write token"
-            )
+            raise WorkspaceWriteTokenError("write-enabled WSGI workspace requires a token")
         self._workspace = workspace
         self._write_token = write_token
 
@@ -285,36 +251,26 @@ class WorkspaceWsgiApp:
         path = str(environ.get("PATH_INFO", "/"))
         try:
             if method == "GET" and path == "/":
-                return _html_response(
-                    start_response,
-                    "200 OK",
-                    render_workspace_index(
-                        self._workspace,
-                        write_token=self._write_token,
-                    ),
+                body = render_workspace_index(
+                    self._workspace,
+                    write_token=self._write_token,
                 )
+                return _html_response(start_response, "200 OK", body)
             if method == "GET" and path.startswith("/records/"):
                 record_id = UUID(path.removeprefix("/records/"))
-                record = self._workspace.load_record(record_id)
-                return _html_response(
-                    start_response,
-                    "200 OK",
-                    render_record_detail(record),
-                )
+                body = render_record_detail(self._workspace.load_record(record_id))
+                return _html_response(start_response, "200 OK", body)
             if method == "POST" and path == "/submit":
-                operation, payload_json, submitted_token = self._form_submission(environ)
-                self._require_write_token(submitted_token)
-                submission = self._workspace.submit_json(operation, payload_json)
-                return _html_response(
-                    start_response,
-                    "201 Created",
-                    render_submission_result(workspace_submission_json(submission)),
-                )
+                operation, payload, token = self._form_submission(environ)
+                self._require_write_token(token)
+                submission = self._workspace.submit_json(operation, payload)
+                body = render_submission_result(workspace_submission_json(submission))
+                return _html_response(start_response, "201 Created", body)
             if method == "POST" and path.startswith("/operations/"):
                 self._require_write_token(str(environ.get(WRITE_TOKEN_HEADER, "")))
                 operation = path.removeprefix("/operations/")
-                payload_json = self._read_body(environ).decode("utf-8")
-                submission = self._workspace.submit_json(operation, payload_json)
+                payload = self._read_body(environ).decode("utf-8")
+                submission = self._workspace.submit_json(operation, payload)
                 return _json_response(
                     start_response,
                     "201 Created",
@@ -324,11 +280,7 @@ class WorkspaceWsgiApp:
             return _json_response(
                 start_response,
                 "400 Bad Request",
-                {
-                    "blocking": True,
-                    "error": "ValidationError",
-                    "fields": exc.errors(include_url=False),
-                },
+                {"blocking": True, "error": "ValidationError", "fields": exc.errors()},
             )
         except (UnknownWorkspaceOperation, KeyError) as exc:
             return _json_response(
@@ -361,9 +313,8 @@ class WorkspaceWsgiApp:
 
     @staticmethod
     def _read_body(environ: WsgiEnviron) -> bytes:
-        raw_length = str(environ.get("CONTENT_LENGTH", "0") or "0")
         try:
-            length = int(raw_length)
+            length = int(str(environ.get("CONTENT_LENGTH", "0") or "0"))
         except ValueError as exc:
             raise ValueError("invalid Content-Length") from exc
         if length < 0 or length > MAX_REQUEST_BYTES:
@@ -378,14 +329,17 @@ class WorkspaceWsgiApp:
 
     @classmethod
     def _form_submission(cls, environ: WsgiEnviron) -> tuple[str, str, str]:
-        body = cls._read_body(environ).decode("utf-8")
-        fields = parse_qs(body, keep_blank_values=True, strict_parsing=True)
+        fields = parse_qs(
+            cls._read_body(environ).decode("utf-8"),
+            keep_blank_values=True,
+            strict_parsing=True,
+        )
         operation = fields.get("operation", [""])[0].strip()
-        payload_json = fields.get("payload", [""])[0]
-        write_token = fields.get("write_token", [""])[0]
-        if not operation or not payload_json.strip():
+        payload = fields.get("payload", [""])[0]
+        token = fields.get("write_token", [""])[0]
+        if not operation or not payload.strip():
             raise ValueError("operation and payload are required")
-        return operation, payload_json, write_token
+        return operation, payload, token
 
 
 def serve_local_workspace(
@@ -393,8 +347,6 @@ def serve_local_workspace(
     *,
     port: int = DEFAULT_WORKSPACE_PORT,
 ) -> None:
-    """Serve only on IPv4 loopback; this is not an authenticated remote deployment."""
-
     if not 1 <= port <= 65535:
         raise ValueError("workspace port must be between 1 and 65535")
     write_token = secrets.token_urlsafe(32) if workspace.write_enabled else None
