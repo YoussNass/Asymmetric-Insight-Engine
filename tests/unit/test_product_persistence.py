@@ -73,7 +73,9 @@ def test_store_rejects_naive_storage_clock() -> None:
 def test_store_normalizes_aware_storage_clock_to_utc() -> None:
     repository = MemoryRepository()
 
-    result = StoreProductRecord(repository=repository, clock=OffsetClock()).execute(_learning_case())
+    result = StoreProductRecord(repository=repository, clock=OffsetClock()).execute(
+        _learning_case()
+    )
 
     assert result.envelope.stored_at == datetime(2026, 9, 1, 11, 0, tzinfo=UTC)
     assert result.envelope.stored_at.tzinfo is UTC
