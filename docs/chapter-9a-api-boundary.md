@@ -19,7 +19,7 @@ runtime and UI adapters.
 
 - Type: interface capability.
 - Complexity class: `CORE NOW`.
-- Proposed governing decision: ADR 0020.
+- Governing decision: accepted ADR 0020.
 - Contract version: `aie-api-v1`.
 
 The capability lives under `interfaces` and depends inward on application/domain contracts only.
