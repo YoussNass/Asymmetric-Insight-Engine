@@ -29,6 +29,7 @@ contexts. Evidence and the Temporal shared kernel support every stage. Understan
 evidence-backed discovery and Causal Alpha; Allocate includes Portfolio State, Exposure, Fit,
 Marginal Allocation, and its explicit capital-flow policies without collapsing their ownership
 contracts. Execute consumes a final capital decision and owns only operational implementation.
+Learn consumes immutable decision/execution lineage and owns only ex-post evaluation evidence.
 
 The detailed delivery sequence is maintained in [`roadmap.md`](roadmap.md).
 
@@ -315,7 +316,7 @@ The accepted contract is documented in
 
 ## Chapter 7 Execution boundary
 
-The proposed Chapter 7 slice introduces Execution as its own bounded context because operational
+The accepted Chapter 7 slice introduces Execution as its own bounded context because operational
 implementation has different language, inputs, lifecycle, and failure modes from Portfolio
 Decision. The Execution domain contains no Portfolio, Underwriting, or Causal Alpha imports. The
 application layer alone may replay and join approved Chapter 6 records.
@@ -370,8 +371,80 @@ order submission, venue/order-type selection, limit-price logic, fill probabilit
 slippage, and Market State/regime scoring remain out of scope. A separate read-only Execution Card
 projects the verified plan without mutating accepted Chapter 6 Decision Card identities.
 
-The proposed contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
-and proposed [`ADR 0018`](adr/0018-point-in-time-execution-mvp.md).
+The accepted contract is documented in [`chapter-7-execution-mvp.md`](chapter-7-execution-mvp.md)
+and accepted [`ADR 0018`](adr/0018-point-in-time-execution-mvp.md).
+
+## Chapter 8 Learning boundary
+
+The proposed Chapter 8 slice introduces Learning as a separate downstream bounded context because
+ex-post evaluation has a different temporal direction, language, and failure mode from
+Underwriting, Portfolio Decision, and Execution. The Learning domain imports none of those
+investment contexts. The application layer alone may canonically replay upstream records and
+freeze immutable references into a Learning case.
+
+The MVP opens an active Learning case only from a verified Chapter 7 Execution Plan with action
+`NOW` or `STAGED`. This establishes that the decision reached an implementable planning state; it
+does **not** establish that any broker order was submitted or filled.
+
+Learning preserves three ordered knowledge boundaries:
+
+```text
+T0 = capital decision
+T1 = Execution Plan
+T2 = Learning evaluation
+T2 >= T1 >= T0
+knowledge_mode(T2) == knowledge_mode(T1) == knowledge_mode(T0)
+```
+
+Every later price or thesis observation carries observed, available, and recorded timestamps and
+must pass the shared Temporal kernel at T2. Future, unavailable, or not-yet-recorded observations
+are rejected. Outcome observations from before T0 are rejected.
+
+The Learning case retains the exact T0 target reference price and declared Portfolio benchmark.
+Target and benchmark must use one native currency. The MVP computes transparent price-only return:
+
+```text
+target_return = end_target_price / T0_target_price - 1
+benchmark_return = end_benchmark_price / T0_benchmark_price - 1
+excess_return = target_return - benchmark_return
+```
+
+For `REPLACE`, the case additionally retains the explicit source instrument and T0 source price so
+the target can be compared with the source counterfactual:
+
+```text
+replacement_excess_vs_source = target_return - source_return
+```
+
+No implicit FX is admitted. Price-only return is not labelled total shareholder return and the
+MVP does not invent dividends, corporate-action adjustments, fees after T1, or broker fill data.
+Every evaluation therefore states that account P&L is not measured when fill data is absent.
+
+Target maximum drawdown is calculated over the explicit T0 anchor followed by the admitted later
+target-price observations. Missing intermediate observations are not forward-filled, and the
+metric is an observed-path statistic rather than a claim about realized account experience.
+
+Learning may re-evaluate only the exact upstream `change_conditions` carried by the verified
+instruction. A triggered condition yields an invalidated thesis outcome; missing or unknown
+assessments remain unresolved; all exact conditions explicitly not triggered yield intact.
+Hindsight-only invalidation rules are rejected.
+
+When the selected candidate has a verified Underwriting bear/base/bull range, Learning preserves
+that exact T0 range and common horizon. Before the horizon the result remains `pre_horizon`; at or
+after the horizon the observed target return is classified only as below bear, bear-to-base,
+base-to-bull, or above bull. These are categorical observations, not probabilities or scores.
+
+A single or small number of Learning records cannot emit Sharpe, Sortino, Information Ratio, win
+rate, factor-adjusted alpha, or a claim of investment skill. Aggregate methods remain deferred
+until prospective sample-size/horizon policy and appropriate data exist.
+
+Learning has no automatic feedback authority. It cannot resize capital, rewrite owner policy,
+change Underwriting gates, alter pairwise allocation logic or Execution thresholds, retrain a
+model, or promote a deferred capability. Any future active feedback rule requires a separate
+accepted ADR, prospective validation, and rollback plan.
+
+The proposed contract is documented in [`chapter-8-learning-mvp.md`](chapter-8-learning-mvp.md)
+and proposed [`ADR 0019`](adr/0019-decision-level-learning-mvp.md).
 
 ## Adjacent applications and experiments
 
