@@ -20,10 +20,13 @@ from asymmetric_engine.infrastructure.persistence.sqlite_product_store import (
     SQLiteProductRecordRepository,
 )
 from asymmetric_engine.interfaces.api import AieProductApi
-from asymmetric_engine.interfaces.operator_workspace import OperatorWorkspace, WorkspaceWriteUnavailable
+from asymmetric_engine.interfaces.operator_workspace import (
+    OperatorWorkspace,
+    WorkspaceWriteUnavailable,
+)
 from asymmetric_engine.interfaces.workspace_web import (
-    WorkspaceWsgiApp,
     WorkspaceWriteTokenError,
+    WorkspaceWsgiApp,
     render_workspace_index,
 )
 from tests.portfolio_factories import make_portfolio_draft
@@ -44,7 +47,10 @@ def _workspace(tmp_path: Path) -> tuple[OperatorWorkspace, StoreProductRecord]:
     return workspace, store
 
 
-def _enable_write_for_web_guard(workspace: OperatorWorkspace, store: StoreProductRecord) -> None:
+def _enable_write_for_web_guard(
+    workspace: OperatorWorkspace,
+    store: StoreProductRecord,
+) -> None:
     object.__setattr__(workspace, "_api", cast(AieProductApi, object()))
     object.__setattr__(workspace, "_store", store)
 
@@ -61,7 +67,9 @@ def test_read_only_workspace_lists_and_loads_verified_records(tmp_path: Path) ->
     assert "Persisted canonical records" in render_workspace_index(workspace)
 
 
-def test_read_only_workspace_rejects_submission_before_payload_parsing(tmp_path: Path) -> None:
+def test_read_only_workspace_rejects_submission_before_payload_parsing(
+    tmp_path: Path,
+) -> None:
     workspace, _ = _workspace(tmp_path)
     with pytest.raises(WorkspaceWriteUnavailable):
         workspace.submit_json("build_portfolio_state", "{}")
