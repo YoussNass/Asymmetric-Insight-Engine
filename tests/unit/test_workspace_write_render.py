@@ -47,7 +47,13 @@ def test_write_index_renders_only_explicit_operation_registry(tmp_path: Path) ->
 
 
 def test_form_parser_requires_operation_and_payload() -> None:
-    body = urlencode({"operation": "build_portfolio_state", "payload": "{}", "write_token": "t"}).encode()
+    body = urlencode(
+        {
+            "operation": "build_portfolio_state",
+            "payload": "{}",
+            "write_token": "t",
+        }
+    ).encode()
     environ: dict[str, Any] = {
         "CONTENT_LENGTH": str(len(body)),
         "wsgi.input": BytesIO(body),
