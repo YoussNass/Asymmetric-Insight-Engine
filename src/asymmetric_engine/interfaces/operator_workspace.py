@@ -122,11 +122,7 @@ class OperatorWorkspace:
         kind: ProductRecordKind | None = None,
     ) -> tuple[WorkspaceRecordSummary, ...]:
         kinds = (kind,) if kind is not None else tuple(ProductRecordKind)
-        loaded = tuple(
-            item
-            for item_kind in kinds
-            for item in self._lister.execute(item_kind)
-        )
+        loaded = tuple(item for item_kind in kinds for item in self._lister.execute(item_kind))
         ordered = sorted(
             loaded,
             key=lambda item: (
@@ -178,10 +174,7 @@ class OperatorWorkspace:
             raise TypeError("workspace received a non-API response")
         result = response.result
         if isinstance(result, MarginalDecisionPackage):
-            return tuple(
-                store.execute(record)
-                for record in (*result.fits, result.decision)
-            )
+            return tuple(store.execute(record) for record in (*result.fits, result.decision))
         if not isinstance(result, BaseModel):
             raise TypeError("API response result is not a persistable canonical model")
         return (store.execute(result),)
