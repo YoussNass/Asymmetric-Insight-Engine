@@ -74,6 +74,24 @@ All three boundaries must use the same `KnowledgeMode`. Later observations must 
 Temporal kernel at T2. Observations from the future, not yet available, or not yet recorded in a
 live replay are rejected.
 
+### Freeze evaluation horizons before outcome interpretation
+
+For a candidate with verified Underwriting scenarios, Learning inherits the exact scenario horizon
+and cannot replace it. For targets without such a scenario horizon, the caller must provide one
+explicit `evaluation_horizon_date` when the immutable Learning case is opened; that date becomes
+part of the case fingerprint and cannot be changed by a later evaluation.
+
+Content addressing proves that a stored case has not been altered, but the current repository has
+no production persistence contract that independently proves **when** a non-candidate Learning case
+was first created. Therefore canonical replay alone cannot prove that a caller did not construct a
+new case retrospectively after observing returns and choose a favorable horizon.
+
+The MVP does not add a timestamp-attestation or horizon-policy engine to conceal this limitation.
+Prospective production use must persist the Learning case at or near T1, before outcome-dependent
+analysis, and retain that creation record. Horizon-dependent aggregate claims must remain disabled
+until that prospective persistence path exists. A richer trading-calendar or nearest-horizon price
+policy also remains deferred until measured need justifies it.
+
 ### Distinguish observed decision return from realized account P&L
 
 The MVP records the exact T0 decision reference price for the selected target and benchmark. It
@@ -179,7 +197,8 @@ prospective validation, and rollback plan.
   realization remain inspectable components rather than one magic score.
 - Replacement decisions can be compared against the explicit source counterfactual.
 - The system cannot mistake a planned trade for a broker-confirmed fill.
-- The data needed for later calibration accumulates prospectively from the first canonical case.
+- The data needed for later calibration can accumulate prospectively once Learning cases are
+  persisted before their outcomes are interpreted.
 
 ### Negative
 
@@ -188,6 +207,11 @@ prospective validation, and rollback plan.
 - `WAIT`, `INVALIDATED`, `NO_ALLOCATION`, and `HOLD` false-positive/false-negative attribution are
   not evaluated in the first slice.
 - Factor-adjusted alpha and aggregate risk-adjusted statistics remain unavailable.
+- For non-candidate targets, content addressing freezes the chosen horizon but does not by itself
+  prove that the case was created prospectively; production persistence/creation evidence is still
+  required before horizon-based model-skill claims.
+- The MVP has no trading-calendar or nearest-horizon observation selection policy; it classifies
+  against explicit admitted observations at or after the declared date.
 - Learning cannot automatically improve the model yet; it first creates trustworthy evaluation
   data.
 
@@ -201,6 +225,12 @@ Rejected because a quote and an Execution Plan are not evidence that a trade occ
 
 Rejected because that would ignore fill timing, quantity, dividends, corporate actions, fees, and
 broker state.
+
+### Add an arbitrary default horizon or post-hoc horizon optimizer
+
+Rejected because either would create an unvalidated threshold or permit hindsight. Candidate
+horizons remain inherited from Underwriting; other horizons must be explicit and prospectively
+persisted before they support horizon-dependent claims.
 
 ### Add Sharpe/Sortino immediately
 
@@ -230,7 +260,9 @@ ADR 0019 may move to `Accepted` only when:
 8. replacement evaluations preserve and compare the explicit source counterfactual;
 9. thesis evaluation uses only exact upstream change conditions and keeps unknown states unresolved;
 10. scenario realization is categorical and never converted into a probability or score;
-11. no automatic policy, sizing, execution, or model update is introduced;
-12. architecture, unit, integration, replay, tamper, formatting, typing, package, Python 3.12/3.13,
+11. non-candidate horizons are immutable case inputs and their lack of independent prospective
+    creation-time proof is explicitly disclosed until a persistence contract exists;
+12. no automatic policy, sizing, execution, or model update is introduced;
+13. architecture, unit, integration, replay, tamper, formatting, typing, package, Python 3.12/3.13,
     and container CI checks pass on the exact PR head;
-13. the owner explicitly accepts ADR 0019 and authorizes the Chapter 8 merge.
+14. the owner explicitly accepts ADR 0019 and authorizes the Chapter 8 merge.
