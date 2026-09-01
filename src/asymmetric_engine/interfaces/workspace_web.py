@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import html
 import json
-from collections.abc import Callable, Iterable
+import secrets
+from collections.abc import Iterable
 from io import BytesIO
 from typing import Any, Protocol
 from urllib.parse import parse_qs
@@ -15,7 +16,6 @@ from pydantic import ValidationError
 
 from asymmetric_engine.application.product_persistence import (
     LoadedProductRecord,
-    ProductRecordKind,
 )
 from asymmetric_engine.domain.execution import ExecutionPlan
 from asymmetric_engine.domain.portfolio import PositionReview, ReplacementDecision
@@ -33,6 +33,7 @@ from asymmetric_engine.interfaces.operator_workspace import (
 MAX_REQUEST_BYTES = 2_000_000
 LOCAL_WORKSPACE_HOST = "127.0.0.1"
 DEFAULT_WORKSPACE_PORT = 8765
+WRITE_TOKEN_HEADER = "HTTP_X_AIE_WORKSPACE_TOKEN"
 
 
 class StartResponse(Protocol):
@@ -46,6 +47,10 @@ class StartResponse(Protocol):
 
 WsgiEnviron = dict[str, Any]
 WsgiBody = Iterable[bytes]
+
+
+class WorkspaceWriteTokenError(PermissionError):
+    """Raised when a write-enabled local browser request lacks the server-generated token."""
 
 
 def _json_response(
@@ -125,12 +130,20 @@ def _summary_rows(records: tuple[WorkspaceRecordSummary, ...]) -> str:
     )
 
 
-def render_workspace_index(workspace: OperatorWorkspace) -> str:
+def render_workspace_index(
+    workspace: OperatorWorkspace,
+    *,
+    write_token: str | None = None,
+) -> str:
     """Render a persisted-record navigator and optional strict API submission surface."""
 
     records = workspace.list_records()
     write_panel = ""
     if workspace.write_enabled:
+        if not write_token:
+            raise WorkspaceWriteTokenError(
+                "write-enabled browser workspace requires a non-empty local write token"
+            )
         options = "".join(
             f'<option value="{html.escape(value)}">{html.escape(value)}</option>'
             for value in (
@@ -149,12 +162,14 @@ def render_workspace_index(workspace: OperatorWorkspace) -> str:
                 "build_learning_evaluation",
             )
         )
+        escaped_token = html.escape(write_token, quote=True)
         write_panel = f"""
 <section>
 <h2>Submit strict AIE request</h2>
 <div class="notice">The workspace does not calculate or repair fields. Paste one complete
 <code>aie-api-v1</code> request. Validation and canonical replay failures are blocking.</div>
 <form method="post" action="/submit">
+<input type="hidden" name="write_token" value="{escaped_token}">
 <label>Operation <select name="operation">{options}</select></label>
 <p><label>Request JSON<textarea name="payload" required></textarea></label></p>
 <button type="submit">Invoke canonical use case and persist output</button>
@@ -250,10 +265,20 @@ def render_submission_result(submission_json: str) -> str:
 
 
 class WorkspaceWsgiApp:
-    """Small local-only-capable WSGI surface; service composition remains injected."""
+    """Small local-capable WSGI surface; service composition remains injected."""
 
-    def __init__(self, workspace: OperatorWorkspace) -> None:
+    def __init__(
+        self,
+        workspace: OperatorWorkspace,
+        *,
+        write_token: str | None = None,
+    ) -> None:
+        if workspace.write_enabled and not write_token:
+            raise WorkspaceWriteTokenError(
+                "write-enabled WSGI workspace requires a non-empty local write token"
+            )
         self._workspace = workspace
+        self._write_token = write_token
 
     def __call__(self, environ: WsgiEnviron, start_response: StartResponse) -> WsgiBody:
         method = str(environ.get("REQUEST_METHOD", "GET")).upper()
@@ -263,7 +288,10 @@ class WorkspaceWsgiApp:
                 return _html_response(
                     start_response,
                     "200 OK",
-                    render_workspace_index(self._workspace),
+                    render_workspace_index(
+                        self._workspace,
+                        write_token=self._write_token,
+                    ),
                 )
             if method == "GET" and path.startswith("/records/"):
                 record_id = UUID(path.removeprefix("/records/"))
@@ -274,7 +302,8 @@ class WorkspaceWsgiApp:
                     render_record_detail(record),
                 )
             if method == "POST" and path == "/submit":
-                operation, payload_json = self._form_submission(environ)
+                operation, payload_json, submitted_token = self._form_submission(environ)
+                self._require_write_token(submitted_token)
                 submission = self._workspace.submit_json(operation, payload_json)
                 return _html_response(
                     start_response,
@@ -282,6 +311,7 @@ class WorkspaceWsgiApp:
                     render_submission_result(workspace_submission_json(submission)),
                 )
             if method == "POST" and path.startswith("/operations/"):
+                self._require_write_token(str(environ.get(WRITE_TOKEN_HEADER, "")))
                 operation = path.removeprefix("/operations/")
                 payload_json = self._read_body(environ).decode("utf-8")
                 submission = self._workspace.submit_json(operation, payload_json)
@@ -306,7 +336,7 @@ class WorkspaceWsgiApp:
                 "404 Not Found",
                 {"blocking": True, "error": type(exc).__name__, "message": str(exc)},
             )
-        except WorkspaceWriteUnavailable as exc:
+        except (WorkspaceWriteUnavailable, WorkspaceWriteTokenError) as exc:
             return _json_response(
                 start_response,
                 "403 Forbidden",
@@ -323,6 +353,11 @@ class WorkspaceWsgiApp:
             "404 Not Found",
             {"blocking": True, "error": "NotFound", "message": "workspace route not found"},
         )
+
+    def _require_write_token(self, supplied: str) -> None:
+        expected = self._write_token
+        if expected is None or not secrets.compare_digest(supplied, expected):
+            raise WorkspaceWriteTokenError("workspace write token is missing or invalid")
 
     @staticmethod
     def _read_body(environ: WsgiEnviron) -> bytes:
@@ -342,14 +377,15 @@ class WorkspaceWsgiApp:
         return body
 
     @classmethod
-    def _form_submission(cls, environ: WsgiEnviron) -> tuple[str, str]:
+    def _form_submission(cls, environ: WsgiEnviron) -> tuple[str, str, str]:
         body = cls._read_body(environ).decode("utf-8")
         fields = parse_qs(body, keep_blank_values=True, strict_parsing=True)
         operation = fields.get("operation", [""])[0].strip()
         payload_json = fields.get("payload", [""])[0]
+        write_token = fields.get("write_token", [""])[0]
         if not operation or not payload_json.strip():
             raise ValueError("operation and payload are required")
-        return operation, payload_json
+        return operation, payload_json, write_token
 
 
 def serve_local_workspace(
@@ -357,11 +393,13 @@ def serve_local_workspace(
     *,
     port: int = DEFAULT_WORKSPACE_PORT,
 ) -> None:
-    """Serve the workspace only on IPv4 loopback; this is not a remote production deployment."""
+    """Serve only on IPv4 loopback; this is not an authenticated remote deployment."""
 
     if not 1 <= port <= 65535:
         raise ValueError("workspace port must be between 1 and 65535")
-    with make_server(LOCAL_WORKSPACE_HOST, port, WorkspaceWsgiApp(workspace)) as server:
+    write_token = secrets.token_urlsafe(32) if workspace.write_enabled else None
+    app = WorkspaceWsgiApp(workspace, write_token=write_token)
+    with make_server(LOCAL_WORKSPACE_HOST, port, app) as server:
         server.serve_forever()
 
 
@@ -369,6 +407,8 @@ __all__ = [
     "DEFAULT_WORKSPACE_PORT",
     "LOCAL_WORKSPACE_HOST",
     "MAX_REQUEST_BYTES",
+    "WRITE_TOKEN_HEADER",
+    "WorkspaceWriteTokenError",
     "WorkspaceWsgiApp",
     "render_record_detail",
     "render_submission_result",
