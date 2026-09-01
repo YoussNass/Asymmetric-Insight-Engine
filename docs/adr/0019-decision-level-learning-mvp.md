@@ -1,6 +1,6 @@
 # ADR 0019: Add a decision-level Learning MVP without pretending broker P&L
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-31
 
 ## Context
