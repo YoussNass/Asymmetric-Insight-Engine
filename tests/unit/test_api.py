@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -16,7 +17,13 @@ from asymmetric_engine.application.marginal_decision import RecordPositionHold
 from asymmetric_engine.application.portfolio_policy import BuildOwnerPortfolioPolicy
 from asymmetric_engine.application.portfolio_state import PortfolioStateIntegrityError
 from asymmetric_engine.domain.execution import ExecutionPolicyInput
-from asymmetric_engine.domain.portfolio import OwnerPortfolioPolicyInput
+from asymmetric_engine.domain.portfolio import (
+    DecisionConfidence,
+    DecisionConfidenceLevel,
+    OwnerPortfolioPolicyInput,
+    PortfolioState,
+    PositionReviewInput,
+)
 from asymmetric_engine.interfaces.api import (
     API_CONTRACT_VERSION,
     AieApiServices,
@@ -35,7 +42,9 @@ from asymmetric_engine.interfaces.api import (
     MarginalDecisionPackage,
     OpenLearningCaseFromPolicyAllocationRequest,
     OpenLearningCaseFromReplacementRequest,
+    RecordPositionHoldRequest,
 )
+from tests.decision_factories import EXISTING_POSITION_ID
 from tests.execution_factories import (
     ExecutionContext,
     make_allocation_execution_input,
@@ -89,9 +98,7 @@ def test_portfolio_state_and_exposure_api_match_direct_application_and_round_tri
     assert response.result == direct_state
     assert response.operation == "build_portfolio_state"
 
-    response_round_trip = ApiResponse[type(direct_state)].model_validate(
-        response.model_dump(mode="json")
-    )
+    response_round_trip = ApiResponse[PortfolioState].model_validate(response.model_dump(mode="json"))
     assert response_round_trip == response
 
     exposure_input = make_exposure_input()
@@ -108,7 +115,7 @@ def test_portfolio_state_and_exposure_api_match_direct_application_and_round_tri
     assert exposure_response.result == direct_exposure
 
 
-def test_marginal_policy_replacement_and_execution_api_match_direct_application() -> None:
+def test_marginal_policy_hold_replacement_and_execution_api_match_direct_application() -> None:
     context = make_execution_context()
     api = _api(context)
     decision = context.decision_context
@@ -124,6 +131,34 @@ def test_marginal_policy_replacement_and_execution_api_match_direct_application(
     assert marginal_response.result == MarginalDecisionPackage.from_application(
         context.marginal_result
     )
+
+    hold_input = PositionReviewInput(
+        knowledge_boundary=decision.portfolio_state.knowledge_boundary,
+        position_id=EXISTING_POSITION_ID,
+        rationale=("Retain the existing position without allocating incremental capital.",),
+        main_risks_and_unknowns=("The standalone position review remains uncalibrated.",),
+        change_conditions=("Re-underwrite the position if the standalone thesis changes.",),
+        confidence=DecisionConfidence(
+            level=DecisionConfidenceLevel.CONDITIONAL,
+            rationale="The HOLD record is explicit but does not create a new-capital instruction.",
+        ),
+    )
+    hold_response = api.record_position_hold(
+        RecordPositionHoldRequest(
+            portfolio_state=decision.portfolio_state,
+            current_exposure=decision.current_exposure,
+            review_input=hold_input,
+        )
+    )
+    direct_hold = RecordPositionHold(
+        state_builder=decision.state_builder,
+        exposure_builder=decision.exposure_builder,
+    ).execute(
+        portfolio_state=decision.portfolio_state,
+        current_exposure=decision.current_exposure,
+        review_input=hold_input,
+    )
+    assert hold_response.result == direct_hold
 
     owner_policy_input = OwnerPortfolioPolicyInput(
         knowledge_boundary=decision.portfolio_state.knowledge_boundary,
@@ -282,9 +317,7 @@ def test_learning_api_matches_direct_case_and_evaluation_for_allocation_and_repl
         execution_policy=execution_policy,
         execution_input=make_replacement_execution_input(context),
     )
-    replacement_horizon = context.execution_boundary.as_of.date().replace(
-        year=context.execution_boundary.as_of.year + 1
-    )
+    replacement_horizon = context.execution_boundary.as_of.date() + timedelta(days=365)
     replacement_case_response = api.open_learning_case_from_replacement(
         OpenLearningCaseFromReplacementRequest(
             portfolio_state=decision.portfolio_state,
