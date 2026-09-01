@@ -5,7 +5,11 @@ from __future__ import annotations
 import pytest
 
 from asymmetric_engine.domain.portfolio import ReplacementTarget, ReplacementTargetKind
-from tests.decision_factories import EXISTING_INSTRUMENT_ID, EXISTING_POSITION_ID, make_decision_context
+from tests.decision_factories import (
+    EXISTING_INSTRUMENT_ID,
+    EXISTING_POSITION_ID,
+    make_decision_context,
+)
 from tests.unit.test_portfolio_policy import (
     REPLACEMENT_TARGET_ID,
     _policy,
