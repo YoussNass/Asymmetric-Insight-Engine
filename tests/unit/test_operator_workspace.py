@@ -24,6 +24,7 @@ from asymmetric_engine.application.product_persistence import (
     LoadProductRecord,
     StoreProductRecord,
 )
+from asymmetric_engine.cli import main
 from asymmetric_engine.infrastructure.persistence.sqlite_product_store import (
     SQLiteProductRecordRepository,
 )
@@ -38,6 +39,7 @@ from asymmetric_engine.interfaces.operator_workspace import (
     WorkspaceWriteUnavailable,
 )
 from asymmetric_engine.interfaces.workspace_web import (
+    LOCAL_WORKSPACE_HOST,
     MAX_REQUEST_BYTES,
     WorkspaceWriteTokenError,
     WorkspaceWsgiApp,
@@ -119,6 +121,22 @@ def test_read_only_workspace_rejects_submission_before_payload_parsing(
     workspace, _ = _workspace(tmp_path)
     with pytest.raises(WorkspaceWriteUnavailable):
         workspace.submit_json("build_portfolio_state", "not-json")
+
+
+def test_read_only_cli_does_not_create_a_missing_product_store(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    database = tmp_path / "missing-products.sqlite"
+
+    assert main(["workspace", "--database", str(database)]) == 2
+    assert not database.exists()
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+
+
+def test_workspace_server_is_loopback_only() -> None:
+    assert LOCAL_WORKSPACE_HOST == "127.0.0.1"
 
 
 def test_write_workspace_persists_exact_canonical_api_output(tmp_path: Path) -> None:
