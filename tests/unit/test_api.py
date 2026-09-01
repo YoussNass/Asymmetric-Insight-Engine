@@ -358,20 +358,27 @@ def test_learning_api_matches_direct_case_and_evaluation_for_allocation_and_repl
     assert replacement_evaluation_response.result == direct_replacement_evaluation
 
 
-def test_api_does_not_hide_canonical_replay_failure_for_tampered_state() -> None:
+def test_api_does_not_hide_canonical_replay_failure_for_coherently_tampered_state() -> None:
     context = make_execution_context()
     api = _api(context)
-    state = context.decision_context.portfolio_state.model_copy(
-        update={"input_fingerprint": "0" * 64}
+    original = context.decision_context.portfolio_state
+    fake_fingerprint = "0" * 64
+    tampered_record = original.decision_record.model_copy(
+        update={"portfolio_input_fingerprint": fake_fingerprint}
+    )
+    state = original.model_copy(
+        update={
+            "input_fingerprint": fake_fingerprint,
+            "decision_record": tampered_record,
+        }
     )
 
+    request = BuildPortfolioExposureRequest(
+        portfolio_state=state,
+        exposure_input=make_exposure_input(),
+    )
     with pytest.raises(PortfolioStateIntegrityError):
-        api.build_portfolio_exposure(
-            BuildPortfolioExposureRequest(
-                portfolio_state=state,
-                exposure_input=make_exposure_input(),
-            )
-        )
+        api.build_portfolio_exposure(request)
 
 
 def test_api_request_models_reject_unknown_transport_fields() -> None:
