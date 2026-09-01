@@ -231,7 +231,7 @@ class AieProductApi:
         request: BuildPortfolioStateRequest,
     ) -> ApiResponse[PortfolioState]:
         result = self._services.portfolio_state.execute(request.draft)
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[PortfolioState](operation=request.operation, result=result)
 
     def build_portfolio_exposure(
         self,
@@ -241,7 +241,7 @@ class AieProductApi:
             request.portfolio_state,
             request.exposure_input,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[PortfolioExposure](operation=request.operation, result=result)
 
     def build_marginal_decision(
         self,
@@ -254,7 +254,7 @@ class AieProductApi:
             alternative_exposures=request.alternative_exposures,
             decision_input=request.decision_input,
         )
-        return ApiResponse(
+        return ApiResponse[MarginalDecisionPackage](
             operation=request.operation,
             result=MarginalDecisionPackage.from_application(result),
         )
@@ -268,14 +268,14 @@ class AieProductApi:
             current_exposure=request.current_exposure,
             review_input=request.review_input,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[PositionReview](operation=request.operation, result=result)
 
     def build_owner_portfolio_policy(
         self,
         request: BuildOwnerPortfolioPolicyRequest,
     ) -> ApiResponse[OwnerPortfolioPolicy]:
         result = self._services.owner_policy.execute(request.policy_input)
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[OwnerPortfolioPolicy](operation=request.operation, result=result)
 
     def apply_portfolio_policy(
         self,
@@ -289,7 +289,10 @@ class AieProductApi:
             marginal_result=request.marginal_result.to_application(),
             policy=request.policy,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[PolicyConstrainedMarginalDecision](
+            operation=request.operation,
+            result=result,
+        )
 
     def build_replacement_decision(
         self,
@@ -302,14 +305,14 @@ class AieProductApi:
             decision_input=request.decision_input,
             opportunity_state=request.opportunity_state,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[ReplacementDecision](operation=request.operation, result=result)
 
     def build_execution_policy(
         self,
         request: BuildExecutionPolicyRequest,
     ) -> ApiResponse[ExecutionPolicy]:
         result = self._services.execution_policy.execute(request.policy_input)
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[ExecutionPolicy](operation=request.operation, result=result)
 
     def build_execution_from_policy_allocation(
         self,
@@ -326,7 +329,7 @@ class AieProductApi:
             execution_policy=request.execution_policy,
             execution_input=request.execution_input,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[ExecutionPlan](operation=request.operation, result=result)
 
     def build_execution_from_replacement(
         self,
@@ -341,7 +344,7 @@ class AieProductApi:
             execution_input=request.execution_input,
             opportunity_state=request.opportunity_state,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[ExecutionPlan](operation=request.operation, result=result)
 
     def open_learning_case_from_policy_allocation(
         self,
@@ -359,7 +362,7 @@ class AieProductApi:
             execution_plan=request.execution_plan,
             evaluation_horizon_date=request.evaluation_horizon_date,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[DecisionLearningCase](operation=request.operation, result=result)
 
     def open_learning_case_from_replacement(
         self,
@@ -375,7 +378,7 @@ class AieProductApi:
             evaluation_horizon_date=request.evaluation_horizon_date,
             opportunity_state=request.opportunity_state,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[DecisionLearningCase](operation=request.operation, result=result)
 
     def build_learning_evaluation(
         self,
@@ -385,7 +388,7 @@ class AieProductApi:
             case=request.case,
             evaluation_input=request.evaluation_input,
         )
-        return ApiResponse(operation=request.operation, result=result)
+        return ApiResponse[DecisionLearningEvaluation](operation=request.operation, result=result)
 
 
 __all__ = [
