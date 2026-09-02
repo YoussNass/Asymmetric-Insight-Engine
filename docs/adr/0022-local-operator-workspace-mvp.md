@@ -1,6 +1,6 @@
 # ADR 0022: Add a local operator workspace without moving decision logic into the UI
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-01
 
 ## Context
