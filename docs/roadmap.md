@@ -8,12 +8,15 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 8 are complete in `main`;
+- Chapters 2 through 8 and Chapter 9A are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
-  replacement, capital-flow policy, point-in-time Execution, and decision-level Learning are
-  canonical;
-- Chapter 9A is the active productization candidate under proposed ADR 0020 and PR #27;
-- whole-pipeline persistence and the operator workspace remain subsequent Chapter 9 slices;
+  replacement, capital-flow policy, point-in-time Execution, decision-level Learning, and the
+  typed `aie-api-v1` product boundary are canonical;
+- Chapter 9A is complete under accepted ADR 0020 and merged PR #27;
+- Chapter 9B is the active immutable-persistence review candidate under proposed ADR 0021 and
+  Draft PR #28;
+- Chapter 9C is the stacked operator-workspace review candidate under proposed ADR 0022 and
+  Draft PR #29;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -52,13 +55,17 @@ Chapter 6 was completed on 2026-08-31 after ADR 0014 through ADR 0017 were accep
 implementations merged. Chapter 7 then passed its technical and governance gates under accepted ADR
 0018 and PR #24 was merged into `main` on 2026-09-01. Chapter 8 was subsequently implemented and
 merged in PR #25; the owner explicitly accepted ADR 0019 on 2026-09-01. PR #26 then added the narrow
-same-instrument replacement invariant discovered during the Chapter 8 red-team. The minimum
-analytical loop is therefore complete, and Chapter 9A begins productization through a stable typed
-interface boundary before persistence or frontend work.
+same-instrument replacement invariant discovered during the Chapter 8 red-team.
 
-Each later slice still requires its own narrow branch, tests, draft pull request, and explicit
-merge authorization. Approval of this roadmap does not authorize merging an unreviewed future
-implementation.
+Chapter 9A then established the stable product-facing typed boundary. ADR 0020 was explicitly
+accepted and PR #27 was reviewed and merged into `main`. Productization now proceeds through two
+remaining bounded slices: Chapter 9B immutable persistence and Chapter 9C operator workspace.
+Chapter 9C is stacked on the exact reviewed Chapter 9B head so the two can be governed and merged in
+order without mixing ownership.
+
+Each later slice still requires its own narrow branch, tests, draft pull request, explicit ADR
+acceptance, and separate merge authorization. Approval of this roadmap does not authorize merging
+an unreviewed future implementation.
 
 ## Active minimum-complete roadmap
 
@@ -263,8 +270,7 @@ any upstream capital decision.
 system has learned an investment edge.
 
 **Status:** complete and canonical in `main`; ADR 0019 accepted and PR #25 merged. The owner
-explicitly confirmed ADR 0019 acceptance on 2026-09-01 after the merge, and the status is normalized
-in the Chapter 9A branch.
+explicitly confirmed ADR 0019 acceptance on 2026-09-01.
 
 The first slice opens Learning only from canonically replayed Chapter 7 `NOW` or `STAGED` plans and
 preserves three ordered boundaries:
@@ -307,12 +313,13 @@ fake fill assumptions, aggregate skill claims, or automatic upstream feedback.
 
 ### Chapter 9A — Typed product API boundary
 
-**Purpose:** make the accepted analytical pipeline callable by future product adapters without
-moving financial logic into transport or UI code.
+**Purpose:** make the accepted analytical pipeline callable by product adapters without moving
+financial logic into transport or UI code.
 
-**Status:** active implementation candidate under proposed ADR 0020 and Draft PR #27.
+**Status:** complete and canonical in `main`; ADR 0020 accepted and PR #27 merged after exact-head
+review and explicit owner authorization.
 
-The initial contract is `aie-api-v1`. It provides strict typed request/response models and a
+The contract is `aie-api-v1`. It provides strict typed request/response models and a
 transport-neutral facade in the `interfaces` layer for the accepted Chapter 6 through Chapter 8
 product-critical use cases. Application services remain the canonical owners and are injected into
 the facade.
@@ -337,10 +344,10 @@ Out of scope:
 - any new financial metric, score, allocation, sizing, replacement search, timing rule, or Learning
   feedback mechanism.
 
-The proposed contract is documented in [`chapter-9a-api-boundary.md`](chapter-9a-api-boundary.md)
+The accepted contract is documented in [`chapter-9a-api-boundary.md`](chapter-9a-api-boundary.md)
 and [`ADR 0020`](adr/0020-typed-transport-neutral-api-boundary.md).
 
-Exit criterion: deterministic Chapter 6/7/8 reference packages can pass through `aie-api-v1` with
+Exit criterion: deterministic Chapter 6/7/8 reference packages pass through `aie-api-v1` with
 exactly the same canonical outputs and blocking integrity behavior as direct application calls,
 without adding a transport framework or financial logic to the interface layer.
 
@@ -349,22 +356,69 @@ without adding a transport framework or financial logic to the interface layer.
 **Purpose:** persist and retrieve immutable product records so prospective use does not depend on
 large stateless payloads and Learning case creation can retain creation evidence.
 
-**Status:** planned after Chapter 9A; no persistence contract is active yet.
+**Status:** active review candidate under proposed ADR 0021 and Draft PR #28. Exact reviewed head
+`96e7d64196ac0417fab7135896f658ec54c81b74` passed CI #157 with 366 tests, strict typing,
+Python 3.12/3.13, package, and container checks.
 
-The slice must define storage ownership, immutable-ID retrieval, creation metadata, migration and
-integrity rules before selecting or expanding a concrete adapter. Existing SQLite evidence storage
-is not implicitly promoted into whole-product persistence.
+The slice adds:
+
+- a storage-agnostic application persistence port;
+- an explicit registry of 15 admitted canonical product record kinds;
+- deterministic canonical JSON, SHA-256 and content-addressed UUIDv5 storage identities;
+- a first local timezone-aware `stored_at` timestamp preserved across idempotent re-append;
+- verification of envelope, schema, payload hash, storage identity, concrete record type, and
+  canonical JSON on load;
+- append-only semantics and explicit migration failure;
+- a file-backed SQLite reference adapter with update/delete guards and no read-side creation of a
+  missing store.
+
+Storage integrity does not replace canonical financial replay. `stored_at` is local operational
+audit evidence, not cryptographic notarization of when market information or a human decision first
+existed. SQLite is a reference adapter, not the production database decision.
+
+The proposed contract is documented in
+[`chapter-9b-immutable-product-persistence.md`](chapter-9b-immutable-product-persistence.md) and
+[`ADR 0021`](adr/0021-immutable-product-record-persistence.md).
+
+Exit criterion: admitted immutable product records survive process restarts and can be retrieved by
+content-addressed storage ID with corruption and schema drift failing closed, while their canonical
+application owners retain all financial verification authority.
 
 ### Chapter 9C — Operator workspace MVP
 
 **Purpose:** provide the first functional human-facing workflow over accepted APIs and persisted
 records.
 
-**Status:** planned after Chapter 9B.
+**Status:** stacked review candidate under proposed ADR 0022 and Draft PR #29, based on the exact
+reviewed Chapter 9B head. It must be retargeted and re-evaluated against `main` after PR #28 is
+merged.
 
-The workspace remains an interface only. It may collect explicit inputs and render canonical
-outputs, but it may not recalculate financial logic, manufacture scores, resize capital, or turn
-Learning evidence into automatic capital actions.
+The workspace remains an interface only. The first slice provides:
+
+- a read-only CLI composition over an already initialized Chapter 9B store;
+- a local browser navigator for storage-verified records and exact canonical JSON;
+- existing Decision/Execution Card projections without recalculation;
+- an explicit Chapter 9A operation registry for optional injected write composition;
+- persistence of exact canonical `aie-api-v1` outputs through Chapter 9B;
+- loopback-only standard-library WSGI serving with bounded request bodies;
+- a server-generated local anti-CSRF token checked before browser write dispatch.
+
+Read-only mode rejects mutation before parsing a client API payload. Unknown operation names do not
+dynamically dispatch. A multi-record `MarginalDecisionPackage` is appended idempotently record by
+record; Chapter 9C does not claim cross-record transactional atomicity. No remote authentication,
+rich frontend framework, broker/fill lifecycle, financial scoring/sizing/timing, optimizer,
+aggregate Learning statistics, or automatic capital feedback enters the slice.
+
+The proposed contract is documented in
+[`chapter-9c-operator-workspace-mvp.md`](chapter-9c-operator-workspace-mvp.md) and
+[`ADR 0022`](adr/0022-local-operator-workspace-mvp.md).
+
+Exit criterion: an operator can inspect real persisted AIE records locally and, when a real API/store
+composition is explicitly injected, execute only accepted typed operations whose exact canonical
+outputs are persisted, without shifting decision ownership into the UI.
+
+Chapter 9 becomes complete only after ADR 0021 and ADR 0022 are accepted and PR #28 then PR #29 are
+merged in order with post-retarget verification of PR #29.
 
 ## Portfolio concepts that remain policies or state
 
