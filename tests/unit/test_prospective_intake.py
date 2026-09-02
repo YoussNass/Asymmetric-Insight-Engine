@@ -24,8 +24,7 @@ def _repository() -> MemorySourceRepository:
     causal_documents, causal_contents = make_reference_sources()
     underwriting_documents, underwriting_contents = make_underwriting_sources()
     documents = {
-        document.document_id: document
-        for document in (*causal_documents, *underwriting_documents)
+        document.document_id: document for document in (*causal_documents, *underwriting_documents)
     }
     contents = {**causal_contents, **underwriting_contents}
     return MemorySourceRepository(documents=documents, contents=contents)
