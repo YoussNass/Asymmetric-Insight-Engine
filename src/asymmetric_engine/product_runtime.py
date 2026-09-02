@@ -29,6 +29,8 @@ from asymmetric_engine.application.product_persistence import (
     StoreProductRecord,
 )
 from asymmetric_engine.application.underwriting import BuildOpportunityState
+from asymmetric_engine.domain.causal import CausalAnalysis
+from asymmetric_engine.domain.opportunity import OpportunityState
 from asymmetric_engine.infrastructure.clock import SystemClock
 from asymmetric_engine.infrastructure.persistence import SQLiteSourceDocumentRepository
 from asymmetric_engine.infrastructure.persistence.sqlite_product_store import (
@@ -47,6 +49,9 @@ from asymmetric_engine.interfaces.prospective_intake import (
 LOCAL_PRODUCT_RUNTIME_VERSION = "local-product-runtime-v1"
 
 type ProspectiveIntakeRequest = BuildCausalAnalysisRequest | BuildOpportunityStateRequest
+type ProspectiveIntakeResponse = (
+    IntakeResponse[CausalAnalysis] | IntakeResponse[OpportunityState]
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +67,7 @@ class ProspectiveIntakeSubmission:
     """One upstream owner result plus its immutable product-store append result."""
 
     operation: str
-    response: IntakeResponse[object]
+    response: ProspectiveIntakeResponse
     persisted: ProductAppendResult
 
 
@@ -79,6 +84,7 @@ class LocalProductRuntime:
     product_store: StoreProductRecord
 
     def submit_intake(self, request: ProspectiveIntakeRequest) -> ProspectiveIntakeSubmission:
+        response: ProspectiveIntakeResponse
         if isinstance(request, BuildCausalAnalysisRequest):
             response = self.intake.build_causal_analysis(request)
         elif isinstance(request, BuildOpportunityStateRequest):
@@ -192,6 +198,7 @@ __all__ = [
     "LocalProductPaths",
     "LocalProductRuntime",
     "ProspectiveIntakeRequest",
+    "ProspectiveIntakeResponse",
     "ProspectiveIntakeSubmission",
     "build_local_product_runtime",
     "initialize_local_product_stores",
