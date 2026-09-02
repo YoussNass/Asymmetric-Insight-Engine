@@ -49,9 +49,7 @@ from asymmetric_engine.interfaces.prospective_intake import (
 LOCAL_PRODUCT_RUNTIME_VERSION = "local-product-runtime-v1"
 
 type ProspectiveIntakeRequest = BuildCausalAnalysisRequest | BuildOpportunityStateRequest
-type ProspectiveIntakeResponse = (
-    IntakeResponse[CausalAnalysis] | IntakeResponse[OpportunityState]
-)
+type ProspectiveIntakeResponse = IntakeResponse[CausalAnalysis] | IntakeResponse[OpportunityState]
 
 
 @dataclass(frozen=True, slots=True)
