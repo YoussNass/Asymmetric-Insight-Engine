@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from uuid import UUID
+
 from asymmetric_engine.application.product_persistence import ProductRecordKind
+from asymmetric_engine.domain.evidence import SourceDocument
 from asymmetric_engine.interfaces.api import BuildPortfolioStateRequest
 from asymmetric_engine.interfaces.prospective_intake import (
     BuildCausalAnalysisRequest,
@@ -10,6 +14,7 @@ from asymmetric_engine.interfaces.prospective_intake import (
 )
 from asymmetric_engine.product_runtime import (
     LocalProductPaths,
+    LocalProductRuntime,
     build_local_product_runtime,
     initialize_local_product_stores,
 )
@@ -18,12 +23,16 @@ from tests.portfolio_factories import make_portfolio_draft
 from tests.underwriting_factories import make_underwriting_draft, make_underwriting_sources
 
 
-def _append_sources(runtime, documents, contents) -> None:
+def _append_sources(
+    runtime: LocalProductRuntime,
+    documents: tuple[SourceDocument, ...],
+    contents: dict[UUID, bytes],
+) -> None:
     for document in documents:
         runtime.evidence_repository.append(document, contents[document.document_id])
 
 
-def test_local_runtime_connects_upstream_intake_to_downstream_workspace(tmp_path) -> None:
+def test_local_runtime_connects_upstream_intake_to_downstream_workspace(tmp_path: Path) -> None:
     paths = LocalProductPaths(
         evidence_database=tmp_path / "evidence.sqlite",
         product_database=tmp_path / "products.sqlite",
@@ -66,7 +75,7 @@ def test_local_runtime_connects_upstream_intake_to_downstream_workspace(tmp_path
     assert ProductRecordKind.PORTFOLIO_STATE in kinds
 
 
-def test_runtime_construction_fails_closed_when_stores_are_missing(tmp_path) -> None:
+def test_runtime_construction_fails_closed_when_stores_are_missing(tmp_path: Path) -> None:
     paths = LocalProductPaths(
         evidence_database=tmp_path / "missing-evidence.sqlite",
         product_database=tmp_path / "missing-products.sqlite",
