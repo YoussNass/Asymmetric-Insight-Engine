@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from pydantic import ValidationError
 
 from asymmetric_engine.application.causal_analysis import BuildCausalAnalysis
