@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from asymmetric_engine.application.causal_analysis import BuildCausalAnalysis
 from asymmetric_engine.application.underwriting import BuildOpportunityState
+from asymmetric_engine.domain.causal import CausalAnalysis
 from asymmetric_engine.interfaces.prospective_intake import (
     AieIntakeServices,
     AieProspectiveIntake,
@@ -72,8 +73,7 @@ def test_intake_requests_and_responses_round_trip_json_exactly() -> None:
     assert causal_request_round_trip == causal_request
 
     causal_response = _intake(repository).build_causal_analysis(causal_request)
-    response_type = IntakeResponse[type(causal_response.result)]
-    causal_response_round_trip = response_type.model_validate(
+    causal_response_round_trip = IntakeResponse[CausalAnalysis].model_validate(
         causal_response.model_dump(mode="json")
     )
     assert causal_response_round_trip == causal_response
