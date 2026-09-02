@@ -33,6 +33,8 @@ class SQLiteSourceDocumentRepository:
             raise ValueError("SQLite evidence ledger requires a file-backed database")
         if initialize_schema:
             self._initialize_schema()
+        else:
+            self._require_existing_schema()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
@@ -87,6 +89,18 @@ class SQLiteSourceDocumentRepository:
                     f"ALTER TABLE {TABLE_NAME} ADD COLUMN availability_basis TEXT NOT NULL "
                     f"DEFAULT '{AvailabilityBasis.PROVIDER_ASSERTED.value}'"
                 )
+
+    def _require_existing_schema(self) -> None:
+        path = Path(self._database_path)
+        if not path.is_file():
+            raise FileNotFoundError(f"evidence database does not exist: {path}")
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+                (TABLE_NAME,),
+            ).fetchone()
+        if row is None:
+            raise ValueError("SQLite evidence database does not contain the admitted ledger schema")
 
     @staticmethod
     def _serialize_datetime(value: datetime) -> str:
