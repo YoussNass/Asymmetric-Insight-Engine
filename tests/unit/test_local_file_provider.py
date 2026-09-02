@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
@@ -28,7 +29,7 @@ def _metadata() -> LocalFileEvidenceMetadata:
     )
 
 
-def test_local_provider_preserves_exact_bytes_and_declared_metadata(tmp_path) -> None:
+def test_local_provider_preserves_exact_bytes_and_declared_metadata(tmp_path: Path) -> None:
     path = tmp_path / "source.txt"
     content = b"exact source bytes\nwith no transformation\n"
     path.write_bytes(content)
@@ -46,7 +47,7 @@ def test_local_provider_preserves_exact_bytes_and_declared_metadata(tmp_path) ->
     assert draft.content == content
 
 
-def test_local_provider_never_backdates_public_availability(tmp_path) -> None:
+def test_local_provider_never_backdates_public_availability(tmp_path: Path) -> None:
     path = tmp_path / "source.txt"
     path.write_text("prospective source", encoding="utf-8")
 
@@ -56,12 +57,12 @@ def test_local_provider_never_backdates_public_availability(tmp_path) -> None:
     assert draft.available_at is None
 
 
-def test_local_provider_rejects_missing_file(tmp_path) -> None:
+def test_local_provider_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(SourceProviderAccessError, match="does not exist"):
         LocalFileSourceProvider(_metadata()).fetch(str(tmp_path / "missing.txt"))
 
 
-def test_local_provider_rejects_empty_file(tmp_path) -> None:
+def test_local_provider_rejects_empty_file(tmp_path: Path) -> None:
     path = tmp_path / "empty.txt"
     path.write_bytes(b"")
 
