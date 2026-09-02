@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import overload
 
 from asymmetric_engine.application.causal_analysis import BuildCausalAnalysis
 from asymmetric_engine.application.execution import BuildExecutionPlan, BuildExecutionPolicy
@@ -49,7 +50,6 @@ from asymmetric_engine.interfaces.prospective_intake import (
 LOCAL_PRODUCT_RUNTIME_VERSION = "local-product-runtime-v1"
 
 type ProspectiveIntakeRequest = BuildCausalAnalysisRequest | BuildOpportunityStateRequest
-type ProspectiveIntakeResponse = IntakeResponse[CausalAnalysis] | IntakeResponse[OpportunityState]
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,11 +61,11 @@ class LocalProductPaths:
 
 
 @dataclass(frozen=True, slots=True)
-class ProspectiveIntakeSubmission:
+class ProspectiveIntakeSubmission[T]:
     """One upstream owner result plus its immutable product-store append result."""
 
     operation: str
-    response: ProspectiveIntakeResponse
+    response: IntakeResponse[T]
     persisted: ProductAppendResult
 
 
@@ -81,20 +81,39 @@ class LocalProductRuntime:
     workspace: OperatorWorkspace
     product_store: StoreProductRecord
 
-    def submit_intake(self, request: ProspectiveIntakeRequest) -> ProspectiveIntakeSubmission:
-        response: ProspectiveIntakeResponse
+    @overload
+    def submit_intake(
+        self,
+        request: BuildCausalAnalysisRequest,
+    ) -> ProspectiveIntakeSubmission[CausalAnalysis]: ...
+
+    @overload
+    def submit_intake(
+        self,
+        request: BuildOpportunityStateRequest,
+    ) -> ProspectiveIntakeSubmission[OpportunityState]: ...
+
+    def submit_intake(
+        self,
+        request: ProspectiveIntakeRequest,
+    ) -> ProspectiveIntakeSubmission[CausalAnalysis] | ProspectiveIntakeSubmission[OpportunityState]:
         if isinstance(request, BuildCausalAnalysisRequest):
             response = self.intake.build_causal_analysis(request)
-        elif isinstance(request, BuildOpportunityStateRequest):
+            persisted = self.product_store.execute(response.result)
+            return ProspectiveIntakeSubmission[CausalAnalysis](
+                operation=request.operation,
+                response=response,
+                persisted=persisted,
+            )
+        if isinstance(request, BuildOpportunityStateRequest):
             response = self.intake.build_opportunity_state(request)
-        else:  # pragma: no cover - closed union guard
-            raise TypeError(f"unsupported prospective intake request: {type(request).__name__}")
-        persisted = self.product_store.execute(response.result)
-        return ProspectiveIntakeSubmission(
-            operation=request.operation,
-            response=response,
-            persisted=persisted,
-        )
+            persisted = self.product_store.execute(response.result)
+            return ProspectiveIntakeSubmission[OpportunityState](
+                operation=request.operation,
+                response=response,
+                persisted=persisted,
+            )
+        raise TypeError(f"unsupported prospective intake request: {type(request).__name__}")
 
 
 def initialize_local_product_stores(paths: LocalProductPaths) -> None:
@@ -196,7 +215,6 @@ __all__ = [
     "LocalProductPaths",
     "LocalProductRuntime",
     "ProspectiveIntakeRequest",
-    "ProspectiveIntakeResponse",
     "ProspectiveIntakeSubmission",
     "build_local_product_runtime",
     "initialize_local_product_stores",
