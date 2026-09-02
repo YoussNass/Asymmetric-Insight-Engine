@@ -47,6 +47,7 @@ from asymmetric_engine.interfaces.prospective_intake import (
 from asymmetric_engine.interfaces.workspace_web import serve_local_workspace
 from asymmetric_engine.product_runtime import (
     LocalProductPaths,
+    ProspectiveIntakeRequest,
     build_local_product_runtime,
     initialize_local_product_stores,
 )
@@ -429,6 +430,7 @@ def _run_product_intake(args: argparse.Namespace) -> int:
         raise CliUsageError(f"intake request file does not exist: {args.request}")
     payload = args.request.read_text(encoding="utf-8")
     runtime = build_local_product_runtime(_product_paths(args))
+    request: ProspectiveIntakeRequest
     if args.operation == "build_causal_analysis":
         request = BuildCausalAnalysisRequest.model_validate_json(payload)
     elif args.operation == "build_opportunity_state":
