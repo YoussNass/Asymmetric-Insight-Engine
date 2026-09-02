@@ -1,6 +1,6 @@
 # ADR 0021: Persist immutable product records without making storage a decision authority
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-01
 
 ## Context
