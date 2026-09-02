@@ -1,4 +1,4 @@
-"""Controlled command-line boundary for diagnostics and source-evidence operations."""
+"""Controlled command-line boundary for diagnostics, evidence, and local workspace operations."""
 
 from __future__ import annotations
 
@@ -24,11 +24,17 @@ from asymmetric_engine.application.evidence_operations import (
     InvalidBatchInputError,
     VerifySourceDocument,
 )
+from asymmetric_engine.application.product_persistence import ListProductRecords, LoadProductRecord
 from asymmetric_engine.domain.evidence import SourceDocument
 from asymmetric_engine.domain.temporal import KnowledgeBoundary, KnowledgeMode
 from asymmetric_engine.infrastructure.clock import SystemClock
 from asymmetric_engine.infrastructure.persistence import SQLiteSourceDocumentRepository
+from asymmetric_engine.infrastructure.persistence.sqlite_product_store import (
+    SQLiteProductRecordRepository,
+)
 from asymmetric_engine.infrastructure.providers import SecEdgarHttpFetcher, SecEdgarProvider
+from asymmetric_engine.interfaces.operator_workspace import OperatorWorkspace
+from asymmetric_engine.interfaces.workspace_web import serve_local_workspace
 
 SEC_USER_AGENT_ENV = "AIE_SEC_USER_AGENT"
 
@@ -58,32 +64,35 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Operate the local append-only source-evidence ledger.",
     )
     evidence_commands = evidence.add_subparsers(dest="evidence_command", required=True)
-
     ingest_sec = evidence_commands.add_parser(
         "ingest-sec",
         help="Ingest exact SEC CIK/accession references sequentially.",
     )
     ingest_sec.add_argument("--database", type=Path, required=True)
     ingest_sec.add_argument("--reference", dest="references", action="append", required=True)
-
     list_documents = evidence_commands.add_parser(
         "list",
         help="List source versions knowable at a decision-time boundary.",
     )
     _add_knowledge_boundary_arguments(list_documents)
-
     coverage = evidence_commands.add_parser(
         "coverage",
         help="Report inclusion, exclusion, and temporal-provenance counts.",
     )
     _add_knowledge_boundary_arguments(coverage)
-
     verify = evidence_commands.add_parser(
         "verify",
         help="Recompute one stored source document's hash and byte size.",
     )
     verify.add_argument("--database", type=Path, required=True)
     verify.add_argument("--document-id", type=UUID, required=True)
+
+    workspace = subparsers.add_parser(
+        "workspace",
+        help="Open the local read-only operator workspace.",
+    )
+    workspace.add_argument("--database", type=Path, required=True)
+    workspace.add_argument("--port", type=int, default=8765)
     return parser
 
 
@@ -99,8 +108,6 @@ def _add_knowledge_boundary_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def doctor_payload() -> dict[str, str]:
-    """Return a deterministic, machine-readable installation diagnostic."""
-
     return {
         "package": "asymmetric-insight-engine",
         "python": platform.python_version(),
@@ -169,7 +176,6 @@ def _run_ingest_sec(args: argparse.Namespace) -> int:
             clock=SystemClock(),
         )
     ).execute(references)
-
     outcomes: list[dict[str, Any]] = []
     for outcome in result.outcomes:
         if outcome.append_result is not None:
@@ -209,7 +215,8 @@ def _run_list_documents(args: argparse.Namespace) -> int:
     boundary = _knowledge_boundary(args)
     subject_id = _required_text(args.subject, "subject")
     documents = ListSourceDocumentsAt(_existing_repository(args.database)).execute(
-        subject_id=subject_id, boundary=boundary
+        subject_id=subject_id,
+        boundary=boundary,
     )
     print(
         json.dumps(
@@ -229,7 +236,8 @@ def _run_coverage(args: argparse.Namespace) -> int:
     boundary = _knowledge_boundary(args)
     subject_id = _required_text(args.subject, "subject")
     report = InspectKnowledgeCoverage(_existing_repository(args.database)).execute(
-        subject_id=subject_id, boundary=boundary
+        subject_id=subject_id,
+        boundary=boundary,
     )
     print(
         json.dumps(
@@ -271,9 +279,37 @@ def _run_verify(args: argparse.Namespace) -> int:
     return 0 if report.is_valid else 3
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Run the command-line interface and return a process exit code."""
+def _run_workspace(args: argparse.Namespace) -> int:
+    try:
+        repository = SQLiteProductRecordRepository(
+            args.database,
+            initialize_schema=False,
+        )
+    except (FileNotFoundError, sqlite3.Error, ValueError) as error:
+        raise CliUsageError(str(error)) from error
+    workspace = OperatorWorkspace(
+        loader=LoadProductRecord(repository),
+        lister=ListProductRecords(repository),
+    )
+    print(f"AIE read-only workspace: http://127.0.0.1:{args.port}")
+    serve_local_workspace(workspace, port=args.port)
+    return 0
 
+
+def _print_error(error: Exception) -> None:
+    print(
+        json.dumps(
+            {
+                "error": type(error).__name__,
+                "message": str(error),
+                "status": "error",
+            },
+            sort_keys=True,
+        )
+    )
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     if args.command == "doctor":
         print(json.dumps(doctor_payload(), sort_keys=True))
@@ -281,6 +317,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "version":
         print(__version__)
         return 0
+    if args.command == "workspace":
+        try:
+            return _run_workspace(args)
+        except (CliUsageError, OSError, sqlite3.Error, ValueError) as error:
+            _print_error(error)
+            return 2
     if args.command == "evidence":
         try:
             if args.evidence_command == "ingest-sec":
@@ -292,16 +334,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.evidence_command == "verify":
                 return _run_verify(args)
         except (CliUsageError, KeyError, OSError, sqlite3.Error) as error:
-            print(
-                json.dumps(
-                    {
-                        "error": type(error).__name__,
-                        "message": str(error),
-                        "status": "error",
-                    },
-                    sort_keys=True,
-                )
-            )
+            _print_error(error)
             return 2
     raise AssertionError(f"Unhandled command: {args.command}")
 

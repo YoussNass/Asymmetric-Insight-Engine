@@ -59,7 +59,7 @@ explicit graduation criteria; they are preserved without becoming premature acti
 
 ## Current status
 
-Chapters 2 through 8 are complete in `main`. Chapter 5 provides standalone Investment
+Chapters 2 through 8 and Chapter 9A are complete in `main`. Chapter 5 provides standalone Investment
 Underwriting: normalized reported, market-observed, and analyst-adjusted facts with native
 currency and fiscal-period scope; versioned deterministic formulas; eight independent analytical
 dimensions; categorical eligibility gates; dated bear/base/bull valuation bridges;
@@ -127,19 +127,36 @@ exact upstream thesis-condition outcomes, and categorical scenario realization w
 broker P&L, total shareholder return, calibrated probabilities, or investment skill. See
 [`Chapter 8: Decision-level Learning MVP`](docs/chapter-8-learning-mvp.md).
 
-Chapter 9A is the active productization candidate under proposed
-[`ADR 0020`](docs/adr/0020-typed-transport-neutral-api-boundary.md). It introduces `aie-api-v1`, a
-strict transport-neutral interface over the accepted Chapter 6 through Chapter 8 application use
-cases. The interface composes canonical records, dependency-injects their application owners, and
-must return exactly the same canonical outputs as direct Python invocation. It adds no HTTP server,
-authentication, persistence, frontend, new financial calculation, scoring, sizing, timing logic, or
-broker action. See [`Chapter 9A: Typed product API boundary`](docs/chapter-9a-api-boundary.md).
+Chapter 9A is canonical under accepted
+[`ADR 0020`](docs/adr/0020-typed-transport-neutral-api-boundary.md) and merged PR #27. It introduces
+`aie-api-v1`, a strict transport-neutral interface over the accepted Chapter 6 through Chapter 8
+application use cases. The interface composes canonical records, dependency-injects their
+application owners, and returns the same canonical outputs as direct Python invocation. It adds no
+financial calculation, score, sizing, timing logic, persistence authority, or broker action. See
+[`Chapter 9A: Typed product API boundary`](docs/chapter-9a-api-boundary.md).
 
-Live brokerage actions, calibrated automatic sizing, advanced tax-lot optimization, covariance
-optimization, Market State, aggregate Learning skill statistics, factor-adjusted alpha, automatic
-Learning feedback, live Portfolio providers and whole-pipeline persistence, automated
-extraction/discovery, complete filing normalization, and a functional user interface remain outside
-the canonical implemented scope. SQLite remains a local/reference evidence persistence adapter.
+Chapter 9B is the persistence candidate under proposed
+[`ADR 0021`](docs/adr/0021-immutable-product-record-persistence.md) and Draft PR #28. It adds an
+append-only, content-addressed persistence port and a file-backed SQLite reference adapter for the
+15 admitted product-critical immutable record kinds. Storage verification remains distinct from
+canonical financial replay, and the first local `stored_at` is audit evidence rather than
+cryptographic notarization. See
+[`Chapter 9B: Immutable product persistence`](docs/chapter-9b-immutable-product-persistence.md).
+
+Chapter 9C is the final Chapter 9 candidate under proposed
+[`ADR 0022`](docs/adr/0022-local-operator-workspace-mvp.md) and stacked Draft PR #29. It adds a
+minimal local operator workspace over `aie-api-v1` and Chapter 9B persistence: read-only CLI
+composition, immutable-record navigation, exact canonical JSON rendering, existing Decision and
+Execution Card projections, and optional injected write orchestration. Browser writes require a
+server-generated localhost anti-CSRF token before dispatch. No financial logic moves into the UI.
+See [`Chapter 9C: Operator workspace MVP`](docs/chapter-9c-operator-workspace-mvp.md).
+
+Until ADR 0021/0022 are accepted and PR #28/#29 are merged, 9B/9C are review candidates rather than
+canonical `main` capabilities. Live brokerage actions, calibrated automatic sizing, advanced
+tax-lot optimization, covariance optimization, Market State, aggregate Learning skill statistics,
+factor-adjusted alpha, automatic Learning feedback, production database operations, remote/multi-
+user web deployment, automated extraction/discovery, and complete filing normalization remain
+outside the implemented product scope.
 
 ## Quick start
 
@@ -190,12 +207,24 @@ uv run asymmetric-engine evidence verify \
   --document-id "$DOCUMENT_ID"
 ```
 
-All completed operations emit machine-readable JSON. Exit code `0` means success, `2` means an
-invalid request, missing record, storage failure, or partial batch failure, and `3` means integrity
-verification detected altered bytes.
+All completed evidence operations emit machine-readable JSON. Exit code `0` means success, `2`
+means an invalid request, missing record, storage failure, or partial batch failure, and `3` means
+integrity verification detected altered bytes.
 
 The coverage command describes only versions already known to the ledger. It does not prove that
 the filing universe is complete.
+
+On the Chapter 9C candidate, an already initialized Chapter 9B product store can be browsed locally
+without enabling writes:
+
+```bash
+uv run asymmetric-engine workspace \
+  --database ./product-records.sqlite3 \
+  --port 8765
+```
+
+The command binds only to `127.0.0.1` and refuses to create a missing product database. Write
+composition remains explicitly injected and is not enabled by this CLI command.
 
 Or build and diagnose the same runtime boundary used by CI:
 
@@ -208,10 +237,12 @@ docker run --rm asymmetric-insight-engine:local
 
 - `src/asymmetric_engine/domain`: pure evidence, temporal, financial, causal, opportunity,
   Portfolio Decision, Execution, and Learning contracts.
-- `src/asymmetric_engine/application`: use cases and orchestration.
-- `src/asymmetric_engine/infrastructure`: external providers and persistence adapters.
+- `src/asymmetric_engine/application`: use cases and orchestration, including the storage-agnostic
+  product persistence port on the Chapter 9B candidate.
+- `src/asymmetric_engine/infrastructure`: external providers and persistence adapters, including
+  reference SQLite stores.
 - `src/asymmetric_engine/interfaces`: CLI, read-only Decision/Execution Card projections, the typed
-  product API boundary, and future transport/user-interface adapters.
+  product API boundary, and the Chapter 9C local operator workspace candidate.
 - `docs`: system constitution, architecture, and Architecture Decision Records.
 - `docs/roadmap.md`: canonical delivery order and deferred capability register.
 - `docs/complexity-budget.md`: admission and graduation rules for new sophistication.
