@@ -151,12 +151,19 @@ Execution Card projections, and optional injected write orchestration. Browser w
 server-generated localhost anti-CSRF token before dispatch. No financial logic moves into the UI.
 See [`Chapter 9C: Operator workspace MVP`](docs/chapter-9c-operator-workspace-mvp.md).
 
-Chapter 9 was integrated into `main` through PR #30. Chapter 10 is the prospective local product
-composition candidate under accepted
-[`ADR 0023`](docs/adr/0023-prospective-local-product-composition.md) and Draft PR #31. It adds an
+Chapter 9 was integrated into `main` through PR #30. Chapter 10 was integrated into `main` through
+PR #31 under accepted
+[`ADR 0023`](docs/adr/0023-prospective-local-product-composition.md). It adds an
 explicit local composition root, strict Causal/Underwriting intake, conservative local-file
 evidence ingestion, and explicit fail-closed store initialization. See
 [`Chapter 10: Prospective Operation & Product Composition MVP`](docs/chapter-10-prospective-operation-mvp.md).
+
+Chapter 11 is now an active proposal under
+[`ADR 0024`](docs/adr/0024-point-in-time-sec-fundamental-data-foundation.md). Its first slice begins a
+strict CIK-based SEC submissions catalog before later accession capture, shadow XBRL extraction,
+and metric-by-metric canonical fact admission. It remains a separate review scope built on the
+merged Chapter 10 foundation. See
+[`Chapter 11: Point-in-Time SEC Fundamental Data Foundation`](docs/chapter-11-sec-fundamental-data-foundation.md).
 
 Live brokerage actions, calibrated automatic sizing, advanced
 tax-lot optimization, covariance optimization, Market State, aggregate Learning skill statistics,
