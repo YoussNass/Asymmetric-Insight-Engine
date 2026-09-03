@@ -1,9 +1,13 @@
 # Chapter 10 — Prospective Operation & Product Composition MVP
 
-Type: product composition capability  
-Complexity class: `CORE NOW`  
-Governing decision: proposed ADR 0023  
-Runtime contract: `local-product-runtime-v1`  
+Type: product composition capability
+
+Complexity class: `CORE NOW`
+
+Governing decision: proposed ADR 0023
+
+Runtime contract: `local-product-runtime-v1`
+
 Upstream intake contract: `aie-intake-v1`
 
 ## Purpose

@@ -96,21 +96,23 @@ class LocalProductRuntime:
     def submit_intake(
         self,
         request: ProspectiveIntakeRequest,
-    ) -> ProspectiveIntakeSubmission[CausalAnalysis] | ProspectiveIntakeSubmission[OpportunityState]:
+    ) -> (
+        ProspectiveIntakeSubmission[CausalAnalysis] | ProspectiveIntakeSubmission[OpportunityState]
+    ):
         if isinstance(request, BuildCausalAnalysisRequest):
-            response = self.intake.build_causal_analysis(request)
-            persisted = self.product_store.execute(response.result)
+            causal_response = self.intake.build_causal_analysis(request)
+            persisted = self.product_store.execute(causal_response.result)
             return ProspectiveIntakeSubmission[CausalAnalysis](
                 operation=request.operation,
-                response=response,
+                response=causal_response,
                 persisted=persisted,
             )
         if isinstance(request, BuildOpportunityStateRequest):
-            response = self.intake.build_opportunity_state(request)
-            persisted = self.product_store.execute(response.result)
+            opportunity_response = self.intake.build_opportunity_state(request)
+            persisted = self.product_store.execute(opportunity_response.result)
             return ProspectiveIntakeSubmission[OpportunityState](
                 operation=request.operation,
-                response=response,
+                response=opportunity_response,
                 persisted=persisted,
             )
         raise TypeError(f"unsupported prospective intake request: {type(request).__name__}")

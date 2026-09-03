@@ -516,7 +516,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             OSError,
             SourceProviderError,
             sqlite3.Error,
-            ValueError,
         ) as error:
             _print_error(error)
             return 2

@@ -8,15 +8,14 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 8 and Chapter 9A are complete in `main`;
+- Chapters 2 through 9 are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
   replacement, capital-flow policy, point-in-time Execution, decision-level Learning, and the
   typed `aie-api-v1` product boundary are canonical;
-- Chapter 9A is complete under accepted ADR 0020 and merged PR #27;
-- Chapter 9B is the active immutable-persistence review candidate under proposed ADR 0021 and
-  Draft PR #28;
-- Chapter 9C is the stacked operator-workspace review candidate under proposed ADR 0022 and
-  Draft PR #29;
+- Chapter 9A, 9B, and 9C are complete under accepted ADR 0020, ADR 0021, and ADR 0022; their
+  integrated implementation reached `main` through PR #30;
+- Chapter 10 is the active prospective-product-composition review candidate under proposed
+  ADR 0023 and Draft PR #31;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -58,10 +57,10 @@ merged in PR #25; the owner explicitly accepted ADR 0019 on 2026-09-01. PR #26 t
 same-instrument replacement invariant discovered during the Chapter 8 red-team.
 
 Chapter 9A then established the stable product-facing typed boundary. ADR 0020 was explicitly
-accepted and PR #27 was reviewed and merged into `main`. Productization now proceeds through two
-remaining bounded slices: Chapter 9B immutable persistence and Chapter 9C operator workspace.
-Chapter 9C is stacked on the exact reviewed Chapter 9B head so the two can be governed and merged in
-order without mixing ownership.
+accepted and PR #27 was reviewed and merged into `main`. Chapter 9B immutable persistence and
+Chapter 9C operator workspace followed under accepted ADR 0021 and ADR 0022; their integrated head
+was merged through PR #30 on 2026-09-02. Chapter 10 now composes those accepted capabilities with
+the upstream Causal and Underwriting owners over real local evidence and product stores.
 
 Each later slice still requires its own narrow branch, tests, draft pull request, explicit ADR
 acceptance, and separate merge authorization. Approval of this roadmap does not authorize merging
@@ -356,9 +355,8 @@ without adding a transport framework or financial logic to the interface layer.
 **Purpose:** persist and retrieve immutable product records so prospective use does not depend on
 large stateless payloads and Learning case creation can retain creation evidence.
 
-**Status:** active review candidate under proposed ADR 0021 and Draft PR #28. Exact reviewed head
-`96e7d64196ac0417fab7135896f658ec54c81b74` passed CI #157 with 366 tests, strict typing,
-Python 3.12/3.13, package, and container checks.
+**Status:** complete and canonical in `main`; ADR 0021 accepted and the integrated Chapter 9 head
+merged through PR #30 after review and verification.
 
 The slice adds:
 
@@ -376,7 +374,7 @@ Storage integrity does not replace canonical financial replay. `stored_at` is lo
 audit evidence, not cryptographic notarization of when market information or a human decision first
 existed. SQLite is a reference adapter, not the production database decision.
 
-The proposed contract is documented in
+The accepted contract is documented in
 [`chapter-9b-immutable-product-persistence.md`](chapter-9b-immutable-product-persistence.md) and
 [`ADR 0021`](adr/0021-immutable-product-record-persistence.md).
 
@@ -389,9 +387,8 @@ application owners retain all financial verification authority.
 **Purpose:** provide the first functional human-facing workflow over accepted APIs and persisted
 records.
 
-**Status:** stacked review candidate under proposed ADR 0022 and Draft PR #29, based on the exact
-reviewed Chapter 9B head. It must be retargeted and re-evaluated against `main` after PR #28 is
-merged.
+**Status:** complete and canonical in `main`; ADR 0022 accepted and the integrated Chapter 9 head
+merged through PR #30 after review and verification.
 
 The workspace remains an interface only. The first slice provides:
 
@@ -409,7 +406,7 @@ record; Chapter 9C does not claim cross-record transactional atomicity. No remot
 rich frontend framework, broker/fill lifecycle, financial scoring/sizing/timing, optimizer,
 aggregate Learning statistics, or automatic capital feedback enters the slice.
 
-The proposed contract is documented in
+The accepted contract is documented in
 [`chapter-9c-operator-workspace-mvp.md`](chapter-9c-operator-workspace-mvp.md) and
 [`ADR 0022`](adr/0022-local-operator-workspace-mvp.md).
 
@@ -417,8 +414,37 @@ Exit criterion: an operator can inspect real persisted AIE records locally and, 
 composition is explicitly injected, execute only accepted typed operations whose exact canonical
 outputs are persisted, without shifting decision ownership into the UI.
 
-Chapter 9 becomes complete only after ADR 0021 and ADR 0022 are accepted and PR #28 then PR #29 are
-merged in order with post-retarget verification of PR #29.
+Chapter 9 is complete.
+
+### Chapter 10 — Prospective Operation & Product Composition MVP
+
+**Purpose:** operate the accepted analytical and product slices as one explicit local prospective
+workflow without creating another financial engine.
+
+**Status:** active review candidate under proposed ADR 0023 and Draft PR #31, retargeted and
+revalidated against `main` after the Chapter 9 integration merged through PR #30.
+
+The slice adds:
+
+- one `local-product-runtime-v1` outer composition root over accepted application owners;
+- a separate strict `aie-intake-v1` boundary for canonical Causal Analysis and Opportunity State;
+- exact persistence of successful upstream canonical results through Chapter 9B;
+- explicit initialization and fail-closed opening of the local evidence and product stores;
+- conservative exact-byte local evidence intake with availability observed only at ingestion;
+- a write-enabled Chapter 9C workspace backed by the full accepted `aie-api-v1` service graph.
+
+Chapter 10 adds no source discovery, extraction authority, financial default, score, sizing method,
+Market State, automatic Learning feedback, broker lifecycle, remote authentication, or production
+database choice.
+
+The proposed contract is documented in
+[`chapter-10-prospective-operation-mvp.md`](chapter-10-prospective-operation-mvp.md) and
+[`ADR 0023`](adr/0023-prospective-local-product-composition.md).
+
+Exit criterion: a deterministic integration crosses real evidence storage, canonical Causal and
+Underwriting intake, immutable product persistence, and configured downstream API/workspace output;
+all stores fail closed outside explicit initialization, all repository checks pass on the exact
+review head, and the owner explicitly accepts ADR 0023. Merge authorization remains separate.
 
 ## Portfolio concepts that remain policies or state
 
