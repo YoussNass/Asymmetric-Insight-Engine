@@ -1,6 +1,6 @@
 # ADR 0023: Add explicit prospective local product composition without changing decision ownership
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-02
 
 ## Context
@@ -202,3 +202,9 @@ ADR 0023 may move to `Accepted` only when:
 13. lint, formatting, mypy, pytest, package, Python 3.12/3.13 and container CI pass on the exact PR
     head;
 14. the owner explicitly accepts ADR 0023. Merge authorization remains a separate governance gate.
+
+## Acceptance record
+
+The owner accepted this ADR on 2026-09-03 after the Chapter 10 review head satisfied the local
+architecture, lint, formatting, type-checking, test, doctor, and package-build gates. Authorization
+to merge Draft PR #31 remains a separate governance decision.

@@ -4,7 +4,7 @@ Type: product composition capability
 
 Complexity class: `CORE NOW`
 
-Governing decision: proposed ADR 0023
+Governing decision: accepted ADR 0023
 
 Runtime contract: `local-product-runtime-v1`
 

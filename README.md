@@ -152,7 +152,7 @@ server-generated localhost anti-CSRF token before dispatch. No financial logic m
 See [`Chapter 9C: Operator workspace MVP`](docs/chapter-9c-operator-workspace-mvp.md).
 
 Chapter 9 was integrated into `main` through PR #30. Chapter 10 is the prospective local product
-composition candidate under proposed
+composition candidate under accepted
 [`ADR 0023`](docs/adr/0023-prospective-local-product-composition.md) and Draft PR #31. It adds an
 explicit local composition root, strict Causal/Underwriting intake, conservative local-file
 evidence ingestion, and explicit fail-closed store initialization. See

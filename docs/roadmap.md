@@ -14,8 +14,8 @@ At the time of this roadmap:
   typed `aie-api-v1` product boundary are canonical;
 - Chapter 9A, 9B, and 9C are complete under accepted ADR 0020, ADR 0021, and ADR 0022; their
   integrated implementation reached `main` through PR #30;
-- Chapter 10 is the active prospective-product-composition review candidate under proposed
-  ADR 0023 and Draft PR #31;
+- Chapter 10 is the technically complete prospective-product-composition review candidate under
+  accepted ADR 0023 and Draft PR #31; merge authorization remains separate;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -421,8 +421,9 @@ Chapter 9 is complete.
 **Purpose:** operate the accepted analytical and product slices as one explicit local prospective
 workflow without creating another financial engine.
 
-**Status:** active review candidate under proposed ADR 0023 and Draft PR #31, retargeted and
-revalidated against `main` after the Chapter 9 integration merged through PR #30.
+**Status:** technically complete review candidate under accepted ADR 0023 and Draft PR #31,
+retargeted and revalidated against `main` after the Chapter 9 integration merged through PR #30;
+merge authorization remains separate.
 
 The slice adds:
 
@@ -437,7 +438,7 @@ Chapter 10 adds no source discovery, extraction authority, financial default, sc
 Market State, automatic Learning feedback, broker lifecycle, remote authentication, or production
 database choice.
 
-The proposed contract is documented in
+The accepted contract is documented in
 [`chapter-10-prospective-operation-mvp.md`](chapter-10-prospective-operation-mvp.md) and
 [`ADR 0023`](adr/0023-prospective-local-product-composition.md).
 
