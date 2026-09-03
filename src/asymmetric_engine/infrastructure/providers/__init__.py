@@ -12,14 +12,28 @@ from asymmetric_engine.infrastructure.providers.sec_edgar import (
     SecEdgarProvider,
     UnsupportedSecFilingError,
 )
+from asymmetric_engine.infrastructure.providers.sec_edgar_submissions import (
+    SEC_SUBMISSIONS_ROOT,
+    SecEdgarSubmissionsProvider,
+    SecFilingCatalogEntry,
+    SecSubmissionCatalog,
+    SecSubmissionCatalogPayloadError,
+    SecSubmissionHistoryPage,
+)
 
 __all__ = [
     "LOCAL_MANUAL_PROVIDER",
+    "SEC_SUBMISSIONS_ROOT",
     "LocalFileEvidenceMetadata",
     "LocalFileSourceProvider",
     "ProviderAccessError",
     "ProviderPayloadError",
     "SecEdgarHttpFetcher",
     "SecEdgarProvider",
+    "SecEdgarSubmissionsProvider",
+    "SecFilingCatalogEntry",
+    "SecSubmissionCatalog",
+    "SecSubmissionCatalogPayloadError",
+    "SecSubmissionHistoryPage",
     "UnsupportedSecFilingError",
 ]
