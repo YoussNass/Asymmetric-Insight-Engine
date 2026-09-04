@@ -32,7 +32,6 @@ from asymmetric_engine.infrastructure.providers.arelle_xbrl import (
     SecCompleteSubmissionEntryPointExtractor,
 )
 
-
 CONTENT = b"<SEC-DOCUMENT>verified filing bytes</SEC-DOCUMENT>"
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 
@@ -236,9 +235,7 @@ def test_shadow_extraction_rejects_duplicate_processor_facts() -> None:
         (
             replace(
                 cash_fact(),
-                dimensions=(
-                    replace(cash_fact().dimensions[0], member_namespace=None),
-                ),
+                dimensions=(replace(cash_fact().dimensions[0], member_namespace=None),),
             ),
             "explicit XBRL dimensions require",
         ),
@@ -300,28 +297,33 @@ def test_pinned_arelle_bridge_rejects_version_drift() -> None:
     with pytest.raises(ArelleVersionMismatchError, match="does not match pin"):
         PinnedArelleProcessorBridge(
             reported_version="2.44.4",
-            extractor=lambda _content, _filename: (),
+            extractor=lambda _content, _filename, _source_uri: (),
         )
 
 
-def test_pinned_arelle_bridge_passes_primary_bytes_and_prefixes_locator() -> None:
-    calls: list[tuple[bytes, str]] = []
+def test_pinned_arelle_bridge_passes_primary_bytes_base_uri_and_prefixes_locator() -> None:
+    calls: list[tuple[bytes, str, str]] = []
 
-    def extractor(content: bytes, filename: str) -> tuple[ProcessorXbrlFact, ...]:
-        calls.append((content, filename))
+    def extractor(
+        content: bytes,
+        filename: str,
+        source_uri: str,
+    ) -> tuple[ProcessorXbrlFact, ...]:
+        calls.append((content, filename, source_uri))
         return (replace(revenue_fact(), source_locator="line-42"),)
 
     bridge = PinnedArelleProcessorBridge(
         reported_version=ARELLE_PINNED_VERSION,
         extractor=extractor,
     )
+    source_uri = "https://www.sec.gov/Archives/edgar/data/example.txt"
 
     facts = bridge.extract(
         content=complete_submission(),
-        source_uri="https://www.sec.gov/example.txt",
+        source_uri=source_uri,
     )
 
-    assert calls == [(b"<html>ixbrl</html>", "annual.htm")]
+    assert calls == [(b"<html>ixbrl</html>", "annual.htm", source_uri)]
     assert facts[0].source_locator == "annual.htm:line-42"
     assert bridge.processor_name == "Arelle"
     assert bridge.processor_version == ARELLE_PINNED_VERSION
