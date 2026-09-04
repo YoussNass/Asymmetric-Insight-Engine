@@ -32,7 +32,6 @@ from asymmetric_engine.infrastructure.providers.arelle_xbrl import (
     SecCompleteSubmissionEntryPointExtractor,
 )
 
-
 CONTENT = b"<SEC-DOCUMENT>verified filing bytes</SEC-DOCUMENT>"
 DOCUMENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 
