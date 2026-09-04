@@ -237,9 +237,7 @@ def test_provider_fetches_declared_history_page_and_filters_unsupported_forms() 
         page=page,
     )
 
-    assert requested_urls == [
-        "https://data.sec.gov/submissions/CIK0000320193-submissions-001.json"
-    ]
+    assert requested_urls == ["https://data.sec.gov/submissions/CIK0000320193-submissions-001.json"]
     assert snapshot.cik == "0000320193"
     assert snapshot.page_name == page.name
     assert snapshot.total_filings == 2
