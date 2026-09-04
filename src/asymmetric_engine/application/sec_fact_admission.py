@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from hashlib import sha256
 from typing import Protocol
-from uuid import NAMESPACE_URL, UUID, uuid5
+from uuid import NAMESPACE_URL, uuid5
 
 from asymmetric_engine.application.evidence_ingestion import SourceDocumentRepository
 from asymmetric_engine.application.sec_xbrl_extraction import (
@@ -17,6 +17,7 @@ from asymmetric_engine.application.sec_xbrl_extraction import (
     SecXbrlCandidate,
     SecXbrlCandidateSet,
     SecXbrlPeriodKind,
+    validate_sec_xbrl_candidate_set_integrity,
 )
 from asymmetric_engine.application.source_verification import load_verified_source_document
 from asymmetric_engine.domain.evidence import (
@@ -51,6 +52,14 @@ _MAPPING_VERSION = "sec-canonical-fact-mapping-v1"
 _RECONCILIATION_VERSION = "sec-statement-reconciliation-v1"
 _SUPPORTED_EXTRACTION_VERSION = "sec-xbrl-shadow-v1"
 _MILLION = Decimal("1000000")
+_STRICTLY_POSITIVE_ADMISSION_METRICS = {
+    FinancialMetric.REVENUE,
+    FinancialMetric.DILUTED_WEIGHTED_AVERAGE_SHARES,
+}
+_NON_NEGATIVE_ADMISSION_METRICS = {
+    FinancialMetric.CAPITAL_EXPENDITURES,
+    FinancialMetric.SHARE_BASED_COMPENSATION,
+}
 
 
 class SecFactAdmissionStatus(StrEnum):
@@ -74,6 +83,42 @@ class SecCalculationStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class SecCalculationComponent:
+    """One raw calculation-network child value and weight observed for a statement fact."""
+
+    value: Decimal
+    weight: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class SecStatementObservation:
+    """Untrusted low-level presentation/calculation observation supplied to AIE reconciliation."""
+
+    candidate_id: str
+    statement_present: bool
+    statement_role_uri: str
+    statement_locator: str
+    statement_value: Decimal
+    calculation_parent_value: Decimal | None
+    calculation_components: tuple[SecCalculationComponent, ...]
+    calculation_relationship_complete: bool
+    inspector_name: str
+    inspector_version: str
+
+
+class SecStatementInspector(Protocol):
+    """Replaceable standards-layer inspector that exposes raw statement relationships only."""
+
+    def inspect(
+        self,
+        *,
+        candidate: SecXbrlCandidate,
+        candidate_set: SecXbrlCandidateSet,
+    ) -> SecStatementObservation:
+        """Return raw presentation and calculation observations without admission authority."""
+
+
+@dataclass(frozen=True, slots=True)
 class SecCandidateReconciliation:
     """AIE-owned statement/calculation reconciliation evidence for one exact candidate."""
 
@@ -86,11 +131,13 @@ class SecCandidateReconciliation:
     calculation_detail: str
     reconciler_name: str
     reconciler_version: str
+    inspector_name: str
+    inspector_version: str
     reconciliation_version: str = _RECONCILIATION_VERSION
 
 
 class SecFactReconciler(Protocol):
-    """Replaceable low-level statement/calculation inspector behind AIE admission rules."""
+    """Reconciliation contract consumed by canonical fact admission."""
 
     def reconcile(
         self,
@@ -99,6 +146,77 @@ class SecFactReconciler(Protocol):
         candidate_set: SecXbrlCandidateSet,
     ) -> SecCandidateReconciliation:
         """Reconcile the exact candidate against the exact filing statements and calculations."""
+
+
+class DeterministicSecFactReconciler:
+    """Own presentation/calculation consistency decisions over raw standards-layer observations."""
+
+    reconciler_name = "aie-sec-deterministic-reconciler"
+    reconciler_version = "1.0.0"
+
+    def __init__(self, inspector: SecStatementInspector) -> None:
+        self._inspector = inspector
+
+    @staticmethod
+    def _calculation_status(
+        observation: SecStatementObservation,
+    ) -> tuple[SecCalculationStatus, str]:
+        if not observation.calculation_relationship_complete:
+            return (
+                SecCalculationStatus.UNKNOWN,
+                "Calculation relationship observation is incomplete.",
+            )
+        parent = observation.calculation_parent_value
+        components = observation.calculation_components
+        if parent is None and not components:
+            return (
+                SecCalculationStatus.NOT_APPLICABLE,
+                "No calculation relationship is declared for the statement fact.",
+            )
+        if parent is None or not components:
+            return (
+                SecCalculationStatus.UNKNOWN,
+                "Calculation relationship is structurally incomplete.",
+            )
+        weighted_sum = sum(
+            (component.value * component.weight for component in components),
+            start=Decimal("0"),
+        )
+        if parent == observation.statement_value and weighted_sum == parent:
+            return (
+                SecCalculationStatus.CONSISTENT,
+                f"Weighted calculation children reconcile exactly to {parent}.",
+            )
+        return (
+            SecCalculationStatus.INCONSISTENT,
+            f"Calculation parent={parent} weighted_children={weighted_sum} "
+            f"statement={observation.statement_value}.",
+        )
+
+    def reconcile(
+        self,
+        *,
+        candidate: SecXbrlCandidate,
+        candidate_set: SecXbrlCandidateSet,
+    ) -> SecCandidateReconciliation:
+        observation = self._inspector.inspect(
+            candidate=candidate,
+            candidate_set=candidate_set,
+        )
+        status, detail = self._calculation_status(observation)
+        return SecCandidateReconciliation(
+            candidate_id=observation.candidate_id,
+            statement_present=observation.statement_present,
+            statement_role_uri=observation.statement_role_uri,
+            statement_locator=observation.statement_locator,
+            statement_value=observation.statement_value,
+            calculation_status=status,
+            calculation_detail=detail,
+            reconciler_name=self.reconciler_name,
+            reconciler_version=self.reconciler_version,
+            inspector_name=observation.inspector_name,
+            inspector_version=observation.inspector_version,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,6 +372,13 @@ class AdmitSecReportedFact:
         }:
             raise ValueError("share candidate unit is not xbrli:shares")
 
+    @staticmethod
+    def _validate_metric_value(metric: FinancialMetric, value: Decimal) -> None:
+        if metric in _STRICTLY_POSITIVE_ADMISSION_METRICS and value <= 0:
+            raise ValueError(f"{metric.value} must be greater than zero")
+        if metric in _NON_NEGATIVE_ADMISSION_METRICS and value < 0:
+            raise ValueError(f"{metric.value} cannot be negative")
+
     @classmethod
     def _normalize_value(
         cls,
@@ -262,18 +387,19 @@ class AdmitSecReportedFact:
         rule: SecCanonicalMetricRule,
         expected_currency: str | None,
     ) -> tuple[Decimal, str | None]:
-        value = cls._parse_decimal(candidate)
+        raw_value = cls._parse_decimal(candidate)
+        cls._validate_metric_value(rule.metric, raw_value)
         if rule.unit is FinancialUnit.MONEY_MILLIONS:
             currency = cls._currency(candidate)
             if expected_currency is not None and currency != expected_currency:
                 raise ValueError(
                     f"candidate currency {currency} does not match expected {expected_currency}"
                 )
-            return value / _MILLION, currency
+            return raw_value / _MILLION, currency
         if expected_currency is not None:
             raise ValueError("share metrics cannot declare expected_currency")
         cls._require_shares(candidate)
-        return value / _MILLION, None
+        return raw_value / _MILLION, None
 
     @staticmethod
     def _reconciliation_is_admissible(
@@ -295,6 +421,8 @@ class AdmitSecReportedFact:
             reasons.append("missing_statement_locator")
         if not reconciliation.reconciler_name.strip() or not reconciliation.reconciler_version.strip():
             reasons.append("missing_reconciler_identity")
+        if not reconciliation.inspector_name.strip() or not reconciliation.inspector_version.strip():
+            reasons.append("missing_statement_inspector_identity")
         if not reconciliation.calculation_detail.strip():
             reasons.append("missing_calculation_detail")
         if reconciliation.statement_value != raw_value:
@@ -322,6 +450,8 @@ class AdmitSecReportedFact:
             "reconciliation_version": reconciliation.reconciliation_version,
             "reconciler_name": reconciliation.reconciler_name,
             "reconciler_version": reconciliation.reconciler_version,
+            "inspector_name": reconciliation.inspector_name,
+            "inspector_version": reconciliation.inspector_version,
             "statement_role_uri": reconciliation.statement_role_uri,
             "statement_locator": reconciliation.statement_locator,
             "calculation_status": reconciliation.calculation_status.value,
@@ -372,6 +502,7 @@ class AdmitSecReportedFact:
             raise ValueError("Chapter 11C requires a shadow-only candidate set")
         if candidate_set.extraction_version != _SUPPORTED_EXTRACTION_VERSION:
             raise ValueError("Chapter 11C received an unsupported extraction version")
+        validate_sec_xbrl_candidate_set_integrity(candidate_set)
 
         document = load_verified_source_document(
             self._repository,
@@ -473,7 +604,8 @@ class AdmitSecReportedFact:
         extraction_method = (
             f"{candidate.extraction_method}@{candidate.extraction_version};"
             f"{_MAPPING_VERSION};{reconciliation.reconciler_name}@"
-            f"{reconciliation.reconciler_version};{reconciliation.reconciliation_version}"
+            f"{reconciliation.reconciler_version};{reconciliation.inspector_name}@"
+            f"{reconciliation.inspector_version};{reconciliation.reconciliation_version}"
         )
         evidence = EvidenceItem(
             evidence_id=evidence_id,
