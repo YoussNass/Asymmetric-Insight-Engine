@@ -85,7 +85,7 @@ class PinnedArelleProcessorBridge:
         self,
         *,
         reported_version: str,
-        extractor: Callable[[bytes, str], tuple[ProcessorXbrlFact, ...]],
+        extractor: Callable[[bytes, str, str], tuple[ProcessorXbrlFact, ...]],
         entry_point_extractor: SecCompleteSubmissionEntryPointExtractor | None = None,
     ) -> None:
         normalized_version = reported_version.strip()
@@ -100,12 +100,17 @@ class PinnedArelleProcessorBridge:
         )
 
     def extract(self, *, content: bytes, source_uri: str) -> tuple[ProcessorXbrlFact, ...]:
-        """Send only the primary filing document to the pinned external standards processor."""
+        """Send the primary filing bytes plus SEC base URI to the pinned standards processor."""
 
-        if not source_uri.strip():
+        normalized_source_uri = source_uri.strip()
+        if not normalized_source_uri:
             raise ArelleBridgeError("source_uri must not be empty")
         entry_point = self._entry_point_extractor.extract(content)
-        facts = self._extractor(entry_point.content, entry_point.filename)
+        facts = self._extractor(
+            entry_point.content,
+            entry_point.filename,
+            normalized_source_uri,
+        )
         if not isinstance(facts, tuple):
             raise ArelleBridgeError("Arelle extractor must return an immutable tuple")
         return tuple(
