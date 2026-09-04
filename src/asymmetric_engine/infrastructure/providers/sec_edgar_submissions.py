@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import date
 from hashlib import sha256
 
@@ -13,81 +12,27 @@ from asymmetric_engine.application.evidence_ingestion import (
     InvalidSourceReferenceError,
     SourceProviderPayloadError,
 )
+from asymmetric_engine.application.sec_source_manifest import (
+    SecFilingCatalogEntry,
+    SecSubmissionCatalog,
+    SecSubmissionHistoryPage,
+    SecSubmissionHistorySnapshot,
+)
 from asymmetric_engine.infrastructure.providers.sec_edgar import SUPPORTED_FORMS
 
 SEC_SUBMISSIONS_ROOT = "https://data.sec.gov/submissions"
 CIK_PATTERN = re.compile(r"^[0-9]{1,10}$")
 ACCESSION_PATTERN = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 ACCEPTANCE_PATTERN = re.compile(r"^[0-9]{14}$")
-HISTORY_FILE_PATTERN = re.compile(r"^[A-Za-z0-9._-]+\.json$")
+HISTORY_FILE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.json$")
 
 
 class SecSubmissionCatalogPayloadError(SourceProviderPayloadError):
     """Raised when SEC submissions JSON cannot support a trustworthy catalog."""
 
 
-@dataclass(frozen=True, slots=True)
-class SecFilingCatalogEntry:
-    """One admitted filing identity discovered in an SEC submissions snapshot."""
-
-    cik: str
-    accession: str
-    form: str
-    filed_on: date
-    report_period_end: date
-    acceptance_datetime_text: str
-    primary_document: str
-
-    @property
-    def reference(self) -> str:
-        """Return the exact reference consumed by the existing filing provider."""
-
-        return f"{self.cik}/{self.accession}"
-
-
-@dataclass(frozen=True, slots=True)
-class SecSubmissionHistoryPage:
-    """One older SEC history page declared but not silently fetched by this slice."""
-
-    name: str
-    filing_count: int
-    filing_from: date
-    filing_to: date
-
-
-@dataclass(frozen=True, slots=True)
-class SecSubmissionCatalog:
-    """Content-addressed view of one exact SEC submissions response."""
-
-    cik: str
-    company_name: str
-    ticker_exchange_pairs: tuple[tuple[str, str], ...]
-    entries: tuple[SecFilingCatalogEntry, ...]
-    history_pages: tuple[SecSubmissionHistoryPage, ...]
-    source_uri: str
-    content_hash: str
-    total_recent_filings: int
-    content: bytes = field(repr=False)
-
-    @property
-    def subject_id(self) -> str:
-        return f"company:sec-cik-{self.cik}"
-
-    @property
-    def history_complete(self) -> bool:
-        """Remain false while SEC declares older pages this snapshot did not include."""
-
-        return not self.history_pages
-
-    @property
-    def warnings(self) -> tuple[str, ...]:
-        if self.history_complete:
-            return ()
-        return ("additional_sec_history_pages_not_fetched",)
-
-
 class SecEdgarSubmissionsProvider:
-    """Fetch and parse one current SEC submissions snapshot without claiming availability."""
+    """Fetch and parse exact SEC submissions pages without claiming public availability."""
 
     def __init__(self, fetch_bytes: Callable[[str], bytes]) -> None:
         self._fetch_bytes = fetch_bytes
@@ -222,7 +167,7 @@ class SecEdgarSubmissionsProvider:
         for index, raw_page in enumerate(raw_pages):
             page = cls._object(raw_page, f"filings.files[{index}]")
             name = cls._text(page.get("name"), f"filings.files[{index}].name")
-            if not HISTORY_FILE_PATTERN.fullmatch(name):
+            if not HISTORY_FILE_PATTERN.fullmatch(name) or ".." in name:
                 raise SecSubmissionCatalogPayloadError(
                     f"SEC submissions history filename at index {index} is invalid"
                 )
@@ -259,12 +204,8 @@ class SecEdgarSubmissionsProvider:
             pages.append(history_page)
         return tuple(sorted(pages, key=lambda item: (item.filing_from, item.name)))
 
-    def fetch(self, reference: str) -> SecSubmissionCatalog:
-        """Fetch one CIK snapshot while keeping acceptance text non-authoritative."""
-
-        cik = self._cik(reference)
-        source_uri = f"{SEC_SUBMISSIONS_ROOT}/CIK{cik}.json"
-        content = self._fetch_bytes(source_uri)
+    @classmethod
+    def _decode_json(cls, content: bytes) -> dict[str, object]:
         if not isinstance(content, bytes) or not content:
             raise SecSubmissionCatalogPayloadError("SEC submissions payload must contain bytes")
         try:
@@ -273,7 +214,15 @@ class SecEdgarSubmissionsProvider:
             raise SecSubmissionCatalogPayloadError(
                 "SEC submissions payload is not valid UTF-8 JSON"
             ) from error
-        root = self._object(payload, "root")
+        return cls._object(payload, "root")
+
+    def fetch(self, reference: str) -> SecSubmissionCatalog:
+        """Fetch one current CIK snapshot while keeping acceptance text non-authoritative."""
+
+        cik = self._cik(reference)
+        source_uri = f"{SEC_SUBMISSIONS_ROOT}/CIK{cik}.json"
+        content = self._fetch_bytes(source_uri)
+        root = self._decode_json(content)
         payload_cik = root.get("cik")
         if isinstance(payload_cik, bool) or not isinstance(payload_cik, (str, int)):
             raise SecSubmissionCatalogPayloadError("SEC submissions field cik is invalid")
@@ -301,6 +250,9 @@ class SecEdgarSubmissionsProvider:
             )
             for index, ticker in enumerate(tickers)
         )
+        if len(ticker_exchange_pairs) != len(set(ticker_exchange_pairs)):
+            raise SecSubmissionCatalogPayloadError("SEC ticker and exchange aliases contain duplicates")
+
         filings = self._object(root.get("filings"), "filings")
         recent = self._object(filings.get("recent"), "filings.recent")
         accessions = self._array(
@@ -316,5 +268,30 @@ class SecEdgarSubmissionsProvider:
             source_uri=source_uri,
             content_hash=sha256(content).hexdigest(),
             total_recent_filings=len(accessions),
+            content=content,
+        )
+
+    def fetch_history_page(
+        self,
+        *,
+        cik: str,
+        page: SecSubmissionHistoryPage,
+    ) -> SecSubmissionHistorySnapshot:
+        """Fetch one exact older page only when it was declared by a current catalog."""
+
+        normalized_cik = self._cik(cik)
+        if not HISTORY_FILE_PATTERN.fullmatch(page.name) or ".." in page.name:
+            raise InvalidSourceReferenceError("SEC submissions history page name is invalid")
+        source_uri = f"{SEC_SUBMISSIONS_ROOT}/{page.name}"
+        content = self._fetch_bytes(source_uri)
+        root = self._decode_json(content)
+        accessions = self._array(root.get("accessionNumber"), "filings.recent.accessionNumber")
+        return SecSubmissionHistorySnapshot(
+            cik=normalized_cik,
+            page_name=page.name,
+            entries=self._entries(root, normalized_cik),
+            source_uri=source_uri,
+            content_hash=sha256(content).hexdigest(),
+            total_filings=len(accessions),
             content=content,
         )
