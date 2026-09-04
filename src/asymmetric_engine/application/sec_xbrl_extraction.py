@@ -159,9 +159,7 @@ class ExtractSecXbrlCandidates:
                 )
         else:
             if member_namespace is None:
-                raise SecXbrlExtractionError(
-                    "explicit XBRL dimensions require a member namespace"
-                )
+                raise SecXbrlExtractionError("explicit XBRL dimensions require a member namespace")
             member_namespace = cls._required_text(member_namespace, "member_namespace")
         return SecXbrlDimension(
             axis_namespace=axis_namespace,
@@ -194,10 +192,7 @@ class ExtractSecXbrlCandidates:
         if unit_id == "":
             raise SecXbrlExtractionError("processor fact unit_id must not be blank")
         numerator = tuple(
-            sorted(
-                cls._required_text(item, "unit_numerator")
-                for item in fact.unit_numerator
-            )
+            sorted(cls._required_text(item, "unit_numerator") for item in fact.unit_numerator)
         )
         denominator = tuple(
             sorted(cls._required_text(item, "unit_denominator") for item in fact.unit_denominator)
