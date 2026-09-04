@@ -276,4 +276,7 @@ class CaptureSecExpectedSources:
     def execute(self, manifest: SecExpectedSourceManifest) -> tuple[AppendResult, ...]:
         """Capture exact complete-submission bytes additively in deterministic manifest order."""
 
-        return tuple(self._ingestor.execute(reference) for reference in manifest.expected_references)
+        return tuple(
+            self._ingestor.execute(reference)
+            for reference in manifest.expected_references
+        )
