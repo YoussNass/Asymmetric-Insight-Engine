@@ -124,6 +124,163 @@ class SecXbrlCandidateSet:
     authority: SecXbrlAuthority = SecXbrlAuthority.SHADOW_ONLY
 
 
+def _fact_payload(fact: ProcessorXbrlFact) -> dict[str, object]:
+    return {
+        "concept_namespace": fact.concept_namespace,
+        "concept_name": fact.concept_name,
+        "context_id": fact.context_id,
+        "period_kind": fact.period_kind.value,
+        "period_start": fact.period_start.isoformat() if fact.period_start else None,
+        "period_end": fact.period_end.isoformat(),
+        "unit_id": fact.unit_id,
+        "unit_numerator": fact.unit_numerator,
+        "unit_denominator": fact.unit_denominator,
+        "dimensions": [
+            {
+                "axis_namespace": item.axis_namespace,
+                "axis_name": item.axis_name,
+                "member_namespace": item.member_namespace,
+                "member_name": item.member_name,
+                "typed_member": item.typed_member,
+            }
+            for item in fact.dimensions
+        ],
+        "decimals": fact.decimals,
+        "precision": fact.precision,
+        "raw_value": fact.raw_value,
+        "is_numeric": fact.is_numeric,
+        "is_nil": fact.is_nil,
+        "source_locator": fact.source_locator,
+    }
+
+
+def _candidate_as_processor_fact(candidate: SecXbrlCandidate) -> ProcessorXbrlFact:
+    return ProcessorXbrlFact(
+        concept_namespace=candidate.concept_namespace,
+        concept_name=candidate.concept_name,
+        context_id=candidate.context_id,
+        period_kind=candidate.period_kind,
+        period_start=candidate.period_start,
+        period_end=candidate.period_end,
+        unit_id=candidate.unit_id,
+        unit_numerator=candidate.unit_numerator,
+        unit_denominator=candidate.unit_denominator,
+        dimensions=candidate.dimensions,
+        decimals=candidate.decimals,
+        precision=candidate.precision,
+        raw_value=candidate.raw_value,
+        is_numeric=candidate.is_numeric,
+        is_nil=candidate.is_nil,
+        source_locator=candidate.source_locator,
+    )
+
+
+def _serialize_fact(fact: ProcessorXbrlFact) -> str:
+    return json.dumps(
+        _fact_payload(fact),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+
+
+def _candidate_id(
+    *,
+    source_content_hash: str,
+    processor_name: str,
+    processor_version: str,
+    extraction_version: str,
+    serialized_fact: str,
+) -> str:
+    return sha256(
+        (
+            f"{source_content_hash}|{processor_name}|{processor_version}|"
+            f"{extraction_version}|{serialized_fact}"
+        ).encode()
+    ).hexdigest()
+
+
+def _candidate_set_fingerprint(candidate_set: SecXbrlCandidateSet) -> str:
+    set_payload = {
+        "source_document_id": str(candidate_set.source_document_id),
+        "source_content_hash": candidate_set.source_content_hash,
+        "accession": candidate_set.accession,
+        "processor_name": candidate_set.processor_name,
+        "processor_version": candidate_set.processor_version,
+        "extraction_method": candidate_set.extraction_method,
+        "extraction_version": candidate_set.extraction_version,
+        "candidate_ids": [item.candidate_id for item in candidate_set.candidates],
+    }
+    canonical = json.dumps(
+        set_payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    return sha256(canonical).hexdigest()
+
+
+def validate_sec_xbrl_candidate_set_integrity(candidate_set: SecXbrlCandidateSet) -> None:
+    """Recompute all content addresses and reject any candidate or set lineage drift."""
+
+    if candidate_set.authority is not SecXbrlAuthority.SHADOW_ONLY:
+        raise SecXbrlExtractionError("SEC XBRL candidate set must remain shadow-only")
+    if candidate_set.warnings != ("shadow_extraction_not_admitted_for_underwriting",):
+        raise SecXbrlExtractionError("SEC XBRL candidate set warning contract drifted")
+    for field_name, value in (
+        ("source_content_hash", candidate_set.source_content_hash),
+        ("accession", candidate_set.accession),
+        ("processor_name", candidate_set.processor_name),
+        ("processor_version", candidate_set.processor_version),
+        ("extraction_method", candidate_set.extraction_method),
+        ("extraction_version", candidate_set.extraction_version),
+    ):
+        if not value.strip():
+            raise SecXbrlExtractionError(f"SEC XBRL candidate set {field_name} must not be empty")
+
+    seen_candidate_ids: set[str] = set()
+    for candidate in candidate_set.candidates:
+        if candidate.authority is not SecXbrlAuthority.SHADOW_ONLY:
+            raise SecXbrlExtractionError("SEC XBRL candidate must remain shadow-only")
+        if candidate.source_document_id != candidate_set.source_document_id:
+            raise SecXbrlExtractionError("SEC XBRL candidate source document drifted from its set")
+        if candidate.source_content_hash != candidate_set.source_content_hash:
+            raise SecXbrlExtractionError("SEC XBRL candidate source hash drifted from its set")
+        if candidate.accession != candidate_set.accession:
+            raise SecXbrlExtractionError("SEC XBRL candidate accession drifted from its set")
+        if candidate.processor_name != candidate_set.processor_name:
+            raise SecXbrlExtractionError("SEC XBRL candidate processor name drifted from its set")
+        if candidate.processor_version != candidate_set.processor_version:
+            raise SecXbrlExtractionError("SEC XBRL candidate processor version drifted from its set")
+        if candidate.extraction_method != candidate_set.extraction_method:
+            raise SecXbrlExtractionError("SEC XBRL candidate extraction method drifted from its set")
+        if candidate.extraction_version != candidate_set.extraction_version:
+            raise SecXbrlExtractionError("SEC XBRL candidate extraction version drifted from its set")
+        if candidate.candidate_id in seen_candidate_ids:
+            raise SecXbrlExtractionError("SEC XBRL candidate set contains duplicate candidate ids")
+        seen_candidate_ids.add(candidate.candidate_id)
+
+        expected_candidate_id = _candidate_id(
+            source_content_hash=candidate_set.source_content_hash,
+            processor_name=candidate_set.processor_name,
+            processor_version=candidate_set.processor_version,
+            extraction_version=candidate_set.extraction_version,
+            serialized_fact=_serialize_fact(_candidate_as_processor_fact(candidate)),
+        )
+        if candidate.candidate_id != expected_candidate_id:
+            raise SecXbrlExtractionError("SEC XBRL candidate content address does not match payload")
+
+    expected_fingerprint = _candidate_set_fingerprint(candidate_set)
+    if candidate_set.input_fingerprint != expected_fingerprint:
+        raise SecXbrlExtractionError("SEC XBRL candidate-set fingerprint does not match payload")
+    expected_extraction_id = uuid5(
+        NAMESPACE_URL,
+        f"asymmetric-insight-engine:sec-xbrl-shadow:{expected_fingerprint}",
+    )
+    if candidate_set.extraction_id != expected_extraction_id:
+        raise SecXbrlExtractionError("SEC XBRL extraction id does not match candidate-set fingerprint")
+
+
 class ExtractSecXbrlCandidates:
     """Verify source bytes, validate processor output, and create shadow-only candidates."""
 
@@ -228,36 +385,6 @@ class ExtractSecXbrlCandidates:
             source_locator=locator,
         )
 
-    @staticmethod
-    def _fact_payload(fact: ProcessorXbrlFact) -> dict[str, object]:
-        return {
-            "concept_namespace": fact.concept_namespace,
-            "concept_name": fact.concept_name,
-            "context_id": fact.context_id,
-            "period_kind": fact.period_kind.value,
-            "period_start": fact.period_start.isoformat() if fact.period_start else None,
-            "period_end": fact.period_end.isoformat(),
-            "unit_id": fact.unit_id,
-            "unit_numerator": fact.unit_numerator,
-            "unit_denominator": fact.unit_denominator,
-            "dimensions": [
-                {
-                    "axis_namespace": item.axis_namespace,
-                    "axis_name": item.axis_name,
-                    "member_namespace": item.member_namespace,
-                    "member_name": item.member_name,
-                    "typed_member": item.typed_member,
-                }
-                for item in fact.dimensions
-            ],
-            "decimals": fact.decimals,
-            "precision": fact.precision,
-            "raw_value": fact.raw_value,
-            "is_numeric": fact.is_numeric,
-            "is_nil": fact.is_nil,
-            "source_locator": fact.source_locator,
-        }
-
     def execute(self, source_document_id: UUID) -> SecXbrlCandidateSet:
         """Extract one exact filing into shadow candidates with no Underwriting authority."""
 
@@ -276,23 +403,20 @@ class ExtractSecXbrlCandidates:
         raw_facts = self._processor.extract(content=content, source_uri=document.source_uri)
         normalized_facts = tuple(self._normalize_fact(fact) for fact in raw_facts)
 
-        payloads = [self._fact_payload(fact) for fact in normalized_facts]
-        serialized_payloads = [
-            json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-            for item in payloads
-        ]
+        serialized_payloads = [_serialize_fact(fact) for fact in normalized_facts]
         if len(serialized_payloads) != len(set(serialized_payloads)):
             raise SecXbrlExtractionError("standards processor emitted duplicate XBRL facts")
         ordered_pairs = sorted(zip(serialized_payloads, normalized_facts, strict=True))
 
         candidates: list[SecXbrlCandidate] = []
         for serialized, fact in ordered_pairs:
-            candidate_id = sha256(
-                (
-                    f"{document.content_hash}|{processor_name}|{processor_version}|"
-                    f"{self._VERSION}|{serialized}"
-                ).encode()
-            ).hexdigest()
+            candidate_id = _candidate_id(
+                source_content_hash=document.content_hash,
+                processor_name=processor_name,
+                processor_version=processor_version,
+                extraction_version=self._VERSION,
+                serialized_fact=serialized,
+            )
             candidates.append(
                 SecXbrlCandidate(
                     candidate_id=candidate_id,
@@ -322,31 +446,9 @@ class ExtractSecXbrlCandidates:
                 )
             )
 
-        set_payload = {
-            "source_document_id": str(document.document_id),
-            "source_content_hash": document.content_hash,
-            "accession": accession,
-            "processor_name": processor_name,
-            "processor_version": processor_version,
-            "extraction_method": self._METHOD,
-            "extraction_version": self._VERSION,
-            "candidate_ids": [item.candidate_id for item in candidates],
-        }
-        canonical = json.dumps(
-            set_payload,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        ).encode()
-        fingerprint = sha256(canonical).hexdigest()
-        extraction_id = uuid5(
-            NAMESPACE_URL,
-            f"asymmetric-insight-engine:sec-xbrl-shadow:{fingerprint}",
-        )
-        warnings = ("shadow_extraction_not_admitted_for_underwriting",)
-        return SecXbrlCandidateSet(
-            extraction_id=extraction_id,
-            input_fingerprint=fingerprint,
+        provisional = SecXbrlCandidateSet(
+            extraction_id=UUID(int=0),
+            input_fingerprint="pending",
             source_document_id=document.document_id,
             source_content_hash=document.content_hash,
             accession=accession,
@@ -355,5 +457,24 @@ class ExtractSecXbrlCandidates:
             extraction_method=self._METHOD,
             extraction_version=self._VERSION,
             candidates=tuple(candidates),
-            warnings=warnings,
+            warnings=("shadow_extraction_not_admitted_for_underwriting",),
         )
+        fingerprint = _candidate_set_fingerprint(provisional)
+        result = SecXbrlCandidateSet(
+            extraction_id=uuid5(
+                NAMESPACE_URL,
+                f"asymmetric-insight-engine:sec-xbrl-shadow:{fingerprint}",
+            ),
+            input_fingerprint=fingerprint,
+            source_document_id=provisional.source_document_id,
+            source_content_hash=provisional.source_content_hash,
+            accession=provisional.accession,
+            processor_name=provisional.processor_name,
+            processor_version=provisional.processor_version,
+            extraction_method=provisional.extraction_method,
+            extraction_version=provisional.extraction_version,
+            candidates=provisional.candidates,
+            warnings=provisional.warnings,
+        )
+        validate_sec_xbrl_candidate_set_integrity(result)
+        return result
