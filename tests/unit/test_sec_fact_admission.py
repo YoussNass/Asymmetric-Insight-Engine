@@ -337,9 +337,7 @@ def test_golden_corpus_admits_only_exact_v1_metric_families(
             metric=metric,
             period=fy_period(),
             expected_currency=(
-                None
-                if metric is FinancialMetric.DILUTED_WEIGHTED_AVERAGE_SHARES
-                else "USD"
+                None if metric is FinancialMetric.DILUTED_WEIGHTED_AVERAGE_SHARES else "USD"
             ),
         ),
     )
@@ -365,9 +363,7 @@ def test_heterogeneous_standard_taxonomy_vintages_remain_deterministic(
     concept_name: str,
 ) -> None:
     result = service().execute(
-        candidate_set=candidate_set(
-            processor_fact(namespace=namespace, concept_name=concept_name)
-        ),
+        candidate_set=candidate_set(processor_fact(namespace=namespace, concept_name=concept_name)),
         request=revenue_request(),
     )
 
@@ -423,9 +419,7 @@ def test_multiple_exact_standard_candidates_are_ambiguous_even_when_values_match
     result = service().execute(candidate_set=facts, request=revenue_request())
 
     assert result.status is SecFactAdmissionStatus.AMBIGUOUS
-    assert set(result.considered_candidate_ids) == {
-        item.candidate_id for item in facts.candidates
-    }
+    assert set(result.considered_candidate_ids) == {item.candidate_id for item in facts.candidates}
     assert result.bundle is None
 
 
@@ -481,9 +475,7 @@ def test_underwriting_value_domain_conflicts_fail_closed_before_model_constructi
     reason: str,
 ) -> None:
     result = service().execute(
-        candidate_set=candidate_set(
-            processor_fact(concept_name=concept_name, raw_value=raw_value)
-        ),
+        candidate_set=candidate_set(processor_fact(concept_name=concept_name, raw_value=raw_value)),
         request=SecFactAdmissionRequest(
             metric=metric,
             period=fy_period(),
@@ -624,9 +616,7 @@ def test_aie_owned_reconciler_computes_calculation_consistency() -> None:
         (
             FakeInspector(
                 parent=Decimal("100"),
-                components=(
-                    SecCalculationComponent(value=Decimal("99"), weight=Decimal("1")),
-                ),
+                components=(SecCalculationComponent(value=Decimal("99"), weight=Decimal("1")),),
             ),
             SecCalculationStatus.INCONSISTENT,
         ),
@@ -651,9 +641,7 @@ def test_aie_owned_reconciler_preserves_fail_closed_calculation_states(
 
 def test_aie_owned_reconciler_can_drive_end_to_end_fact_admission() -> None:
     facts = candidate_set(processor_fact(raw_value="1000000000"))
-    reconciler = DeterministicSecFactReconciler(
-        FakeInspector(parent=None, components=())
-    )
+    reconciler = DeterministicSecFactReconciler(FakeInspector(parent=None, components=()))
 
     result = service(reconciler).execute(candidate_set=facts, request=revenue_request())
 
