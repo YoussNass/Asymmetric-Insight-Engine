@@ -251,7 +251,9 @@ class SecEdgarSubmissionsProvider:
             for index, ticker in enumerate(tickers)
         )
         if len(ticker_exchange_pairs) != len(set(ticker_exchange_pairs)):
-            raise SecSubmissionCatalogPayloadError("SEC ticker and exchange aliases contain duplicates")
+            raise SecSubmissionCatalogPayloadError(
+                "SEC ticker and exchange aliases contain duplicates"
+            )
 
         filings = self._object(root.get("filings"), "filings")
         recent = self._object(filings.get("recent"), "filings.recent")
