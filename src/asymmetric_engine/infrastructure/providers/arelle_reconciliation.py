@@ -58,7 +58,9 @@ class PinnedArelleStatementInspectorBridge:
             candidate_set.source_document_id,
         )
         if document.content_hash != candidate_set.source_content_hash:
-            raise ArelleBridgeError("candidate set source hash does not match verified SEC evidence")
+            raise ArelleBridgeError(
+                "candidate set source hash does not match verified SEC evidence"
+            )
         if document.provider_version != candidate_set.accession:
             raise ArelleBridgeError("candidate set accession does not match verified SEC evidence")
 
