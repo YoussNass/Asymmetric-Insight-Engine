@@ -193,7 +193,12 @@ class ExtractSecXbrlCandidates:
         unit_id = fact.unit_id.strip() if fact.unit_id is not None else None
         if unit_id == "":
             raise SecXbrlExtractionError("processor fact unit_id must not be blank")
-        numerator = tuple(sorted(cls._required_text(item, "unit_numerator") for item in fact.unit_numerator))
+        numerator = tuple(
+            sorted(
+                cls._required_text(item, "unit_numerator")
+                for item in fact.unit_numerator
+            )
+        )
         denominator = tuple(
             sorted(cls._required_text(item, "unit_denominator") for item in fact.unit_denominator)
         )
