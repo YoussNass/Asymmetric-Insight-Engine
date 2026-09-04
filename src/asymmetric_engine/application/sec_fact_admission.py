@@ -419,9 +419,15 @@ class AdmitSecReportedFact:
             reasons.append("missing_statement_role")
         if not reconciliation.statement_locator.strip():
             reasons.append("missing_statement_locator")
-        if not reconciliation.reconciler_name.strip() or not reconciliation.reconciler_version.strip():
+        if (
+            not reconciliation.reconciler_name.strip()
+            or not reconciliation.reconciler_version.strip()
+        ):
             reasons.append("missing_reconciler_identity")
-        if not reconciliation.inspector_name.strip() or not reconciliation.inspector_version.strip():
+        if (
+            not reconciliation.inspector_name.strip()
+            or not reconciliation.inspector_version.strip()
+        ):
             reasons.append("missing_statement_inspector_identity")
         if not reconciliation.calculation_detail.strip():
             reasons.append("missing_calculation_detail")
