@@ -32,49 +32,64 @@ candidate -> mapping + reconciliation -> canonical Underwriting fact
 
 ## Slice 11A — SEC source catalog and acquisition manifest
 
-Status: first implementation started on a branch based on merged Chapter 10.
+Status: implementation complete in Draft PR #32; ADR acceptance and merge remain separate gates.
 
-The first increment adds a strict parser for one exact `data.sec.gov/submissions/CIK##########.json`
-response. It:
+The slice provides a strict, deterministic source-universe path for one SEC CIK. It:
 
-- accepts a positive CIK rather than a ticker;
-- checks that the response CIK matches the request;
-- filters only the forms already admitted by ADR 0008;
-- produces exact CIK/accession references for the existing complete-submission provider;
-- hashes the exact catalog response bytes;
-- preserves acceptance metadata as non-authoritative text;
-- exposes older-history pages and refuses to call the snapshot complete while they remain unfetched;
-- rejects malformed parallel arrays, dates, accessions, duplicates, and inconsistent ticker/exchange
-  aliases.
+- accepts a positive CIK rather than a ticker and verifies the response CIK;
+- filters only Form 10-K, 10-K/A, 10-Q, and 10-Q/A;
+- preserves ticker/exchange values only as aliases from the exact catalog snapshot;
+- hashes the exact current submissions response bytes;
+- preserves acceptance metadata as non-authoritative text and never maps it to `available_at`;
+- parses every older-history page descriptor declared by the current response;
+- fetches every declared older page through an injected provider boundary;
+- reconciles page identity, filing counts, date ranges, CIK, and duplicate accessions;
+- refuses an expected-source manifest when a declared page is missing, duplicated, unexpected, or
+  inconsistent;
+- content-addresses the resulting expected filing universe;
+- emits exact CIK/accession references in deterministic order;
+- captures every manifest-declared complete submission through the existing append-only Evidence
+  Ledger ingestion path;
+- keeps provider tests deterministic and free of live SEC access in CI.
 
-This first increment does not yet perform a live HTTP request, persist the catalog snapshot, fetch
-older history pages, or ingest all discovered filing references. Those operations require the
-manifest and lifecycle contract to be accepted first.
+The provider still receives its byte-fetch operation from the outer runtime. Chapter 11A does not
+add a scheduler or hide live network access inside tests. A catalog hash identifies the exact
+snapshot used to build the manifest, while the complete-submission bytes remain the canonical
+filing evidence consumed downstream.
 
 ## Slice 11B — Versioned XBRL extraction
 
-The second slice will place a standards-compliant processor behind a narrow infrastructure port and
-produce immutable extraction candidates. A candidate retains:
+The second slice places a standards-compliant processor behind a narrow replaceable port and
+produces immutable extraction candidates. A candidate retains:
 
 - source document and accession;
+- source content hash;
 - taxonomy namespace and concept;
 - context and source locator;
 - instant or duration period;
-- unit and native currency;
+- unit and native currency when represented by the filing;
 - dimensions;
 - precision/decimals metadata;
-- extraction method and version.
+- raw value;
+- standards-processor identity and version;
+- AIE extraction method and version.
 
-Extraction candidates remain shadow data. They cannot satisfy Underwriting reported-fact inputs.
+Extraction candidates are shadow data. They cannot satisfy Underwriting reported-fact inputs and
+cannot gate, rank, size, allocate, or execute capital.
 
 ## Slice 11C — Canonical fact admission
 
-The final slice admits a deliberately small first vocabulary after reconciliation. Each metric
-family receives fixtures, mapping rules, ambiguity behavior, and a heterogeneous validation corpus.
+The final slice admits a deliberately small first vocabulary only after deterministic mapping and
+reconciliation. Each metric family receives fixtures, explicit mappings, ambiguity behavior, and a
+heterogeneous validation corpus.
 
-Initial candidates include revenue, operating income, net income, operating cash flow, capital
-expenditure inputs, cash, debt, diluted shares, stock-based compensation, and repurchases. Exact
-scope remains subject to ADR review because sector-specific meanings may require separate mappings.
+Initial cross-industry targets are revenue, operating income, net income, operating cash flow,
+capital expenditure, cash, debt, diluted weighted-average shares, diluted shares outstanding, and
+stock-based compensation. Metrics that cannot be reconciled unambiguously remain missing rather
+than being selected by a hidden heuristic.
+
+Every admitted fact must retain complete source-to-candidate-to-mapping lineage and be handed to the
+existing Underwriting owner rather than creating a second fundamental-analysis engine.
 
 ## Explicit limits
 
@@ -86,11 +101,12 @@ Chapter 11 does not provide:
 - AI-generated claims or causal hypotheses;
 - Market State;
 - automated sizing, optimization, or Learning feedback;
-- exact historical first-publication time where SEC does not provide it.
+- exact historical first-publication time where SEC does not establish it;
+- silent filling, forward filling, or heuristic concept selection.
 
 ## Exit criterion
 
-Chapter 11 is complete when a declared SEC issuer universe can be reconciled against an immutable
-expected-source manifest, all admitted filing versions are retained, a narrow accepted fact set can
-be deterministically regenerated and reconciled from exact source bytes, ambiguity fails closed,
-and every downstream fact retains complete point-in-time source lineage.
+Chapter 11 is complete when a declared SEC issuer universe can be reconciled against a
+content-addressed expected-source manifest, all admitted filing versions are retained, a narrow
+accepted fact set can be deterministically regenerated and reconciled from exact source bytes,
+ambiguity fails closed, and every downstream fact retains complete point-in-time source lineage.
