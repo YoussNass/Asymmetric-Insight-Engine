@@ -13,6 +13,7 @@ from asymmetric_engine.application.evidence_ingestion import AppendResult
 from asymmetric_engine.application.sec_xbrl_extraction import (
     ExtractSecXbrlCandidates,
     ProcessorXbrlFact,
+    SecXbrlCandidateSet,
     SecXbrlExtractionError,
     SecXbrlPeriodKind,
     validate_sec_xbrl_candidate_set_integrity,
@@ -94,7 +95,7 @@ class FakeProcessor:
         )
 
 
-def extracted_set():
+def extracted_set() -> SecXbrlCandidateSet:
     return ExtractSecXbrlCandidates(
         repository=FakeRepository(),
         processor=FakeProcessor(),
