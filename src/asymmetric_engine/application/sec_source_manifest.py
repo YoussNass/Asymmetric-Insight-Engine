@@ -8,7 +8,7 @@ from datetime import date
 from hashlib import sha256
 from typing import Protocol
 
-from asymmetric_engine.application.evidence_ingestion import AppendResult, IngestSourceDocument
+from asymmetric_engine.application.evidence_ingestion import AppendResult
 
 
 class SecSourceManifestError(ValueError):
@@ -121,6 +121,13 @@ class SecSubmissionsCatalogProvider(Protocol):
         """Fetch one exact older page declared by the current snapshot."""
 
 
+class SecSourceIngestor(Protocol):
+    """Narrow ingestion port used to capture one manifest-declared complete submission."""
+
+    def execute(self, reference: str) -> AppendResult:
+        """Ingest one exact source reference through the canonical Evidence Ledger path."""
+
+
 class BuildSecExpectedSourceManifest:
     """Reconcile every declared submissions page before claiming source-universe completeness."""
 
@@ -196,7 +203,11 @@ class BuildSecExpectedSourceManifest:
             )
 
         ordered_pages: list[SecSubmissionHistorySnapshot] = []
-        for descriptor in sorted(current.history_pages, key=lambda item: (item.filing_from, item.name)):
+        descriptors = sorted(
+            current.history_pages,
+            key=lambda item: (item.filing_from, item.name),
+        )
+        for descriptor in descriptors:
             snapshot = supplied_by_name[descriptor.name]
             if snapshot.cik != current.cik:
                 raise SecSourceManifestError("SEC history page CIK does not match current catalog")
@@ -238,10 +249,28 @@ class BuildSecExpectedSourceManifest:
         )
 
 
+class DiscoverSecExpectedSourceManifest:
+    """Fetch the current catalog and every declared older page before building the manifest."""
+
+    def __init__(self, provider: SecSubmissionsCatalogProvider) -> None:
+        self._provider = provider
+        self._builder = BuildSecExpectedSourceManifest()
+
+    def execute(self, cik: str) -> SecExpectedSourceManifest:
+        """Discover a complete admitted filing universe for one exact current catalog version."""
+
+        current = self._provider.fetch(cik)
+        history_pages = tuple(
+            self._provider.fetch_history_page(cik=current.cik, page=page)
+            for page in current.history_pages
+        )
+        return self._builder.execute(current=current, history_pages=history_pages)
+
+
 class CaptureSecExpectedSources:
     """Ingest every accession declared by a complete immutable expected-source manifest."""
 
-    def __init__(self, ingestor: IngestSourceDocument) -> None:
+    def __init__(self, ingestor: SecSourceIngestor) -> None:
         self._ingestor = ingestor
 
     def execute(self, manifest: SecExpectedSourceManifest) -> tuple[AppendResult, ...]:
