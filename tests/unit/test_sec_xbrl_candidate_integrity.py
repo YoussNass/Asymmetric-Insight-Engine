@@ -130,9 +130,7 @@ def test_set_fingerprint_and_extraction_id_tampering_are_detected() -> None:
     result = extracted_set()
 
     with pytest.raises(SecXbrlExtractionError, match="fingerprint"):
-        validate_sec_xbrl_candidate_set_integrity(
-            replace(result, input_fingerprint="0" * 64)
-        )
+        validate_sec_xbrl_candidate_set_integrity(replace(result, input_fingerprint="0" * 64))
     with pytest.raises(SecXbrlExtractionError, match="extraction id"):
         validate_sec_xbrl_candidate_set_integrity(
             replace(result, extraction_id=UUID("55555555-5555-5555-5555-555555555555"))
