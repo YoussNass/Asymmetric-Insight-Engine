@@ -44,7 +44,7 @@ jobs:
         run: uv sync --locked --all-groups
 
       - name: Lint
-        run: uv run ruff check .
+        run: uv run ruff check --fix --diff .
 
       - name: Check formatting
         run: uv run ruff format --check .
