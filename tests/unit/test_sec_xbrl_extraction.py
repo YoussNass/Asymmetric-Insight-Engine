@@ -235,9 +235,7 @@ def test_shadow_extraction_rejects_duplicate_processor_facts() -> None:
         (
             replace(
                 cash_fact(),
-                dimensions=(
-                    replace(cash_fact().dimensions[0], member_namespace=None),
-                ),
+                dimensions=(replace(cash_fact().dimensions[0], member_namespace=None),),
             ),
             "explicit XBRL dimensions require",
         ),
