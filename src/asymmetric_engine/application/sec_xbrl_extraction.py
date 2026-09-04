@@ -251,11 +251,17 @@ def validate_sec_xbrl_candidate_set_integrity(candidate_set: SecXbrlCandidateSet
         if candidate.processor_name != candidate_set.processor_name:
             raise SecXbrlExtractionError("SEC XBRL candidate processor name drifted from its set")
         if candidate.processor_version != candidate_set.processor_version:
-            raise SecXbrlExtractionError("SEC XBRL candidate processor version drifted from its set")
+            raise SecXbrlExtractionError(
+                "SEC XBRL candidate processor version drifted from its set"
+            )
         if candidate.extraction_method != candidate_set.extraction_method:
-            raise SecXbrlExtractionError("SEC XBRL candidate extraction method drifted from its set")
+            raise SecXbrlExtractionError(
+                "SEC XBRL candidate extraction method drifted from its set"
+            )
         if candidate.extraction_version != candidate_set.extraction_version:
-            raise SecXbrlExtractionError("SEC XBRL candidate extraction version drifted from its set")
+            raise SecXbrlExtractionError(
+                "SEC XBRL candidate extraction version drifted from its set"
+            )
         if candidate.candidate_id in seen_candidate_ids:
             raise SecXbrlExtractionError("SEC XBRL candidate set contains duplicate candidate ids")
         seen_candidate_ids.add(candidate.candidate_id)
@@ -268,7 +274,9 @@ def validate_sec_xbrl_candidate_set_integrity(candidate_set: SecXbrlCandidateSet
             serialized_fact=_serialize_fact(_candidate_as_processor_fact(candidate)),
         )
         if candidate.candidate_id != expected_candidate_id:
-            raise SecXbrlExtractionError("SEC XBRL candidate content address does not match payload")
+            raise SecXbrlExtractionError(
+                "SEC XBRL candidate content address does not match payload"
+            )
 
     expected_fingerprint = _candidate_set_fingerprint(candidate_set)
     if candidate_set.input_fingerprint != expected_fingerprint:
@@ -278,7 +286,9 @@ def validate_sec_xbrl_candidate_set_integrity(candidate_set: SecXbrlCandidateSet
         f"asymmetric-insight-engine:sec-xbrl-shadow:{expected_fingerprint}",
     )
     if candidate_set.extraction_id != expected_extraction_id:
-        raise SecXbrlExtractionError("SEC XBRL extraction id does not match candidate-set fingerprint")
+        raise SecXbrlExtractionError(
+            "SEC XBRL extraction id does not match candidate-set fingerprint"
+        )
 
 
 class ExtractSecXbrlCandidates:
