@@ -72,9 +72,7 @@ def history_snapshot() -> SecSubmissionHistorySnapshot:
             entry("0000320193-23-000001", filed_on=date(2023, 3, 1)),
             entry("0000320193-24-000001", filed_on=date(2024, 3, 1), form="10-Q"),
         ),
-        source_uri=(
-            "https://data.sec.gov/submissions/CIK0000320193-submissions-001.json"
-        ),
+        source_uri="https://data.sec.gov/submissions/CIK0000320193-submissions-001.json",
         content_hash="b" * 64,
         total_filings=2,
         content=b"history",
@@ -147,7 +145,12 @@ def test_manifest_without_declared_history_pages_is_valid_and_complete() -> None
             (
                 replace(
                     history_snapshot(),
-                    entries=(entry("0000320193-24-000001", filed_on=date(2025, 1, 1)),),
+                    entries=(
+                        entry(
+                            "0000320193-24-000001",
+                            filed_on=date(2025, 1, 1),
+                        ),
+                    ),
                 ),
             ),
             "out-of-range",
