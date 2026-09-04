@@ -38,9 +38,7 @@ class SecCompleteSubmissionEntryPointExtractor:
         pattern = re.compile(rb"<" + name + rb">[ \t]*([^\r\n<]+)", re.IGNORECASE)
         match = pattern.search(block)
         if match is None:
-            raise ArelleBridgeError(
-                f"SEC submission document is missing {name.decode('ascii')}"
-            )
+            raise ArelleBridgeError(f"SEC submission document is missing {name.decode('ascii')}")
         try:
             value = match.group(1).decode("utf-8", errors="strict").strip()
         except UnicodeDecodeError as error:
