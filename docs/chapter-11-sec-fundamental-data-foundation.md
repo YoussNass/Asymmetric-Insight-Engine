@@ -32,8 +32,8 @@ candidate -> mapping + reconciliation -> canonical Underwriting fact
 
 ## Slice 11A — SEC source catalog and acquisition manifest
 
-Status: implementation complete in PR #32; owner accepted ADR 0024 and authorized the
-Chapter 11 merges on 2026-09-09. Closure requires the complete stack and green CI on main.
+Status: implementation complete in PR #32, integrated before PRs #33 and #34.
+Owner acceptance and separate merge authorization were recorded on 2026-09-09.
 
 The slice provides a strict, deterministic source-universe path for one SEC CIK. It:
 
@@ -75,6 +75,11 @@ produces immutable extraction candidates. A candidate retains:
 - standards-processor identity and version;
 - AIE extraction method and version.
 
+The Arelle bridges require reviewed version 2.44.5. The actual processor and statement inspector
+are external injected callables, not a bundled Arelle runtime or a hidden core dependency. The
+extraction bridge selects one admitted primary document from verified complete-submission bytes.
+Candidate sets are content-addressed and integrity-checked before downstream use.
+
 Extraction candidates are shadow data. They cannot satisfy Underwriting reported-fact inputs and
 cannot gate, rank, size, allocate, or execute capital.
 
@@ -84,10 +89,20 @@ The final slice admits a deliberately small first vocabulary only after determin
 reconciliation. Each metric family receives fixtures, explicit mappings, ambiguity behavior, and a
 heterogeneous validation corpus.
 
-Initial cross-industry targets are revenue, operating income, net income, operating cash flow,
-capital expenditure, cash, debt, diluted weighted-average shares, diluted shares outstanding, and
-stock-based compensation. Metrics that cannot be reconciled unambiguously remain missing rather
-than being selected by a hidden heuristic.
+The eight admitted v1 metric families are revenue, gross profit, operating income, net income,
+operating cash flow, capital expenditures, diluted weighted-average shares, and share-based
+compensation. Only admitted standard-taxonomy, dimensionless, exact-period candidates qualify;
+native money and shares are normalized to the existing million-unit contracts without FX.
+
+`cash_and_investments`, `total_debt`, and `diluted_shares_outstanding` remain unsupported in v1.
+They require separately reviewed semantic composition and reconciliation rules. Unknown issuer
+extensions, competing concepts, incompatible units, and ambiguous contexts fail closed.
+
+AIE owns `DeterministicSecFactReconciler`: the injected inspector supplies untrusted statement and
+calculation observations, while AIE checks exact statement equality and weighted calculation sums.
+Incomplete or inconsistent relationships fail closed; `not_applicable` is explicit when no
+calculation relationship is declared. Exact equality deliberately rejects some rounded filings;
+there is no implicit rounding tolerance.
 
 Every admitted fact must retain complete source-to-candidate-to-mapping lineage and be handed to the
 existing Underwriting owner rather than creating a second fundamental-analysis engine.
@@ -111,3 +126,23 @@ Chapter 11 is complete when a declared SEC issuer universe can be reconciled aga
 content-addressed expected-source manifest, all admitted filing versions are retained, a narrow
 accepted fact set can be deterministically regenerated and reconciled from exact source bytes,
 ambiguity fails closed, and every downstream fact retains complete point-in-time source lineage.
+
+## Formal closure record
+
+Owner acceptance of ADR 0024 and separate authorization for all three merges were recorded on
+2026-09-09. Delivery order is PR #32 (11A), PR #33 (11B), then PR #34 (11C), each reaching main
+through a merge commit after required checks pass. No new capability is part of this closure.
+
+Status: **CLOSED / CANONICAL / FUNCTIONING** once PR #34 is merged and its resulting main commit
+passes all three required CI jobs. The PR merge records and the CI run on that exact main commit
+are the authoritative completion evidence; before those gates pass this record is pending closure.
+
+Validation covers deterministic catalog/capture fixtures, shadow integrity and pinned processor
+boundaries, all eight metric families, and fail-closed reconciliation/lineage cases. It does not
+claim a bundled live Arelle deployment or exhaustive real-world issuer coverage. Local validation
+was unavailable because `uv` was not installed; only green corresponding CI jobs attest the
+required checks, including lint, formatting, typing, tests, doctor, package and container builds.
+
+Accepted non-blockers remain: externally injected Arelle runtime, exact reconciliation without
+rounding tolerance, no acceptance-to-`available_at` inference, and the three unsupported metrics
+listed above. Amendments and restatements remain additive. Deferred capabilities stay deferred.
