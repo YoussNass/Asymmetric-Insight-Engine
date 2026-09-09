@@ -8,14 +8,14 @@ implementation record.
 
 At the time of this roadmap:
 
-- Chapters 2 through 9 are complete in `main`;
+- Chapters 2 through 10 are complete in `main`;
 - factual Portfolio State, Portfolio Exposure, Portfolio Fit, Marginal Allocation, owner policy,
   replacement, capital-flow policy, point-in-time Execution, decision-level Learning, and the
   typed `aie-api-v1` product boundary are canonical;
 - Chapter 9A, 9B, and 9C are complete under accepted ADR 0020, ADR 0021, and ADR 0022; their
   integrated implementation reached `main` through PR #30;
-- Chapter 10 is the technically complete prospective-product-composition review candidate under
-  accepted ADR 0023 and Draft PR #31; merge authorization remains separate;
+- Chapter 10 is complete under accepted ADR 0023 and reached `main` through PR #31;
+- Chapter 11 is the active SEC fundamental-data-foundation proposal under ADR 0024;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -421,9 +421,8 @@ Chapter 9 is complete.
 **Purpose:** operate the accepted analytical and product slices as one explicit local prospective
 workflow without creating another financial engine.
 
-**Status:** technically complete review candidate under accepted ADR 0023 and Draft PR #31,
-retargeted and revalidated against `main` after the Chapter 9 integration merged through PR #30;
-merge authorization remains separate.
+**Status:** complete under accepted ADR 0023 and integrated into `main` through PR #31 on
+2026-09-03.
 
 The slice adds:
 
@@ -445,7 +444,37 @@ The accepted contract is documented in
 Exit criterion: a deterministic integration crosses real evidence storage, canonical Causal and
 Underwriting intake, immutable product persistence, and configured downstream API/workspace output;
 all stores fail closed outside explicit initialization, all repository checks pass on the exact
-review head, and the owner explicitly accepts ADR 0023. Merge authorization remains separate.
+review head, and the owner explicitly accepts ADR 0023.
+
+Chapter 10 is complete.
+
+### Chapter 11 — Point-in-Time SEC Fundamental Data Foundation
+
+**Purpose:** replace manual SEC filing selection and fundamental-fact transcription with a
+replayable, accession-bound source-to-fact path without granting a parser decision authority.
+
+**Status:** first implementation candidate under proposed ADR 0024, based on the Chapter 10 merge.
+
+The chapter is divided into three acceptance slices:
+
+1. **11A — catalog and acquisition manifest:** discover admitted filing references by CIK, retain
+   catalog fingerprints and explicit older-history gaps, then acquire exact complete submissions;
+2. **11B — shadow XBRL extraction:** retain concept, context, unit, period, dimensions, locator, and
+   extraction version without creating canonical financial truth;
+3. **11C — canonical fact admission:** map and reconcile a narrow fact vocabulary before the
+   existing Underwriting owner may consume it.
+
+The proprietary AIE layer owns point-in-time identity, semantic mapping, reconciliation, versioning,
+and source-to-decision lineage. It does not reimplement the XBRL standard processor and does not
+silently treat current aggregate Company Facts data as historical truth.
+
+The proposed contract is documented in
+[`chapter-11-sec-fundamental-data-foundation.md`](chapter-11-sec-fundamental-data-foundation.md) and
+[`ADR 0024`](adr/0024-point-in-time-sec-fundamental-data-foundation.md).
+
+Exit criterion: a declared SEC universe has an immutable expected-source manifest, admitted filing
+versions are captured additively, and a narrow reconciled fact set can be regenerated from exact
+source bytes with complete point-in-time lineage and fail-closed ambiguity.
 
 ## Portfolio concepts that remain policies or state
 
@@ -489,6 +518,20 @@ Deferred capabilities remain visible and may graduate only after the listed trig
 | Monte Carlo/Bayesian optimizer | `REJECT` as V1 default | Calibrated distributions, covariance, and benchmark | Simpler marginal comparison has a measured, reproducible failure | Experimental allocation adapter |
 
 No deferred capability may become an active default solely because synthetic tests pass.
+
+## Post-Chapter 10 priority order
+
+Priority states sequencing intent only. It does not override a capability's prerequisite,
+graduation trigger, classification, or ADR gate.
+
+| Priority | Capabilities | Admission condition |
+| --- | --- | --- |
+| `P0 — data foundation` | SEC catalog/lifecycle, XBRL normalization, market prices, instrument master, scheduling and coverage monitoring | Required for repeatable point-in-time operation; each provider remains separately admitted |
+| `P1 — understand throughput` | Automated Insight Discovery, Special Situations discovery, Opportunity archetypes | Expected-source universe, validated extraction, and enough real cases to measure completeness |
+| `P2 — concrete portfolio evidence` | Supplier dependencies, catalyst clustering, multi-level fund look-through, advanced tax-lot optimization | A documented real holding or decision is materially affected by the missing evidence |
+| `P3 — contextual risk and timing` | Market State, factor exposure/crowding, dynamic correlation, effective independent bets, tail-risk aggregation | Prospective decisions expose repeatable failures of the simpler execution or exposure baseline |
+| `P4 — aggregate learning` | Factor-adjusted alpha, aggregate risk-adjusted Learning metrics | Adequate prospective sample and an approved minimum-sample policy |
+| `Not a V1 default` | Automated sizing, automatic Learning feedback, Monte Carlo/Bayesian optimizer | Remain rejected until their stronger calibration, governance, and measured-failure gates are met |
 
 ## Standard decision card
 

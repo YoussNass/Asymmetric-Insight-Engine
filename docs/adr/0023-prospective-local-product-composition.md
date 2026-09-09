@@ -206,5 +206,5 @@ ADR 0023 may move to `Accepted` only when:
 ## Acceptance record
 
 The owner accepted this ADR on 2026-09-03 after the Chapter 10 review head satisfied the local
-architecture, lint, formatting, type-checking, test, doctor, and package-build gates. Authorization
-to merge Draft PR #31 remains a separate governance decision.
+architecture, lint, formatting, type-checking, test, doctor, and package-build gates. The owner
+subsequently merged PR #31 on 2026-09-03.
