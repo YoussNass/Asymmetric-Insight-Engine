@@ -33,6 +33,7 @@ candidate -> mapping + reconciliation -> canonical Underwriting fact
 ## Slice 11A — SEC source catalog and acquisition manifest
 
 Status: implementation complete in PR #32, integrated before PRs #33 and #34.
+Owner acceptance and separate merge authorization were recorded on 2026-09-09.
 
 The slice provides a strict, deterministic source-universe path for one SEC CIK. It:
 

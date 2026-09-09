@@ -1,7 +1,12 @@
 # ADR 0024: Own a point-in-time SEC fundamental-data foundation
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-03
+- Owner acceptance recorded: 2026-09-09
+
+The owner explicitly accepted ADR 0024 and separately authorized merging Chapter 11 PRs
+#32, #33, and #34. Acceptance preserves the narrow v1 scope and all temporal and
+architectural boundaries below; it grants no authority to deferred capabilities.
 
 ## Context
 
