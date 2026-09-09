@@ -4,7 +4,7 @@ Type: evidence acquisition and normalization capability
 
 Complexity classes: `CORE NOW` acquisition; `EXPERIMENTAL` extraction until fact admission
 
-Governing decision: proposed ADR 0024
+Governing decision: accepted ADR 0024
 
 Dependency: Chapter 10 / ADR 0023
 
@@ -32,7 +32,8 @@ candidate -> mapping + reconciliation -> canonical Underwriting fact
 
 ## Slice 11A — SEC source catalog and acquisition manifest
 
-Status: implementation complete in Draft PR #32; ADR acceptance and merge remain separate gates.
+Status: implementation complete in PR #32; owner accepted ADR 0024 and authorized the
+Chapter 11 merges on 2026-09-09. Closure requires the complete stack and green CI on main.
 
 The slice provides a strict, deterministic source-universe path for one SEC CIK. It:
 
