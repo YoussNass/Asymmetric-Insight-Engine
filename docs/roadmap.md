@@ -15,7 +15,8 @@ At the time of this roadmap:
 - Chapter 9A, 9B, and 9C are complete under accepted ADR 0020, ADR 0021, and ADR 0022; their
   integrated implementation reached `main` through PR #30;
 - Chapter 10 is complete under accepted ADR 0023 and reached `main` through PR #31;
-- Chapter 11 is the active SEC fundamental-data-foundation proposal under ADR 0024;
+- Chapter 11 implements the accepted ADR 0024 scope through PRs #32–#34; formal closure
+  is gated by the final merge and green main CI;
 - Market State remains unimplemented and deferred in the canonical engine;
 - the earlier Portfolio Exposure Graph spike is research material only under ADR 0006.
 
@@ -453,7 +454,9 @@ Chapter 10 is complete.
 **Purpose:** replace manual SEC filing selection and fundamental-fact transcription with a
 replayable, accession-bound source-to-fact path without granting a parser decision authority.
 
-**Status:** first implementation candidate under proposed ADR 0024, based on the Chapter 10 merge.
+**Status:** implementation complete under accepted ADR 0024 through PRs #32–#34;
+CLOSED / CANONICAL / FUNCTIONING upon final merge and green CI on main. See the chapter closure
+record for validation evidence and accepted non-blockers.
 
 The chapter is divided into three acceptance slices:
 
@@ -468,7 +471,7 @@ The proprietary AIE layer owns point-in-time identity, semantic mapping, reconci
 and source-to-decision lineage. It does not reimplement the XBRL standard processor and does not
 silently treat current aggregate Company Facts data as historical truth.
 
-The proposed contract is documented in
+The accepted contract is documented in
 [`chapter-11-sec-fundamental-data-foundation.md`](chapter-11-sec-fundamental-data-foundation.md) and
 [`ADR 0024`](adr/0024-point-in-time-sec-fundamental-data-foundation.md).
 

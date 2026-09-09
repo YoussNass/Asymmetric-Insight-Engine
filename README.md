@@ -158,11 +158,11 @@ explicit local composition root, strict Causal/Underwriting intake, conservative
 evidence ingestion, and explicit fail-closed store initialization. See
 [`Chapter 10: Prospective Operation & Product Composition MVP`](docs/chapter-10-prospective-operation-mvp.md).
 
-Chapter 11 is now an active proposal under
-[`ADR 0024`](docs/adr/0024-point-in-time-sec-fundamental-data-foundation.md). Its first slice begins a
-strict CIK-based SEC submissions catalog before later accession capture, shadow XBRL extraction,
-and metric-by-metric canonical fact admission. It remains a separate review scope built on the
-merged Chapter 10 foundation. See
+Chapter 11 implements the SEC fundamental-data foundation under accepted
+[`ADR 0024`](docs/adr/0024-point-in-time-sec-fundamental-data-foundation.md): content-addressed
+source manifests and capture, shadow XBRL extraction through pinned external Arelle bridges,
+and eight narrowly reconciled canonical metric families. PRs #32–#34 form its delivery stack;
+formal closure requires the final merge and green main CI. Scope, validation and accepted limits:
 [`Chapter 11: Point-in-Time SEC Fundamental Data Foundation`](docs/chapter-11-sec-fundamental-data-foundation.md).
 
 Live brokerage actions, calibrated automatic sizing, advanced
