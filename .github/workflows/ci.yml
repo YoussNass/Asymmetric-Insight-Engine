@@ -61,6 +61,34 @@ jobs:
       - name: Build package artifacts
         run: uv build
 
+  frontend:
+    name: Frontend / canonical contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+      - name: Set up Python and locked dependencies
+        run: uv sync --locked --all-groups --python 3.12
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Test actual Python-to-TypeScript contract
+        run: npm --prefix frontend test
+      - name: Type check and build frontend
+        run: npm --prefix frontend run build
+
   container:
     name: Container / Python 3.12
     runs-on: ubuntu-latest
