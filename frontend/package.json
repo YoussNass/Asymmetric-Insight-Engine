@@ -1,0 +1,26 @@
+{
+  "name": "aie-product-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "pretest": "cd .. && uv run python -m tests.product_ui_contract frontend/.contract-fixture.json"
+  },
+  "engines": { "node": ">=22.12.0" },
+  "dependencies": {
+    "@tanstack/react-query": "5.102.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "~5.9.3",
+    "vite": "8.2.2",
+    "vitest": "^4.0.0"
+  }
+}

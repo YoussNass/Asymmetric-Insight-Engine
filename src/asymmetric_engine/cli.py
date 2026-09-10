@@ -40,6 +40,7 @@ from asymmetric_engine.infrastructure.providers import (
     SecEdgarProvider,
 )
 from asymmetric_engine.interfaces.operator_workspace import OperatorWorkspace
+from asymmetric_engine.interfaces.product_ui import ProductUiService, serve_product_ui
 from asymmetric_engine.interfaces.prospective_intake import (
     BuildCausalAnalysisRequest,
     BuildOpportunityStateRequest,
@@ -144,6 +145,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_product_store_arguments(product_workspace)
     product_workspace.add_argument("--port", type=int, default=8765)
+    product_ui = product_commands.add_parser("ui", help="Open the local AIE product frontend.")
+    _add_product_store_arguments(product_ui)
+    product_ui.add_argument("--frontend-dist", type=Path, required=True)
+    product_ui.add_argument("--port", type=int, default=8765)
+    product_ui.add_argument(
+        "--reference-data",
+        action="store_true",
+        help="Label this session as deterministic demonstration data.",
+    )
     product_intake = product_commands.add_parser(
         "intake",
         help="Build and persist canonical Causal Analysis or Opportunity State from JSON input.",
@@ -425,6 +435,21 @@ def _run_product_workspace(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_product_ui(args: argparse.Namespace) -> int:
+    if not (args.frontend_dist / "index.html").is_file():
+        raise CliUsageError("Build the frontend and provide its dist directory")
+    runtime = build_local_product_runtime(_product_paths(args))
+    service = ProductUiService(
+        runtime.workspace,
+        intake=runtime.intake,
+        store=runtime.product_store,
+        reference_data=args.reference_data,
+    )
+    print(f"AIE product UI: http://127.0.0.1:{args.port}/app/")
+    serve_product_ui(service, args.frontend_dist, port=args.port)
+    return 0
+
+
 def _run_product_intake(args: argparse.Namespace) -> int:
     if not args.request.is_file():
         raise CliUsageError(f"intake request file does not exist: {args.request}")
@@ -493,6 +518,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return _run_product_init(args)
             if args.product_command == "workspace":
                 return _run_product_workspace(args)
+            if args.product_command == "ui":
+                return _run_product_ui(args)
             if args.product_command == "intake":
                 return _run_product_intake(args)
         except (CliUsageError, KeyError, OSError, sqlite3.Error, ValueError) as error:

@@ -479,6 +479,21 @@ Exit criterion: a declared SEC universe has an immutable expected-source manifes
 versions are captured additively, and a narrow reconciled fact set can be regenerated from exact
 source bytes with complete point-in-time lineage and fail-closed ambiguity.
 
+### Chapter 12 — Local decision-first product frontend (proposed)
+
+Owner-requested interface slice under proposed ADR 0025: Home, Analysis, contextual
+Evidence, factual Portfolio and marginal Decision with exact linked Fits. This is an
+interface capability (`CORE NOW` proposed), not a new financial context or method.
+The existing operator workspace remains available. See
+[`Chapter 12`](chapter-12-product-frontend.md) and the
+[`UX review`](frontend-ux-review.md).
+
+Exit criteria: canonical output/contract tests, explicit failure states, local-only
+security, usable evidence-to-decision navigation and prospective usability acceptance.
+JSON dossier intake is transitional. Guided authoring, natural-language interpretation,
+advanced graphs and additional dashboards remain subsequent UI work; they do not
+promote deferred analytical capabilities or supersede the data-foundation priorities.
+
 ## Portfolio concepts that remain policies or state
 
 The following do not receive independent engines or chapters:
