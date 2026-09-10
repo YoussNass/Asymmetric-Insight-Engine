@@ -1,7 +1,9 @@
 # Chapter 12 — Product frontend 0.1
 
-Status: implementation for review under **proposed ADR 0025**. Not a chapter closure
-or production-readiness declaration. The operator workspace remains available.
+Status: **APPROVED / CANONICAL / FUNCTIONING** on 2026-09-10 under accepted ADR 0025,
+subject to merge and green CI on `main`. This approves the bounded local 0.1 slice,
+not remote-production readiness or unimplemented future screens. The operator workspace
+remains available.
 
 ## Scope
 
@@ -69,9 +71,11 @@ so the TypeScript transport is checked against the canonical runtime rather than
 separately invented mock API. Python tests cover integrity rejection, canonical output
 equivalence, local-origin protection, bounded input and explicit submission.
 
-## Acceptance still required
+## Post-acceptance usability validation
 
-Technical tests are not browser/visual QA. Check keyboard-only use, focus return from
+Technical tests are not browser/visual certification. The remote review environment
+could not reach the loopback-only server, so the following checks are explicit
+non-blocking follow-up work: keyboard-only use, focus return from
 drawers, 200% text enlargement, narrow screens, loading/error states, and these tasks:
 
 1. Locate the reason for a decision and its strongest counterargument.
@@ -81,5 +85,13 @@ drawers, 200% text enlargement, narrow screens, loading/error states, and these 
 5. Recognize missing evidence and a valid no-allocation outcome without reading raw JSON.
 
 Record completion, misunderstandings and critical errors before declaring the UI
-simple, accessible or ready for routine use. Guided input is the next product-UX gap;
+accessible or ready for routine use. Guided input is the next product-UX gap;
 advanced graphs are not a prerequisite for fixing it.
+
+## Approval evidence
+
+The acceptance review found no blocking architectural, security, temporal-integrity,
+or financial-authority violations. CI run 256 passed Python 3.12/3.13 quality jobs,
+the container job, and the Python-to-TypeScript frontend contract/build job. Local
+validation passed 538 Python tests at 90.41% total coverage and 8 frontend tests.
+The approved rollback is the unchanged operator workspace; no record migration is needed.

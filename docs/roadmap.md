@@ -479,11 +479,14 @@ Exit criterion: a declared SEC universe has an immutable expected-source manifes
 versions are captured additively, and a narrow reconciled fact set can be regenerated from exact
 source bytes with complete point-in-time lineage and fail-closed ambiguity.
 
-### Chapter 12 — Local decision-first product frontend (proposed)
+### Chapter 12 — Local decision-first product frontend
 
-Owner-requested interface slice under proposed ADR 0025: Home, Analysis, contextual
+**Status:** approved on 2026-09-10 under accepted ADR 0025; canonical and functioning
+upon merge and green CI on `main`.
+
+Owner-requested interface slice: Home, Analysis, contextual
 Evidence, factual Portfolio and marginal Decision with exact linked Fits. This is an
-interface capability (`CORE NOW` proposed), not a new financial context or method.
+interface capability (`CORE NOW`), not a new financial context or method.
 The existing operator workspace remains available. See
 [`Chapter 12`](chapter-12-product-frontend.md) and the
 [`UX review`](frontend-ux-review.md).

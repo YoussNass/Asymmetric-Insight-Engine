@@ -1,6 +1,6 @@
 # ADR 0025 — Local decision-first product frontend
 
-Status: **Proposed**. Owner acceptance and merge are required; this draft does not
+Status: **Accepted** on 2026-09-10 by explicit owner approval. This ADR does not
 change any accepted financial method or universe.
 
 ## Context
@@ -33,8 +33,8 @@ until an actual interaction needs them. Pin dependencies and commit the npm lock
 
 ## Complexity admission
 
-Type: interface capability, not a bounded context. Proposed class: `CORE NOW`
-for inspection and explicit submission only, after acceptance.
+Type: interface capability, not a bounded context. Class: `CORE NOW`
+for inspection and explicit submission only.
 
 | Gate | Bounded justification |
 | --- | --- |

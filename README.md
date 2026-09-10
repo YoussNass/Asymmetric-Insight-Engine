@@ -246,7 +246,7 @@ docker build --tag asymmetric-insight-engine:local .
 docker run --rm asymmetric-insight-engine:local
 ```
 
-## Optional product frontend (Chapter 12 proposal)
+## Optional product frontend (Chapter 12)
 
 The decision-first Italian UI is an opt-in local interface alongside the operator
 workspace. It displays canonical saved analysis, evidence, portfolio and marginal
@@ -255,7 +255,7 @@ perform automatic analysis from a ticker or natural-language question.
 
 See [setup and reference demonstration](docs/chapter-12-product-frontend.md),
 [UX review](docs/frontend-ux-review.md), and
-[proposed ADR 0025](docs/adr/0025-local-decision-first-product-frontend.md).
+[accepted ADR 0025](docs/adr/0025-local-decision-first-product-frontend.md).
 
 ## Repository map
 
